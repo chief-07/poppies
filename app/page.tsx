@@ -13,12 +13,11 @@ export default function Home() {
       <div className="absolute inset-0 bg-black/15 pointer-events-none" />
 
       {/* 
-        Text placed in the central clearing, directly to the right of the lone central poppy:
-        The central flower is at ~42% left, 49% top.
-        The text begins at ~45%-46% left, perfectly nestled in the dark green clearing.
+        Positioned down a click (~51%) and right two clicks (~47.5%), 
+        tinted in #F7FFD9 with tight, natural serif kerning.
       */}
-      <div className="absolute top-[49%] left-[45%] -translate-y-1/2 z-10 select-none">
-        <h1 className="font-serif italic font-normal text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] text-[#FBF9F5] tracking-[0.14em] drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+      <div className="absolute top-[51%] left-[47.5%] -translate-y-1/2 z-10 select-none">
+        <h1 className="font-serif italic font-normal text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] text-[#F7FFD9] tracking-[0.04em] drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]">
           POPPIES
         </h1>
       </div>
