@@ -1,20 +1,24 @@
 export default function Home() {
   return (
-    <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#132216]">
+    <main className="relative min-h-screen w-full overflow-hidden bg-[#132216]">
       {/* Poppy Field Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-100"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
       />
 
-      {/* Subtle atmospheric vignette overlay */}
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[0.5px]" />
+      {/* Subtle atmospheric vignette */}
+      <div className="absolute inset-0 bg-black/15 pointer-events-none" />
 
-      {/* Centered Typography: Frank Ruhl Libre, Italics, POPPIES */}
-      <div className="relative z-10 text-center px-6 select-none animate-fade-in">
-        <h1 className="font-serif italic font-normal text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-[#FBF9F5] tracking-[0.08em] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]">
+      {/* 
+        Text placed in the central clearing, directly to the right of the lone central poppy:
+        The central flower is at ~42% left, 49% top.
+        The text begins at ~45%-46% left, perfectly nestled in the dark green clearing.
+      */}
+      <div className="absolute top-[49%] left-[45%] -translate-y-1/2 z-10 select-none">
+        <h1 className="font-serif italic font-normal text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] text-[#FBF9F5] tracking-[0.14em] drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
           POPPIES
         </h1>
       </div>
