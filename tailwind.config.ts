@@ -12,19 +12,21 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         poppy: {
+          green: "#28402a",
+          greenDark: "#1f3321",
           crimson: "#C24D36",
           dark: "#8D2817",
           light: "#E06B55",
         },
         paper: {
-          DEFAULT: "#FBF9F5",
+          DEFAULT: "#F7F7D9",
           warm: "#F5F2EB",
           dark: "#EFECE4",
         },
         ink: {
-          DEFAULT: "#1C1B1A",
-          muted: "#686663",
-          light: "#9A9792",
+          DEFAULT: "#28402a",
+          muted: "#556b57",
+          light: "#829984",
         },
       },
       fontFamily: {
