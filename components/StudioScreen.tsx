@@ -25,6 +25,7 @@ interface Inquiry {
   vignetteHighlightEntity?: string;
   hasAudio?: boolean;
   audioTrackName?: string;
+  entities?: CulturalEntity[];
 }
 
 interface CulturalEntity {
@@ -245,8 +246,14 @@ function getEntitiesForInquiry(inquiryId: string): CulturalEntity[] {
 export default function StudioScreen({ initialData, onAssembleDossier }: StudioScreenProps) {
   const characterName = initialData?.character?.name || "Shoujo A";
 
-  const [inquiries, setInquiries] = useState<Inquiry[]>(MOCK_INQUIRIES);
-  const [activeInquiryId, setActiveInquiryId] = useState<string>("playlist");
+  // Bind real live inquiries from backend if present, fallback to defaults
+  const liveInquiries: Inquiry[] =
+    initialData?.inquiries && initialData.inquiries.length > 0
+      ? initialData.inquiries
+      : MOCK_INQUIRIES;
+
+  const [inquiries, setInquiries] = useState<Inquiry[]>(liveInquiries);
+  const [activeInquiryId, setActiveInquiryId] = useState<string>(liveInquiries[0]?.id || "playlist");
   const [viewMode, setViewMode] = useState<"lookbook" | "index">("lookbook");
   const [steeringInput, setSteeringInput] = useState<string>("");
   const [isSteering, setIsSteering] = useState<boolean>(false);
@@ -262,7 +269,7 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
   const gainNodeRef = useRef<GainNode | null>(null);
 
   const activeInquiry = inquiries.find((i) => i.id === activeInquiryId) || inquiries[0];
-  const activeEntities = getEntitiesForInquiry(activeInquiry.id);
+  const activeEntities = activeInquiry.entities || getEntitiesForInquiry(activeInquiry.id);
 
   // Global keyboard listener: tapping keyboard activates prompt box & focus mode
   useEffect(() => {
@@ -353,33 +360,46 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
     }
   };
 
-  const handleSteer = () => {
-    if (!steeringInput.trim()) return;
-    setIsSteering(true);
+  // Live agentic steering: queries /api/steer to let the agent reason and discover new entities
+  const handleSteer = async () => {
+    if (!steeringInput.trim() || isSteering) return;
     const text = steeringInput.trim();
-    // If entered as a question or scene directive, dynamically add to inquiries list
-    if (
-      text.endsWith("?") ||
-      text.toLowerCase().startsWith("what") ||
-      text.toLowerCase().startsWith("where") ||
-      text.toLowerCase().startsWith("how") ||
-      text.toLowerCase().startsWith("scene:") ||
-      text.toLowerCase().startsWith("the ")
-    ) {
-      const cleanTitle = text.replace(/^scene:\s*/i, "");
+    setIsSteering(true);
+
+    try {
+      const res = await fetch("/api/steer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterName,
+          instruction: text,
+          existingSeeds: activeEntities.slice(0, 3).map((e) => e.name),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.inquiry) {
+        setInquiries((prev) => [...prev, data.inquiry]);
+        setActiveInquiryId(data.inquiry.id);
+      }
+    } catch (err) {
+      console.error("Live agent steering error:", err);
+      // Fallback local inquiry
       const newInquiry: Inquiry = {
         id: `inquiry-${Date.now()}`,
-        question: cleanTitle,
-        vignette: `Exploring a new scene: ${cleanTitle}`,
+        question: text.endsWith("?") ? text : `Exploring: ${text}`,
+        vignette: `Directed by creator: "${text}". Recalibrating cultural anchors for ${characterName}.`,
         hasAudio: false,
+        entities: activeEntities,
       };
       setInquiries((prev) => [...prev, newInquiry]);
       setActiveInquiryId(newInquiry.id);
+    } finally {
+      setSteeringInput("");
+      setIsSteering(false);
+      setIsPromptFocused(false);
+      promptInputRef.current?.blur();
     }
-    setSteeringInput("");
-    setIsSteering(false);
-    setIsPromptFocused(false);
-    promptInputRef.current?.blur();
   };
 
   const handleEntityClick = (entity: CulturalEntity) => {

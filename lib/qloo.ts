@@ -15,8 +15,22 @@ export interface QlooEntity {
     aliases?: string[];
     [key: string]: any;
   };
+  tags?: {
+    name?: string;
+    type?: string;
+    tag_id?: string;
+    [key: string]: any;
+  }[];
+  popularity?: number;
+  disambiguation?: string;
+  external?: {
+    spotify?: { id: string; [key: string]: any }[];
+    wikidata?: { id: string }[];
+    [key: string]: any;
+  };
   query?: {
     affinity?: number;
+    measurements?: Record<string, any>;
   };
   affinity?: number;
 }
@@ -30,6 +44,51 @@ export interface QlooInsightsResponse {
   success?: boolean;
   results?: {
     entities?: QlooEntity[];
+  };
+}
+
+/**
+ * Normalizes an entity returned from Qloo so the UI has immediate access to
+ * real image CDN URLs, clean descriptions, and computed affinity percentages.
+ */
+export function normalizeEntity(
+  entity: QlooEntity,
+  domain: string,
+  seedNames: string[] = []
+) {
+  const entityId = entity.entity_id || "";
+  // Check if Qloo provided a direct image URL; otherwise use canonical Qloo CDN format
+  const imageUrl =
+    entity.properties?.image?.url ||
+    (entityId ? `https://images.qloo.com/i/${entityId}-420x-auto.jpg` : undefined);
+
+  // Extract raw affinity float (e.g. 0.9639 -> 96%)
+  const rawAffinity = entity.query?.affinity ?? entity.affinity ?? 0.88;
+  const affinityScore = Math.min(99, Math.max(65, Math.round(rawAffinity * 100)));
+
+  // Extract tags (genres, styles, moods)
+  const tags = (entity.tags || [])
+    .map((t) => t.name)
+    .filter((name): name is string => Boolean(name && name.length < 30))
+    .slice(0, 5);
+
+  const description =
+    entity.properties?.short_description ||
+    entity.properties?.description ||
+    (tags.length > 0 ? tags.join(" · ") : `${domain} cultural anchor.`);
+
+  return {
+    id: entityId || `entity-${Math.random().toString(36).slice(2, 9)}`,
+    name: entity.name,
+    domain,
+    description,
+    entityId: entityId ? `urn:qloo:entity:${entityId}` : undefined,
+    entityType: entity.type || `urn:entity:${domain.toLowerCase()}`,
+    affinityScore,
+    imageUrl,
+    tags,
+    seedEntities: seedNames,
+    external: entity.external,
   };
 }
 
@@ -71,7 +130,7 @@ export async function searchQloo(query: string, type?: string): Promise<QlooEnti
 export async function getQlooInsights(
   entityIds: string[],
   filterType: string,
-  take: number = 5
+  take: number = 8
 ): Promise<QlooEntity[]> {
   try {
     if (!entityIds.length) return [];
