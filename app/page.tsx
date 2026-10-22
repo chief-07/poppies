@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowUpRight, ArrowRight } from "lucide-react";
 import ResolvingScreen from "@/components/ResolvingScreen";
+import StudioScreen from "@/components/StudioScreen";
 
-type ScreenState = "input" | "resolving" | "dossier";
+type ScreenState = "input" | "resolving" | "studio";
 
 export default function Home() {
   const [screenState, setScreenState] = useState<ScreenState>("input");
@@ -24,7 +25,6 @@ export default function Home() {
 
   const handleCreate = () => {
     if (!characterText.trim()) {
-      // Default to Tsukuru prompt if user clicks create with empty text
       setCharacterText(samplePrompts[0].text);
     }
     setScreenState("resolving");
@@ -32,7 +32,7 @@ export default function Home() {
 
   const handleResolutionComplete = (data: any) => {
     setResolvedData(data);
-    setScreenState("dossier");
+    setScreenState("studio");
   };
 
   // State 2: Resolving Screen (Matching mockup)
@@ -45,62 +45,13 @@ export default function Home() {
     );
   }
 
-  // State 3: Dossier Placeholder (Next screen to design together)
-  if (screenState === "dossier") {
+  // State 3: Co-Development Studio Screen (Matching mockup)
+  if (screenState === "studio") {
     return (
-      <main className="relative min-h-screen w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-12 px-4 sm:px-6">
-        <div
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-80"
-          style={{ backgroundImage: "url('/poppies-bg.jpg')" }}
-        />
-        <div
-          className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px]"
-          style={{
-            backgroundColor: "#28402a",
-            maskImage: "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
-          }}
-        />
-        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-8 text-[#F7F7D9]">
-          <div className="flex items-center justify-between border-b border-[#F7F7D9]/20 pb-4">
-            <h1 className="font-serif italic font-bold text-3xl sm:text-4xl">Tsukuru's Cultural Dossier</h1>
-            <button
-              onClick={() => setScreenState("input")}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-sm font-sans tracking-wide transition-all"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>New Character</span>
-            </button>
-          </div>
-
-          <div className="p-8 rounded-[36px] bg-[#F7F7D9] text-[#28402a] shadow-2xl flex flex-col gap-6">
-            <h2 className="font-serif font-bold text-2xl">Discovered Taste DNA via Qloo</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-[#28402a]/10">
-                <span className="text-xs uppercase font-bold tracking-wider opacity-75">Sonic Identity</span>
-                <p className="font-serif text-lg font-bold mt-1">
-                  {resolvedData?.discoveries?.music?.[0]?.name || "Ryuichi Sakamoto"}
-                </p>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#28402a]/10">
-                <span className="text-xs uppercase font-bold tracking-wider opacity-75">The Bookshelf</span>
-                <p className="font-serif text-lg font-bold mt-1">
-                  {resolvedData?.discoveries?.literature?.[0]?.name || "Post-war Existential Fiction"}
-                </p>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#28402a]/10">
-                <span className="text-xs uppercase font-bold tracking-wider opacity-75">The Objects</span>
-                <p className="font-serif text-lg font-bold mt-1">
-                  {resolvedData?.discoveries?.wardrobeAndObjects?.[0]?.name || "Hasami Porcelain & Raw Denim"}
-                </p>
-              </div>
-            </div>
-            <p className="font-serif italic text-base opacity-80 leading-relaxed">
-              Ready for the next screen mockup! Tell me what layout you'd like for the full living dossier.
-            </p>
-          </div>
-        </div>
-      </main>
+      <StudioScreen
+        initialData={resolvedData}
+        onAssembleDossier={() => alert("Dossier compilation ready! Let me know if you want a printable lookbook view.")}
+      />
     );
   }
 
