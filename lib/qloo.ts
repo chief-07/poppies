@@ -47,6 +47,40 @@ export interface QlooInsightsResponse {
   };
 }
 
+function cleanMojibake(str: string): string {
+  if (!str) return "";
+  try {
+    if (/[\u00C0-\u00FF]/.test(str)) {
+      return decodeURIComponent(escape(str));
+    }
+  } catch (e) {
+    // Fallback if escape/decode fails on broken multibyte sequences
+  }
+  return str
+    .replace(/Ã©/g, "é")
+    .replace(/Ã¨/g, "è")
+    .replace(/Ã /g, "à")
+    .replace(/Ã¢/g, "â")
+    .replace(/Ã®/g, "î")
+    .replace(/Ã¯/g, "ï")
+    .replace(/Ã´/g, "ô")
+    .replace(/Ã§/g, "ç")
+    .replace(/Ã«/g, "ë")
+    .replace(/Ã¡/g, "á")
+    .replace(/Ã­/g, "í")
+    .replace(/Ã³/g, "ó")
+    .replace(/Ãº/g, "ú")
+    .replace(/Ã±/g, "ñ")
+    .replace(/Ã‰/g, "É")
+    .replace(/â€”/g, "—")
+    .replace(/â€“/g, "–")
+    .replace(/â€™/g, "’")
+    .replace(/â€œ/g, "“")
+    .replace(/â€/g, "”")
+    .replace(/Å /g, "ō")
+    .replace(/Â/g, "");
+}
+
 /**
  * Normalizes an entity returned from Qloo so the UI has immediate access to
  * real image CDN URLs, clean descriptions, and computed affinity percentages.
@@ -62,26 +96,43 @@ export function normalizeEntity(
     entity.properties?.image?.url ||
     (entityId ? `https://images.qloo.com/i/${entityId}-420x-auto.jpg` : undefined);
 
+  // Clean entity name of Goodreads series artifacts like "(Series, #1)" or publisher tags
+  let cleanName = cleanMojibake((entity.name || "").trim());
+  cleanName = cleanName.replace(/\s*\([^)]*#\d+[^)]*\)/g, "");
+  cleanName = cleanName.replace(/\s*\((Vintage|Penguin|Oxford|Classic|Definitive)[^)]*\)/gi, "");
+  cleanName = cleanName.trim();
+
   // Extract raw affinity float (e.g. 0.9639 -> 96%)
   const rawAffinity = entity.query?.affinity ?? entity.affinity ?? 0.88;
   const affinityScore = Math.min(99, Math.max(65, Math.round(rawAffinity * 100)));
 
   // Extract tags (genres, styles, moods)
   const tags = (entity.tags || [])
-    .map((t) => t.name)
+    .map((t) => cleanMojibake(t.name || ""))
     .filter((name): name is string => Boolean(name && name.length < 30))
     .slice(0, 5);
 
-  const description =
+  let rawDesc = cleanMojibake(
     entity.properties?.short_description ||
-    entity.properties?.description ||
-    (tags.length > 0 ? tags.join(" · ") : `${domain} cultural anchor.`);
+      entity.properties?.description ||
+      (tags.length > 0 ? tags.join(" · ") : `${domain} cultural anchor.`)
+  );
+
+  // Clean up overlong Goodreads blurb text
+  if (rawDesc.length > 200) {
+    const periodIdx = rawDesc.indexOf(". ", 80);
+    if (periodIdx !== -1 && periodIdx < 220) {
+      rawDesc = rawDesc.slice(0, periodIdx + 1);
+    } else {
+      rawDesc = rawDesc.slice(0, 180).trim() + "…";
+    }
+  }
 
   return {
     id: entityId || `entity-${Math.random().toString(36).slice(2, 9)}`,
-    name: entity.name,
+    name: cleanName || entity.name,
     domain,
-    description,
+    description: rawDesc,
     entityId: entityId ? `urn:qloo:entity:${entityId}` : undefined,
     entityType: entity.type || `urn:entity:${domain.toLowerCase()}`,
     affinityScore,
