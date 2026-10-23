@@ -39,63 +39,70 @@ export default function ResolvingScreen({ promptText, onResolved }: ResolvingScr
 
         // Collect real resolved entities
         const discoveredEntities: string[] = [];
-        if (data.seeds && data.seeds.length > 0) {
-          data.seeds.forEach((s: any) => discoveredEntities.push(s.name));
+        if (data.culturalDossier?.highlightedNodes) {
+          data.culturalDossier.highlightedNodes.forEach((name: string) => {
+            if (name && !discoveredEntities.includes(name)) discoveredEntities.push(name);
+          });
         }
-        if (data.discoveries?.music && data.discoveries.music.length > 0) {
-          discoveredEntities.push(data.discoveries.music[0].name);
-        }
-        if (data.discoveries?.literature && data.discoveries.literature.length > 0) {
-          discoveredEntities.push(data.discoveries.literature[0].name);
-        }
-        if (data.discoveries?.wardrobeAndObjects && data.discoveries.wardrobeAndObjects.length > 0) {
-          discoveredEntities.push(data.discoveries.wardrobeAndObjects[0].name);
+        if (data.inquiries && data.inquiries.length > 0) {
+          data.inquiries.forEach((inq: any) => {
+            if (inq.vignetteHighlightEntity && !discoveredEntities.includes(inq.vignetteHighlightEntity)) {
+              discoveredEntities.push(inq.vignetteHighlightEntity);
+            }
+            if (inq.entities && inq.entities.length > 0) {
+              inq.entities.slice(0, 2).forEach((e: any) => {
+                if (e.name && !discoveredEntities.includes(e.name)) {
+                  discoveredEntities.push(e.name);
+                }
+              });
+            }
+          });
         }
 
         // Stagger pill appearance as agent works through stages
         if (discoveredEntities.length > 0) {
-          // Pill 1 appears at 2.8s
+          // Pill 1 appears at 1.8s
           timeoutIds.push(
             setTimeout(() => {
               if (isMounted && discoveredEntities[0]) {
                 setVisiblePills((prev) => [...prev, discoveredEntities[0]]);
               }
-            }, 2800)
+            }, 1800)
           );
 
-          // Pill 2 appears at 5.5s
+          // Pill 2 appears at 3.6s
           timeoutIds.push(
             setTimeout(() => {
               if (isMounted && discoveredEntities[1]) {
                 setVisiblePills((prev) => [...prev, discoveredEntities[1]]);
               }
-            }, 5500)
+            }, 3600)
           );
 
-          // Pill 3 appears at 8.5s
+          // Pill 3 appears at 5.2s
           timeoutIds.push(
             setTimeout(() => {
               if (isMounted && discoveredEntities[2]) {
                 setVisiblePills((prev) => [...prev, discoveredEntities[2]]);
               }
-            }, 8500)
+            }, 5200)
           );
 
-          // Pill 4 appears at 11s
+          // Pill 4 appears at 6.8s
           timeoutIds.push(
             setTimeout(() => {
               if (isMounted && discoveredEntities[3]) {
                 setVisiblePills((prev) => [...prev, discoveredEntities[3]]);
               }
-            }, 11000)
+            }, 6800)
           );
         }
 
-        // Complete after ample reading time (~14.5s total)
+        // Transition smoothly to Studio
         timeoutIds.push(
           setTimeout(() => {
             if (isMounted) onResolved(data);
-          }, 14500)
+          }, 7800)
         );
       } catch (err) {
         console.error("Resolution error:", err);

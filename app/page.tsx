@@ -230,7 +230,7 @@ export default function Home() {
 
   // State 1: Input Screen
   return (
-    <main className="relative min-h-screen w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-12 px-4 sm:px-6">
+    <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-8 sm:py-12 px-4 sm:px-6">
       {/* 1. Base Painted Poppy Background */}
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
@@ -251,13 +251,18 @@ export default function Home() {
         }}
       />
 
-      {/* 3. Dark Backdrop Spotlight Overlay when focused */}
-      {isFocused && (
-        <div
-          className="fixed inset-0 bg-black/65 backdrop-blur-sm z-40 transition-opacity duration-300 cursor-pointer"
-          onClick={() => setIsFocused(false)}
-        />
-      )}
+      {/* 3. Dark Backdrop Spotlight Overlay with Smooth Fade In/Out */}
+      <div
+        aria-hidden="true"
+        onClick={() => {
+          setIsFocused(false);
+          textareaRef.current?.blur();
+        }}
+        className={`fixed inset-0 z-30 bg-black/60 backdrop-blur-[2px] transition-all duration-300 ease-out cursor-pointer ${
+          isFocused ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        style={{ willChange: "opacity" }}
+      />
 
       {/* 4. Scaled Content Canvas */}
       <div
@@ -268,7 +273,7 @@ export default function Home() {
         {/* Header with #F7F7D9 typography (dimmed in spotlight mode) */}
         <div
           className={`max-w-[820px] transition-opacity duration-300 ${
-            isFocused ? "opacity-30" : "opacity-100"
+            isFocused ? "opacity-40" : "opacity-100"
           }`}
         >
           <h1 className="font-serif font-bold text-lg sm:text-xl md:text-[1.85rem] text-[#F7F7D9] leading-[1.5] sm:leading-[1.52] tracking-tight">
@@ -283,7 +288,7 @@ export default function Home() {
         {/* Compact Preset Pills (dimmed in spotlight mode) */}
         <div
           className={`flex flex-wrap items-center gap-2.5 transition-opacity duration-300 ${
-            isFocused ? "opacity-30 pointer-events-none" : "opacity-100"
+            isFocused ? "opacity-40 pointer-events-none" : "opacity-100"
           }`}
         >
           {samplePrompts.map((preset, index) => (
@@ -303,14 +308,15 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Main Character Input Box with Focus Scaling & Elevation Above Blur */}
+        {/* Main Character Input Box with Focus Scaling & Hardware Accelerated Elevation */}
         <div
           ref={promptCardRef}
-          className={`relative w-full rounded-[36px] sm:rounded-[44px] p-2 sm:p-2.5 bg-white/[0.05] backdrop-blur-xl border border-white/[0.14] transition-all duration-300 ${
+          className={`relative w-full rounded-[36px] sm:rounded-[44px] p-2 sm:p-2.5 bg-white/[0.05] backdrop-blur-md border border-white/[0.14] transition-all duration-300 ease-out transform-gpu ${
             isFocused
-              ? "scale-[1.03] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.35),0_30px_75px_rgba(0,0,0,0.75)]"
+              ? "scale-[1.015] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.35),0_24px_60px_rgba(0,0,0,0.7)]"
               : "scale-100 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.25),0_16px_45px_rgba(0,0,0,0.35)]"
           }`}
+          style={{ willChange: "transform, box-shadow" }}
         >
           {/* Inner Text Box (Color: #F7F7D9) */}
           <div className="relative w-full rounded-[30px] sm:rounded-[36px] bg-[#F7F7D9] px-6 sm:px-8 pt-6 pb-4 sm:pb-5 flex flex-col justify-between min-h-[230px] sm:min-h-[260px] shadow-sm">
