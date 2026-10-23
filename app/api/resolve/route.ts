@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
         name: dossier.characterName,
         summary: dossier.summary,
         anchors: dossier.explicitAnchors,
+        constraints: dossier.constraints,
       },
+      seeds: dossier.resolvedSeeds,
+      culturalDossier: dossier.culturalDossier,
       inquiries: dossier.inquiries,
       agentDecisions: dossier.agentDecisions,
     });
