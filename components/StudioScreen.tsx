@@ -524,8 +524,8 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
             {activeEntities.length > 0 ? (
               <div className="flex flex-col h-full min-h-0">
                 {/* Inquiry Question Title + Restrained Mode Switcher */}
-                <div className="flex-shrink-0 pb-4 border-b border-white/[0.08] mb-3 flex items-center justify-between gap-4">
-                  <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[#F7F7D9] tracking-tight leading-tight">
+                <div className="flex-shrink-0 pb-3.5 border-b border-white/[0.08] mb-3.5 flex items-center justify-between gap-4">
+                  <h2 className="font-serif font-semibold text-lg sm:text-xl text-[#F7F7D9] tracking-tight leading-snug">
                     {activeInquiry.question}
                   </h2>
 
