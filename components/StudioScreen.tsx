@@ -15,9 +15,13 @@ import {
   Briefcase,
   ArrowRight,
 } from "lucide-react";
+import HeaderControls from "@/components/HeaderControls";
 
 interface StudioScreenProps {
   initialData: any;
+  engine?: "qloo" | "base_llm";
+  onToggleEngine?: (engine: "qloo" | "base_llm") => void;
+  onOpenTour?: () => void;
   onAssembleDossier?: () => void;
 }
 
@@ -150,7 +154,13 @@ const MOCK_ENTITIES_TOOLS: CulturalEntity[] = [
   },
 ];
 
-export default function StudioScreen({ initialData, onAssembleDossier }: StudioScreenProps) {
+export default function StudioScreen({
+  initialData,
+  engine = "qloo",
+  onToggleEngine,
+  onOpenTour,
+  onAssembleDossier,
+}: StudioScreenProps) {
   const characterName = initialData?.character?.name || "Elena";
   const characterSummary =
     initialData?.character?.summary || "Restoring overlooked stone and woodwork in Marseille.";
@@ -502,22 +512,32 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
               </p>
             </div>
 
-            {/* Subtle Constraint Pills */}
-            <div className="flex items-center gap-2">
-              {constraints.locality && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.locality}
-                </span>
-              )}
-              {constraints.era && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.era}
-                </span>
-              )}
-              {constraints.occupation && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.occupation}
-                </span>
+            {/* Subtle Constraint Pills & Header Controls */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="hidden sm:flex items-center gap-2">
+                {constraints.locality && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                    {constraints.locality}
+                  </span>
+                )}
+                {constraints.era && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                    {constraints.era}
+                  </span>
+                )}
+                {constraints.occupation && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                    {constraints.occupation}
+                  </span>
+                )}
+              </div>
+
+              {onToggleEngine && onOpenTour && (
+                <HeaderControls
+                  engine={engine}
+                  onToggleEngine={onToggleEngine}
+                  onOpenTour={onOpenTour}
+                />
               )}
             </div>
           </div>
@@ -647,10 +667,16 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
                 {/* View 1: Editorial Lookbook Mode */}
                 {viewMode === "lookbook" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-4">
-                    {/* Scene Vignette with Inline Clickable Node */}
+                    {/* Scene Vignette as Hero Creative Output */}
                     {activeInquiry.vignette && (
-                      <div className="rounded-[16px] bg-white/[0.03] border border-white/[0.07] p-4 sm:p-5">
-                        <p className="font-serif text-[15px] sm:text-base text-[#F7F7D9]/90 leading-relaxed font-light">
+                      <div className="rounded-[20px] bg-white/[0.04] border border-white/[0.1] p-5 sm:p-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E06B55]" />
+                          <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                            Dramatic Scene Vignette
+                          </span>
+                        </div>
+                        <p className="font-serif text-[15px] sm:text-base text-[#F7F7D9] leading-relaxed font-light">
                           {activeInquiry.vignette.split(activeInquiry.vignetteHighlightEntity || "").map((part, i, arr) => (
                             <span key={i}>
                               {part}
@@ -708,44 +734,66 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
                       </div>
                     )}
 
+                    {/* Cultural Entities Section Header */}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/60">
+                        Tactile Anchors & Character Armor
+                      </span>
+                      <span className="text-[11px] font-sans text-[#F7F7D9]/40">
+                        {activeEntities.length} verified references
+                      </span>
+                    </div>
+
                     {/* Clean Lookbook Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                      {activeEntities.map((entity) => (
-                        <button
-                          key={entity.id}
-                          onClick={() => handleEntityClick(entity)}
-                          className="group relative h-[165px] rounded-[18px] overflow-hidden border border-white/[0.1] hover:border-white/[0.24] transition-all duration-300 text-left cursor-pointer shadow-md bg-black/40 flex flex-col justify-between p-3.5"
-                        >
-                          {entity.imageUrl && (
-                            <img
-                              src={entity.imageUrl}
-                              alt={entity.name}
-                              className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500 pointer-events-none"
-                            />
-                          )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeEntities.map((entity) => {
+                        const roleLabel =
+                          entity.domain === "OBJECTS" ? "Tactile Armor" :
+                          entity.domain === "MUSIC" ? "Acoustic Shield" :
+                          entity.domain === "BOOKS" ? "Hidden Shelf" :
+                          entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
 
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-transparent pointer-events-none" />
-
-                          {/* Top: Affinity Pill */}
-                          <div className="relative z-10 flex items-center justify-end">
-                            {entity.affinityScore !== undefined && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-black/50 border border-white/10 backdrop-blur-md text-[10px] font-sans font-bold text-[#F7F7D9]/90">
-                                {entity.affinityScore}%
-                              </span>
+                        return (
+                          <button
+                            key={entity.id}
+                            onClick={() => handleEntityClick(entity)}
+                            className="group relative h-[175px] rounded-[18px] overflow-hidden border border-white/[0.1] hover:border-white/[0.24] transition-all duration-300 text-left cursor-pointer shadow-md bg-black/40 flex flex-col justify-between p-3.5"
+                          >
+                            {entity.imageUrl && (
+                              <img
+                                src={entity.imageUrl}
+                                alt={entity.name}
+                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500 pointer-events-none"
+                              />
                             )}
-                          </div>
 
-                          {/* Bottom: Title & Description */}
-                          <div className="relative z-10 flex flex-col gap-0.5">
-                            <span className="font-serif italic font-bold text-sm sm:text-[15px] text-[#F7F7D9] group-hover:text-white transition-colors">
-                              {entity.name}
-                            </span>
-                            <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-1">
-                              {entity.description}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 pointer-events-none" />
+
+                            {/* Top: Role Tag & Affinity Pill */}
+                            <div className="relative z-10 flex items-center justify-between w-full">
+                              <span className="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/10 backdrop-blur-md text-[9px] font-mono tracking-tight text-[#E06B55] uppercase font-bold">
+                                {roleLabel}
+                              </span>
+
+                              {entity.affinityScore !== undefined && (
+                                <span className="px-1.5 py-0.5 rounded-full bg-black/50 border border-white/10 backdrop-blur-md text-[10px] font-sans font-bold text-[#F7F7D9]/90">
+                                  {entity.affinityScore}%
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Bottom: Title & Description */}
+                            <div className="relative z-10 flex flex-col gap-0.5">
+                              <span className="font-serif italic font-bold text-sm sm:text-[15px] text-[#F7F7D9] group-hover:text-white transition-colors">
+                                {entity.name}
+                              </span>
+                              <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
+                                {entity.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -753,31 +801,42 @@ export default function StudioScreen({ initialData, onAssembleDossier }: StudioS
                 {/* View 2: Scannable Index Mode */}
                 {viewMode === "index" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col divide-y divide-white/[0.05]">
-                    {activeEntities.map((entity) => (
-                      <button
-                        key={entity.id}
-                        onClick={() => handleEntityClick(entity)}
-                        className="group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer hover:bg-white/[0.05] rounded-xl flex-shrink-0"
-                      >
-                        <div className="min-w-[170px] flex-shrink-0">
-                          <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors">
-                            {entity.name}
-                          </span>
-                        </div>
+                    {activeEntities.map((entity) => {
+                      const roleLabel =
+                        entity.domain === "OBJECTS" ? "Tactile Armor" :
+                        entity.domain === "MUSIC" ? "Acoustic Shield" :
+                        entity.domain === "BOOKS" ? "Hidden Shelf" :
+                        entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
 
-                        <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
-                          {entity.description}
-                        </p>
-
-                        {entity.affinityScore !== undefined && (
-                          <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
-                            <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
-                              {entity.affinityScore}%
+                      return (
+                        <button
+                          key={entity.id}
+                          onClick={() => handleEntityClick(entity)}
+                          className="group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer hover:bg-white/[0.05] rounded-xl flex-shrink-0"
+                        >
+                          <div className="min-w-[170px] flex-shrink-0 flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[9px] font-mono uppercase text-[#E06B55]">
+                              {roleLabel}
+                            </span>
+                            <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
+                              {entity.name}
                             </span>
                           </div>
-                        )}
-                      </button>
-                    ))}
+
+                          <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
+                            {entity.description}
+                          </p>
+
+                          {entity.affinityScore !== undefined && (
+                            <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
+                              <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
+                                {entity.affinityScore}%
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

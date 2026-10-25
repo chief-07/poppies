@@ -4,22 +4,35 @@ import { useEffect, useState } from "react";
 
 interface ResolvingScreenProps {
   promptText: string;
+  engine?: "qloo" | "base_llm";
   onResolved: (data: any) => void;
 }
 
-export default function ResolvingScreen({ promptText, onResolved }: ResolvingScreenProps) {
+export default function ResolvingScreen({
+  promptText,
+  engine = "qloo",
+  onResolved,
+}: ResolvingScreenProps) {
   const [stageIndex, setStageIndex] = useState(0);
   const [fadeState, setFadeState] = useState<"enter" | "exit">("enter");
   // Start with ZERO pills - they only populate as the agent reasons
   const [visiblePills, setVisiblePills] = useState<string[]>([]);
 
-  // Single clean narrative line per stage (no header/subheader clutter)
-  const narrativeExplanations = [
-    "Poppies extracts cultural anchors from your prompt",
-    "Poppies resolves seeds against Qloo's taste graph",
-    "Poppies reveals hidden connections across culture",
-    "Poppies weaves an authentic life for your character",
-  ];
+  // Narrative line tailored to selected engine
+  const narrativeExplanations =
+    engine === "base_llm"
+      ? [
+          "Base LLM analyzes prompt structure and archetype",
+          "Sampling next-token probability from ungrounded web pretraining",
+          "Assembling high-frequency internet co-occurrence tropes",
+          "Synthesizing probabilistic character profile",
+        ]
+      : [
+          "Poppies extracts cultural anchors from your prompt",
+          "Poppies resolves seeds against Qloo's taste graph",
+          "Poppies reveals hidden connections across culture",
+          "Poppies weaves an authentic life for your character",
+        ];
 
   useEffect(() => {
     let isMounted = true;
@@ -30,7 +43,7 @@ export default function ResolvingScreen({ promptText, onResolved }: ResolvingScr
         const res = await fetch("/api/resolve", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: promptText }),
+          body: JSON.stringify({ prompt: promptText, engine }),
         });
 
         const data = await res.json();
