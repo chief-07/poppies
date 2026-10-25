@@ -47,6 +47,23 @@ export interface QlooInsightsResponse {
   };
 }
 
+export function getQlooFilterType(domain: string): string {
+  switch (domain) {
+    case "MUSIC":
+      return "urn:entity:artist";
+    case "BOOKS":
+      return "urn:entity:book";
+    case "OBJECTS":
+      return "urn:entity:brand";
+    case "PLACES":
+      return "urn:entity:place";
+    case "CONTRADICTION":
+      return "urn:entity:brand";
+    default:
+      return "urn:entity:brand";
+  }
+}
+
 function cleanMojibake(str: string): string {
   if (!str) return "";
   try {

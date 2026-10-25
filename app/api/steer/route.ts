@@ -3,16 +3,22 @@ import { steerAgenticResearch } from "@/lib/agent";
 
 export async function POST(req: NextRequest) {
   try {
-    const { characterName, instruction, existingSeeds } = await req.json();
+    const { characterName, instruction, existingSeeds, characterSummary, constraints } = await req.json();
 
     if (!instruction || typeof instruction !== "string") {
       return NextResponse.json({ error: "Steering instruction is required." }, { status: 400 });
     }
 
     const updatedInquiry = await steerAgenticResearch(
-      characterName || "Shoujo A",
+      characterName || "Character",
       instruction,
-      existingSeeds || []
+      existingSeeds || [],
+      {
+        locality: constraints?.locality,
+        era: constraints?.era,
+        occupation: constraints?.occupation,
+        summary: characterSummary,
+      }
     );
 
     return NextResponse.json({

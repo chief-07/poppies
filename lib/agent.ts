@@ -304,9 +304,19 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
       return null;
     }).filter(Boolean) as AgentCulturalEntity[];
 
-    const finalEntities = curatedEntities.length >= 2 ? curatedEntities : pkg.candidates.slice(0, 5);
+    const finalEntities: AgentCulturalEntity[] = [...curatedEntities];
+    for (const c of pkg.candidates) {
+      if (finalEntities.length >= 5) break;
+      if (!finalEntities.some((e) => e.name.toLowerCase() === c.name.toLowerCase())) {
+        finalEntities.push(c);
+      }
+    }
+    if (finalEntities.length < 2 && pkg.candidates.length > 0) {
+      finalEntities.push(...pkg.candidates.slice(0, 5));
+    }
+
     const primaryName = finalEntities[0]?.name || pkg.seedName;
-    const sceneText = synthMatch?.sceneAnswer || `${profiling.characterName} keeps ${primaryName} close at hand—a tactile anchor against the noise of ${profiling.constraints.locality || "the city"}.`;
+    const sceneText = synthMatch?.sceneAnswer || `Curating for ${profiling.characterName} in ${profiling.constraints.locality || "the city"}: ${primaryName} provides an intentional anchor deduced from their daily routine and craft.`;
 
     return {
       id: pkg.id,
@@ -353,23 +363,32 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
 export async function steerAgenticResearch(
   characterName: string,
   instruction: string,
-  existingSeeds: string[]
+  existingSeeds: string[],
+  characterContext?: {
+    locality?: string;
+    era?: string;
+    occupation?: string;
+    summary?: string;
+  }
 ): Promise<AgentInquiry> {
   let searchTerms = ["A24", "post-rock", "minimalism"];
   let domain: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" = "MUSIC";
+  let extractedQuestion = instruction.endsWith("?") ? instruction : `Exploring: ${instruction}`;
 
   if (ai) {
     try {
       const res = await ai.models.generateContent({
         model: "gemini-3.5-flash-lite",
-        contents: `Given creator direction: "${instruction}" for character "${characterName}".
+        contents: `Given creator direction / question: "${instruction}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+Accumulated character seeds so far: [${existingSeeds.slice(0, 5).join(", ")}].
 Extract 2 specific real-world search terms for Qloo (artists, places, brands, or books).
-Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise scene or inquiry question title under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`,
+Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inquiry question under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`,
         config: { responseMimeType: "application/json", temperature: 0.3 },
       });
       const parsed = JSON.parse(res.text || "{}");
       if (parsed.terms && parsed.terms.length > 0) searchTerms = parsed.terms;
       if (parsed.domain) domain = parsed.domain;
+      if (parsed.question) extractedQuestion = parsed.question;
     } catch (e) {
       console.warn("Steering parsing fallback:", e);
     }
@@ -387,21 +406,39 @@ Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise scen
     }));
   }
 
-  const highlight = entities[0]?.name || searchTerms[0];
-  const vignette = await generateSingleVignette(
+  // If insights returned fewer than 2, include the resolved seed itself
+  if (entities.length < 2 && resolved.length > 0) {
+    entities.unshift({
+      ...normalizeEntity(resolved[0], domain, [characterName]),
+      qlooReasoning: `Primary anchor for creator inquiry: "${instruction}".`,
+    });
+  }
+
+  const constraints = {
+    locality: characterContext?.locality,
+    era: characterContext?.era,
+    occupation: characterContext?.occupation,
+  };
+
+  const curatorialResult = await generateCuratorialAnswer(
     characterName,
-    instruction,
+    extractedQuestion,
     domain,
-    highlight
+    entities,
+    constraints,
+    characterContext?.summary
   );
+
+  const highlight = curatorialResult.highlightedEntities[0] || entities[0]?.name || searchTerms[0];
 
   return {
     id: `inquiry-${Date.now()}`,
-    question: instruction.endsWith("?") ? instruction : `Exploring: ${instruction}`,
+    question: extractedQuestion,
     source: "creator",
     domain,
-    vignette,
+    vignette: curatorialResult.text,
     vignetteHighlightEntity: highlight,
+    highlightedEntities: curatorialResult.highlightedEntities,
     hasAudio: domain === "MUSIC",
     audioTrackName: domain === "MUSIC" ? `${highlight} — Studio Session` : undefined,
     entities,
@@ -556,7 +593,7 @@ async function synthesizeAuteurWorld(
   }
 
   try {
-    const prompt = `You are the Lead Cultural Architect & Auteur Writer for "Poppies", a prestige character-building and world-building studio grounded in Qloo's taste graph.
+    const prompt = `You are the Lead Cultural Intelligence Curator for "Poppies", an auteur studio grounded in Qloo's cultural taste graph.
 
 Character Name: "${characterName}"
 User Prompt / Creative Brief:
@@ -574,20 +611,29 @@ ${inq.candidates.slice(0, 7).map((c, ci) => `  ${ci + 1}. "${c.name}" (${c.domai
 ${branchedDiscovery ? `Autonomous Latent Branch: "${branchedDiscovery}"` : ""}
 
 YOUR TASK:
-Synthesize both the dramatic inquiry narrative answers and the master cultural dossier in ONE unified, cohesive output.
+Synthesize both the direct curatorial inquiry answers and the master cultural dossier in ONE unified, cohesive output.
 
-DELIVERABLE 1: LIVING SCENE & NARRATIVE RESOLUTION (For EACH Inquiry)
-- For each inquiry, write a substantive, multi-paragraph (2 to 3 paragraphs, ~130-220 words) dramatic auteur scene / character study that DIRECTLY ANSWERS the question asked.
-- Do NOT write a 1-sentence summary or boilerplate. Write a living, physical scene set in the character's exact world (e.g. the specific streets of their city, their physical workspace or bedroom, weather, sensory textures: humidity, generator hum, analog tape, stained paper, iron, grease, cold coffee, terminal screens).
-- NATURALLY WEAVE AT LEAST TWO of the candidate Qloo entities into the prose as tactile objects, tools, sounds, or places.
-- Ensure the scene directly honors their constraints: Era ("${constraints.era || "Contemporary"}"), Locality ("${constraints.locality}"), and socioeconomic reality.
-- For each selected entity (3-5 entities per inquiry), provide a concise 1-sentence editorial curatorialNote explaining its exact physical role or psychological function in their life.
-- Return highlightedEntities: array of string names for entities woven into the text.
+DELIVERABLE 1: DIRECT CURATORIAL ANSWER (For EACH Inquiry)
+- Directly and unpretentiously answer the question asked about ${characterName}.
+- Explain the chosen items in the context of:
+  1. What ${characterName} likes, their daily habits, craft/occupation, and physical environment (${constraints.locality || "their city"}, power realities, workspace, solitude).
+  2. What was deduced from the creator prompt and seeds.
+  3. Why these specific items were chosen for ${characterName} to answer this question.
+  4. Perform cross-taste inference across their domains (e.g. how their acoustic isolation, reading preferences, or physical tools intersect).
+- FORMAT: Exactly 2 clean, insightful curatorial paragraphs (~100 to 140 words total, separated by \\n\\n).
+- GROUNDING: Naturally name and weave 2 to 4 of the candidate Qloo entities into the prose.
+- CRITICAL TONE & CONTENT RULES:
+  * NO fake fiction, purple prose, or melodramatic creative writing (do NOT write storytelling fanfiction like "Deep in the humid night, Fortune reaches for...").
+  * NO sing-songy melodrama or meta-AI commentary ("The research begins with...", "As an AI curator...").
+  * NO raw percentages or technical Qloo parameters in the text prose (keep the text dignified and literary; technical parameters belong in the evidence inspector drawer).
+  * Direct, dignified, intelligent cultural curation only.
+- For each selected entity (3-5 entities per inquiry), provide a concise 1-sentence curatorial note explaining why it fits ${characterName}'s life.
+- Return highlightedEntities: array of string names for all entities woven into the text.
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
-- tasteThesis: 2-3 substantive, literary sentences articulating who they are through their cultural choices. Explain what they are defending against, why their taste hangs together, and name at least 2 real discovered entities naturally. (STRICTLY THIRD-PERSON: "${characterName}...", never first-person).
+- tasteThesis: 2-3 substantive, literary sentences articulating who ${characterName} is through their cultural choices. Explain what they are defending against, why their taste hangs together, and name at least 2 real discovered entities naturally. (STRICTLY THIRD-PERSON: "${characterName}...", never first-person).
 - psychologicalWound: 1-2 sentences identifying their underlying vulnerability, loneliness, or internal friction (e.g. claiming high taste to distance from their environment, or hiding obsession behind minimalism).
-- tactileArmor: 1-2 sentences explaining how their material belongings, tools, or music act as protective armor or ritual.
+- tactileArmor: 1-2 sentences explaining how their material belongings, tools, or music act as protective armor or ritual against external noise.
 - observedClusters: 3-4 concise, authentic subcultural phrases describing their real taste patterns.
 - unconsideredAngles: 1 genuine surprise, friction, or unexpected contradiction that emerged from the cultural graph:
   { "title": string, "description": string (1-2 sentences), "groundedEntity": string }
@@ -620,7 +666,7 @@ Respond ONLY with valid JSON:
     const res = await ai.models.generateContent({
       model: "gemini-3.5-flash-lite",
       contents: prompt,
-      config: { responseMimeType: "application/json", temperature: 0.35 },
+      config: { responseMimeType: "application/json", temperature: 0.3 },
     });
 
     const parsed = JSON.parse(res.text || "{}");
@@ -648,7 +694,7 @@ Respond ONLY with valid JSON:
 /**
  * Intelligent, character-specific fallback synthesis.
  * Dynamically uses the character's real name, extracted locality, occupation, and candidate Qloo entities.
- * NEVER falls back to generic Japanese minimalism or canned Tokyo boilerplate.
+ * Returns direct curatorial explanations instead of fiction fanfiction.
  */
 function buildDynamicFallbackSynthesis(
   characterName: string,
@@ -666,27 +712,27 @@ function buildDynamicFallbackSynthesis(
     const primary = topCandidates[0]?.name || inq.seedName || "Tactile Anchor";
     const secondary = topCandidates[1]?.name || "Field Recordings";
 
-    let sceneParagraph1 = "";
-    let sceneParagraph2 = "";
+    let para1 = "";
+    let para2 = "";
 
     if (inq.domain === "MUSIC") {
-      sceneParagraph1 = `Late into the evening in ${loc}, ${characterName} isolates the room from outside commotion with the sounds of ${primary}. The acoustic contours create an intentional quiet, allowing the focus of ${occ} to take over without distraction.`;
-      sceneParagraph2 = `When the work deepens, shifts toward ${secondary} provide an unvarnished texture that feels personal rather than performative, marking the private hours of ${era} solitude.`;
+      para1 = `Curating the late-night soundscape for ${characterName} in ${loc} requires music that functions as acoustic shielding rather than ambient decoration. ${primary} was chosen because its disciplined frequencies establish an intentional perimeter against outside commotion, allowing uninterrupted focus for ${occ}.`;
+      para2 = `Adding ${secondary} introduces a grounded, physical texture deduced from their solitary work habits. Together, these selections reflect a clear preference for unvarnished, structural compositions that accompany deep night focus in ${era} conditions.`;
     } else if (inq.domain === "OBJECTS") {
-      sceneParagraph1 = `Across the worktable in ${loc}, everyday tools reflect the physical discipline of ${occ}. Resting within reach, ${primary} shows the honest patina of repeated, focused utility, kept without decorative pretense.`;
-      sceneParagraph2 = `Beside it, items like ${secondary} anchor the workspace against erratic interruptions, chosen specifically for balance and enduring mechanical reliability.`;
+      para1 = `For ${characterName}'s worktable in ${loc}, the everyday gear prioritizes unyielding mechanical reliability over trend. ${primary} was selected as a core tool, chosen because it withstands erratic local infrastructure and repeated daily use without pretense.`;
+      para2 = `Beside it, items like ${secondary} function as tactile armor against work disruptions. These choices were deduced directly from the demands of ${occ}, establishing an intentional kit built for longevity and endurance.`;
     } else if (inq.domain === "BOOKS") {
-      sceneParagraph1 = `On the desk beside the work notes, copies of ${primary} sit dog-eared and spine-creased. For ${characterName}, reading is less about entertainment and more about finding a shared vocabulary for solitude and craft.`;
-      sceneParagraph2 = `Passages from ${secondary} provide an intellectual touchstone, offering a quiet counterweight to the immediate demands of ${loc}.`;
+      para1 = `On ${characterName}'s desk, titles like ${primary} were chosen for their rigorous perspective on craft, space, and disciplined solitude. Reading here is not casual escapism, but a deliberate effort to anchor the mind amid the daily friction of ${loc}.`;
+      para2 = `Complementing this with ${secondary} introduces a shared vocabulary of craft and quiet endurance, providing an intellectual touchstone that directly informs their worldview.`;
     } else if (inq.domain === "PLACES") {
-      sceneParagraph1 = `When the need to step away from ${loc}'s immediate demands becomes unavoidable, ${characterName} walks toward ${primary}. It is a sanctuary defined by familiar pacing, where anonymity allows observation without participation.`;
-      sceneParagraph2 = `Retreating occasionally past ${secondary}, the physical environment offers space to recalibrate before returning to the desk.`;
+      para1 = `When stepping away from the immediate pressure of ${loc}, ${characterName} is drawn to spots like ${primary}. It was selected because it affords unhurried anonymity and spatial clarity away from high-traffic commercial zones.`;
+      para2 = `Retreating past ${secondary} provides an informal buffer to recalibrate before returning to the desk, matching their habit of quiet observation over social performance.`;
     } else {
-      sceneParagraph1 = `Against the disciplined aesthetic of ${characterName}'s daily routine, an unexpected draw toward ${primary} breaks the strict pattern. It represents an instinctive private loyalty that refuses to conform to clean categories.`;
-      sceneParagraph2 = `Combined with ${secondary}, it exposes the human friction beneath otherwise restrained habits.`;
+      para1 = `Against the disciplined pattern of ${characterName}'s daily routine, an affinity for ${primary} provides an unexpected touchpoint. It was selected because it reveals an instinctive private loyalty that defies neat categorization.`;
+      para2 = `Paired with ${secondary}, it exposes the human friction between functional restraint and personal obsession, grounding their character profile in authentic contradiction.`;
     }
 
-    const sceneAnswer = `${sceneParagraph1}\n\n${sceneParagraph2}`;
+    const sceneAnswer = `${para1}\n\n${para2}`;
 
     return {
       id: inq.id,
@@ -694,7 +740,7 @@ function buildDynamicFallbackSynthesis(
       highlightedEntities: [primary, secondary],
       curated: topCandidates.map((c) => ({
         name: c.name,
-        curatorialNote: `Selected for ${characterName}'s world as an authentic anchor of ${inq.domain.toLowerCase()}.`,
+        curatorialNote: `Curated for ${characterName}'s world as an authentic anchor of ${inq.domain.toLowerCase()}.`,
       })),
     };
   });
@@ -724,37 +770,72 @@ function buildDynamicFallbackSynthesis(
   };
 }
 
-async function generateSingleVignette(
+async function generateCuratorialAnswer(
   characterName: string,
   question: string,
   domain: string,
-  highlightEntity: string
-): Promise<string> {
-  const fallback = `In the quiet hours, ${characterName} turns to ${highlightEntity}, where the physical focus of the work makes the room feel grounded and intentional. Each movement carries the weight of deliberate, unhurried craft.`;
+  candidates: AgentCulturalEntity[],
+  constraints: { locality?: string; era?: string; occupation?: string },
+  contextSummary?: string
+): Promise<{ text: string; highlightedEntities: string[] }> {
+  const topNames = candidates.slice(0, 3).map((c) => c.name);
+  const primary = topNames[0] || "Cultural Anchor";
+  const secondary = topNames[1] || "Deliberate Ritual";
+  const loc = constraints.locality || "their city";
 
-  if (!ai) return fallback;
+  const fallbackText = `Addressing "${question}" for ${characterName} reveals a taste architecture anchored by intentional utility in ${loc}. Items like ${primary} were chosen because they fulfill physical demands without aesthetic pretense.\n\nCombined with ${secondary}, these selections reflect what was deduced from their daily routine and environment, forming a coherent ensemble that prioritizes durability and focus over decorative noise.`;
+
+  if (!ai) {
+    return { text: fallbackText, highlightedEntities: topNames.slice(0, 2) };
+  }
 
   try {
-    const res = await ai.models.generateContent({
-      model: "gemini-3.5-flash-lite",
-      contents: `You are an auteur novelist writing a 2-paragraph dramatic scene answering this question for character "${characterName}".
-Inquiry question: "${question}"
-Cultural domain: ${domain}
-The scene MUST naturally incorporate this real cultural entity: "${highlightEntity}".
+    const prompt = `You are the Lead Cultural Intelligence Curator for "Poppies", an auteur studio grounded in Qloo's taste graph.
+
+Character: "${characterName}" (${contextSummary || ""})
+Constraints: Locality="${loc}", Era="${constraints.era || "Contemporary"}", Occupation="${constraints.occupation || "Unspecified"}"
+Inquiry / Question Asked: "${question}"
+Domain: ${domain}
+Discovered Qloo Entities:
+${candidates.slice(0, 6).map((c, i) => `${i + 1}. "${c.name}" - ${c.description}`).join("\n")}
+
+YOUR TASK:
+Write a direct, authoritative curatorial explanation (~100-140 words in 2 paragraphs separated by \\n\\n) directly answering the question asked about ${characterName}.
 
 Rules:
-- Exactly 2 concise paragraphs separated by \\n\\n (~80-120 words).
-- Grounded in physical textures (paper, wood, analog tape, damp stone, coffee, rain, iron, grease).
-- Zero generic AI slop or sing-songy cliches.
-- Third-person perspective only.`,
-      config: { temperature: 0.35 },
+1. Explain why these picks were chosen for ${characterName} based on what they like, their craft/habits, their environment (${loc}), and what was deduced from their prompt seeds.
+2. Synthesize cross-taste inferences (how their broader tastes and craft inform these specific choices).
+3. Weave 2 to 3 candidate entity names naturally into the prose.
+4. STRICT CONTENT & STYLE CONSTRAINTS:
+   - NO fake fiction, purple prose, or dramatic storytelling vignettes (do NOT write creative fanfiction).
+   - NO sing-songy melodrama or meta AI commentary ("The research begins with...", "As an AI...").
+   - NO raw percentages or technical Qloo parameters in the text prose (keep the text dignified and clean).
+   - Direct, intelligent curatorial analysis only.
+
+Respond ONLY with valid JSON:
+{
+  "text": string,
+  "highlightedEntities": string[]
+}`;
+
+    const res = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+      config: { responseMimeType: "application/json", temperature: 0.3 },
     });
 
-    return res.text?.trim() || fallback;
+    const parsed = JSON.parse(res.text || "{}");
+    if (parsed.text) {
+      return {
+        text: parsed.text.trim(),
+        highlightedEntities: parsed.highlightedEntities || topNames.slice(0, 2),
+      };
+    }
   } catch (e) {
-    console.warn("Single vignette fallback:", e);
-    return fallback;
+    console.warn("Curatorial answer generation fallback:", e);
   }
+
+  return { text: fallbackText, highlightedEntities: topNames.slice(0, 2) };
 }
 
 /**

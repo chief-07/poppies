@@ -232,6 +232,7 @@ export default function StudioScreen({
   const [viewMode, setViewMode] = useState<"lookbook" | "index">("lookbook");
   const [steeringInput, setSteeringInput] = useState<string>("");
   const [isSteering, setIsSteering] = useState<boolean>(false);
+  const [isFetchingMore, setIsFetchingMore] = useState<boolean>(false);
   const [isPromptFocused, setIsPromptFocused] = useState<boolean>(false);
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState<boolean>(false);
   const [selectedEntity, setSelectedEntity] = useState<CulturalEntity | null>(null);
@@ -347,6 +348,44 @@ export default function StudioScreen({
     }
   };
 
+  const handleFetchMore = async () => {
+    if (isFetchingMore || !activeInquiry) return;
+    setIsFetchingMore(true);
+
+    try {
+      const res = await fetch("/api/fetch-more", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inquiryId: activeInquiry.id,
+          domain: activeInquiry.domain,
+          characterName,
+          locality: constraints.locality || "",
+          seedName: activeInquiry.entities?.[0]?.name || activeInquiry.question,
+          seedEntityId: activeInquiry.entities?.[0]?.entityId,
+          existingEntityIds: (activeInquiry.entities || []).map((e) => e.entityId).filter(Boolean),
+          existingNames: (activeInquiry.entities || []).map((e) => e.name),
+          engine,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.newEntities && data.newEntities.length > 0) {
+        setInquiries((prev) =>
+          prev.map((inq) =>
+            inq.id === activeInquiry.id
+              ? { ...inq, entities: [...(inq.entities || []), ...data.newEntities] }
+              : inq
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error fetching more entities from Qloo:", err);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  };
+
   const handleSteer = async () => {
     if (!steeringInput.trim() || isSteering) return;
     const promptText = steeringInput.trim();
@@ -358,8 +397,11 @@ export default function StudioScreen({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           characterName,
+          characterSummary,
+          constraints,
           instruction: promptText,
-          existingSeeds: [characterName],
+          existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+          engine,
         }),
       });
 
@@ -375,7 +417,7 @@ export default function StudioScreen({
         question: promptText.endsWith("?") ? promptText : `Exploring: ${promptText}`,
         source: "creator",
         domain: "OBJECTS",
-        vignette: `Directed by creator: "${promptText}". Her space recalibrates around this quiet shift, subtly reorienting her daily routines.`,
+        vignette: `Addressing "${promptText}" for ${characterName}: curated anchors establish deliberate utility suited to their craft.`,
         entities: MOCK_ENTITIES_TOOLS,
       };
       setInquiries((prev) => [newInq, ...prev]);
@@ -600,16 +642,8 @@ export default function StudioScreen({
             {/* VIEW A: CULTURAL DOSSIER (Clean, quiet, zero marketing clutter) */}
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6">
-                {/* Dossier Literary Prose Card */}
+                {/* Cultural Dossier Thesis Card */}
                 <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-4">
-                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-                    <span className="text-[11px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                      Master Cultural Thesis & Taste Architecture
-                    </span>
-                    <span className="text-[11px] font-sans text-[#F7F7D9]/50">
-                      Grounded in Qloo Graph
-                    </span>
-                  </div>
                   <p className="font-serif text-[16px] sm:text-[18px] leading-[1.8] text-[#F7F7D9] font-light">
                     {renderTextWithEntityTags(culturalDossier.tasteThesis, activeEntities, handleEntityClick)}
                   </p>
@@ -707,7 +741,7 @@ export default function StudioScreen({
                     </h2>
                   </div>
 
-                  {/* Lookbook vs Index Toggle */}
+                  {/* Curation vs Index Toggle */}
                   <div className="flex items-center gap-1 p-0.5 rounded-full bg-white/[0.05] border border-white/10 flex-shrink-0">
                     <button
                       type="button"
@@ -718,7 +752,7 @@ export default function StudioScreen({
                           : "text-[#F7F7D9]/60 hover:text-[#F7F7D9] font-medium"
                       }`}
                     >
-                      Scene
+                      Curation
                     </button>
                     <button
                       type="button"
@@ -734,24 +768,11 @@ export default function StudioScreen({
                   </div>
                 </div>
 
-                {/* View 1: Hero Dramatic Scene Resolution */}
+                {/* View 1: Curatorial Answer & Ensemble */}
                 {viewMode === "lookbook" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
-                    {/* Hero Dramatic Scene Card */}
+                    {/* Curatorial Explanation Card */}
                     <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4">
-                      {/* Badge & Domain Tag */}
-                      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#E06B55] animate-pulse" />
-                          <span className="text-[11px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                            Auteur Scene & Direct Resolution
-                          </span>
-                        </div>
-                        <span className="text-[11px] font-mono text-[#F7F7D9]/60 uppercase">
-                          {activeInquiry.domain}
-                        </span>
-                      </div>
-
                       {/* Audio Capsule (Only when music inquiry) */}
                       {activeInquiry.hasAudio && (
                         <div className="flex items-center justify-between px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.12] backdrop-blur-md">
@@ -785,9 +806,9 @@ export default function StudioScreen({
                         </div>
                       )}
 
-                      {/* Multi-Paragraph Narrative Scene */}
-                      <div className="flex flex-col gap-3.5 pt-1">
-                        {(activeInquiry.vignette || "Resolving cultural anchors...").split("\n\n").map((para, pIdx) => (
+                      {/* Multi-Paragraph Curatorial Writeup */}
+                      <div className="flex flex-col gap-3.5 pt-0.5">
+                        {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
                           <p
                             key={pIdx}
                             className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/90 font-light"
@@ -798,14 +819,14 @@ export default function StudioScreen({
                       </div>
                     </div>
 
-                    {/* Tactile Anchors Tray (Horizontal Scannable Badges) */}
+                    {/* Curated Ensemble Tray */}
                     <div className="flex flex-col gap-2.5 pt-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/70">
-                          Tactile Anchors Woven into Scene ({activeEntities.length} verified via Qloo)
+                          Curated Ensemble ({activeEntities.length} verified via Qloo)
                         </span>
                         <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                          Click anchor to inspect evidence
+                          Click any item to inspect Qloo evidence
                         </span>
                       </div>
 
@@ -846,6 +867,26 @@ export default function StudioScreen({
                           );
                         })}
                       </div>
+
+                      {/* Fetch More from Qloo Button */}
+                      <button
+                        type="button"
+                        onClick={handleFetchMore}
+                        disabled={isFetchingMore}
+                        className="w-full mt-2 py-3 px-4 rounded-[18px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
+                      >
+                        {isFetchingMore ? (
+                          <>
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
+                            <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
+                            <span>+ Fetch 4 More from Qloo</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 )}
