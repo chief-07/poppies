@@ -32,6 +32,7 @@ interface Inquiry {
   domain?: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" | string;
   vignette?: string;
   vignetteHighlightEntity?: string;
+  highlightedEntities?: string[];
   hasAudio?: boolean;
   audioTrackName?: string;
   entities?: CulturalEntity[];
@@ -53,6 +54,8 @@ interface CulturalEntity {
 
 interface CulturalDossierBrief {
   tasteThesis: string;
+  psychologicalWound?: string;
+  tactileArmor?: string;
   observedClusters: string[];
   unconsideredAngles: {
     title: string;
@@ -60,6 +63,56 @@ interface CulturalDossierBrief {
     groundedEntity?: string;
   }[];
   highlightedNodes: string[];
+}
+
+/**
+ * Renders narrative text with real Qloo entities styled as clickable interactive terracotta tags.
+ * Clicking any tag immediately opens the Qloo Evidence Inspector drawer.
+ */
+function renderTextWithEntityTags(
+  text: string,
+  entities: CulturalEntity[],
+  onEntityClick: (entity: CulturalEntity) => void
+) {
+  if (!text || entities.length === 0) return <span>{text}</span>;
+
+  const validEntities = entities
+    .filter((e) => e && e.name && e.name.trim().length > 1)
+    .sort((a, b) => b.name.length - a.name.length);
+
+  if (validEntities.length === 0) return <span>{text}</span>;
+
+  const namesPattern = validEntities
+    .map((e) => e.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+
+  const regex = new RegExp(`(${namesPattern})`, "gi");
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        const matched = validEntities.find(
+          (e) => e.name.toLowerCase() === part.toLowerCase()
+        );
+        if (matched) {
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onEntityClick(matched)}
+              className="inline-flex items-center gap-1 mx-1 px-2.5 py-0.5 rounded-full bg-[#E06B55]/18 hover:bg-[#E06B55]/32 border border-[#E06B55]/40 hover:border-[#E06B55]/70 text-[#F7F7D9] font-sans font-medium text-xs sm:text-[13px] transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 group align-baseline"
+              title={`Inspect Qloo taste graph evidence for ${matched.name}`}
+            >
+              <span>{part}</span>
+              <span className="text-[10px] text-[#E06B55] opacity-80 group-hover:opacity-100 transition-opacity">↗</span>
+            </button>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
 }
 
 const DEFAULT_DOSSIER: CulturalDossierBrief = {
@@ -548,29 +601,46 @@ export default function StudioScreen({
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6">
                 {/* Dossier Literary Prose Card */}
-                <div className="rounded-[20px] bg-white/[0.03] border border-white/[0.08] p-5 sm:p-6 shadow-sm">
-                  <p className="font-serif text-base sm:text-[1.12rem] leading-[1.75] text-[#F7F7D9] font-light">
-                    {culturalDossier.tasteThesis.split(new RegExp(`(${culturalDossier.highlightedNodes.join("|")})`, "g")).map((part, i) => {
-                      const isNode = culturalDossier.highlightedNodes.some(
-                        (node) => node.toLowerCase() === part.toLowerCase()
-                      );
-                      if (isNode) {
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => handleEntityClick(findEntityByName(part))}
-                            className="inline-flex items-baseline font-normal italic text-[#F7F7D9] underline decoration-[#E06B55] decoration-1 underline-offset-4 hover:text-[#E06B55] transition-colors cursor-pointer"
-                            title="Inspect Qloo evidence"
-                          >
-                            {part}
-                          </button>
-                        );
-                      }
-                      return <span key={i}>{part}</span>;
-                    })}
+                <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                    <span className="text-[11px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                      Master Cultural Thesis & Taste Architecture
+                    </span>
+                    <span className="text-[11px] font-sans text-[#F7F7D9]/50">
+                      Grounded in Qloo Graph
+                    </span>
+                  </div>
+                  <p className="font-serif text-[16px] sm:text-[18px] leading-[1.8] text-[#F7F7D9] font-light">
+                    {renderTextWithEntityTags(culturalDossier.tasteThesis, activeEntities, handleEntityClick)}
                   </p>
                 </div>
+
+                {/* Two-Column: Psychological Wound & Tactile Armor */}
+                {(culturalDossier.psychologicalWound || culturalDossier.tactileArmor) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {culturalDossier.psychologicalWound && (
+                      <div className="rounded-[18px] bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-2">
+                        <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
+                          Internal Tension & Vulnerability
+                        </span>
+                        <p className="font-sans text-xs text-[#F7F7D9]/75 leading-relaxed">
+                          {culturalDossier.psychologicalWound}
+                        </p>
+                      </div>
+                    )}
+
+                    {culturalDossier.tactileArmor && (
+                      <div className="rounded-[18px] bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-2">
+                        <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
+                          Tactile Armor & Material Defense
+                        </span>
+                        <p className="font-sans text-xs text-[#F7F7D9]/75 leading-relaxed">
+                          {culturalDossier.tactileArmor}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Two-Column: Observed Patterns & Unconsidered Angle */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -648,7 +718,7 @@ export default function StudioScreen({
                           : "text-[#F7F7D9]/60 hover:text-[#F7F7D9] font-medium"
                       }`}
                     >
-                      Lookbook
+                      Scene
                     </button>
                     <button
                       type="button"
@@ -664,136 +734,118 @@ export default function StudioScreen({
                   </div>
                 </div>
 
-                {/* View 1: Editorial Lookbook Mode */}
+                {/* View 1: Hero Dramatic Scene Resolution */}
                 {viewMode === "lookbook" && (
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-4">
-                    {/* Scene Vignette as Hero Creative Output */}
-                    {activeInquiry.vignette && (
-                      <div className="rounded-[20px] bg-white/[0.04] border border-white/[0.1] p-5 sm:p-6 shadow-sm">
-                        <div className="flex items-center gap-2 mb-2.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#E06B55]" />
-                          <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                            Dramatic Scene Vignette
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
+                    {/* Hero Dramatic Scene Card */}
+                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4">
+                      {/* Badge & Domain Tag */}
+                      <div className="flex items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#E06B55] animate-pulse" />
+                          <span className="text-[11px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                            Auteur Scene & Direct Resolution
                           </span>
                         </div>
-                        <p className="font-serif text-[15px] sm:text-base text-[#F7F7D9] leading-relaxed font-light">
-                          {activeInquiry.vignette.split(activeInquiry.vignetteHighlightEntity || "").map((part, i, arr) => (
-                            <span key={i}>
-                              {part}
-                              {i < arr.length - 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const match = activeEntities.find(
-                                      (e) => e.name === activeInquiry.vignetteHighlightEntity
-                                    ) || activeEntities[0];
-                                    handleEntityClick(match);
-                                  }}
-                                  className="inline-flex items-baseline font-normal italic text-[#F7F7D9] underline decoration-[#E06B55] decoration-1 underline-offset-4 hover:text-[#E06B55] transition-colors cursor-pointer"
-                                  title="Inspect Qloo evidence"
-                                >
-                                  {activeInquiry.vignetteHighlightEntity}
-                                </button>
-                              )}
-                            </span>
-                          ))}
-                        </p>
+                        <span className="text-[11px] font-mono text-[#F7F7D9]/60 uppercase">
+                          {activeInquiry.domain}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Audio Capsule (Only when music inquiry) */}
-                    {activeInquiry.hasAudio && (
-                      <div className="flex items-center justify-between px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/[0.1] backdrop-blur-md">
-                        <div className="flex items-center gap-2.5">
-                          <button
-                            type="button"
-                            onClick={toggleAmbientSoundscape}
-                            className="w-6 h-6 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
-                            title={isPlayingAudio ? "Pause soundscape" : "Play soundscape"}
-                          >
-                            {isPlayingAudio ? (
-                              <Pause className="w-2.5 h-2.5 fill-current stroke-[2]" />
-                            ) : (
-                              <Play className="w-2.5 h-2.5 fill-current translate-x-0.5 stroke-[2]" />
-                            )}
-                          </button>
-                          <span className="font-serif italic text-xs text-[#F7F7D9]/90">
-                            {activeInquiry.audioTrackName || "Solitary Ambient Frequencies"}
-                          </span>
-                        </div>
+                      {/* Audio Capsule (Only when music inquiry) */}
+                      {activeInquiry.hasAudio && (
+                        <div className="flex items-center justify-between px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.12] backdrop-blur-md">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={toggleAmbientSoundscape}
+                              className="w-7 h-7 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                              title={isPlayingAudio ? "Pause soundscape" : "Play soundscape"}
+                            >
+                              {isPlayingAudio ? (
+                                <Pause className="w-3 h-3 fill-current stroke-[2]" />
+                              ) : (
+                                <Play className="w-3 h-3 fill-current translate-x-0.5 stroke-[2]" />
+                              )}
+                            </button>
+                            <span className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/95">
+                              {activeInquiry.audioTrackName || "Solitary Ambient Frequencies"}
+                            </span>
+                          </div>
 
-                        {/* Quiet indicator */}
-                        <div className="flex items-center gap-1 pr-1">
-                          <Volume2 className="w-3 h-3 text-[#F7F7D9]/40" />
-                          <div className="flex items-center gap-0.5 h-3 pl-0.5">
-                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse" : "h-1 opacity-30"}`} />
-                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2 animate-pulse delay-100" : "h-1 opacity-30"}`} />
-                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-3 animate-pulse delay-200" : "h-1 opacity-30"}`} />
+                          {/* Sound wave activity */}
+                          <div className="flex items-center gap-1.5 pr-1">
+                            <Volume2 className="w-3.5 h-3.5 text-[#F7F7D9]/50" />
+                            <div className="flex items-center gap-0.5 h-3 pl-0.5">
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-3 animate-pulse" : "h-1 opacity-30"}`} />
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse delay-100" : "h-1 opacity-30"}`} />
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-3.5 animate-pulse delay-200" : "h-1 opacity-30"}`} />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Cultural Entities Section Header */}
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/60">
-                        Tactile Anchors & Character Armor
-                      </span>
-                      <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                        {activeEntities.length} verified references
-                      </span>
+                      {/* Multi-Paragraph Narrative Scene */}
+                      <div className="flex flex-col gap-3.5 pt-1">
+                        {(activeInquiry.vignette || "Resolving cultural anchors...").split("\n\n").map((para, pIdx) => (
+                          <p
+                            key={pIdx}
+                            className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/90 font-light"
+                          >
+                            {renderTextWithEntityTags(para.trim(), activeEntities, handleEntityClick)}
+                          </p>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Clean Lookbook Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {activeEntities.map((entity) => {
-                        const roleLabel =
-                          entity.domain === "OBJECTS" ? "Tactile Armor" :
-                          entity.domain === "MUSIC" ? "Acoustic Shield" :
-                          entity.domain === "BOOKS" ? "Hidden Shelf" :
-                          entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
+                    {/* Tactile Anchors Tray (Horizontal Scannable Badges) */}
+                    <div className="flex flex-col gap-2.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/70">
+                          Tactile Anchors Woven into Scene ({activeEntities.length} verified via Qloo)
+                        </span>
+                        <span className="text-[11px] font-sans text-[#F7F7D9]/40">
+                          Click anchor to inspect evidence
+                        </span>
+                      </div>
 
-                        return (
-                          <button
-                            key={entity.id}
-                            onClick={() => handleEntityClick(entity)}
-                            className="group relative h-[175px] rounded-[18px] overflow-hidden border border-white/[0.1] hover:border-white/[0.24] transition-all duration-300 text-left cursor-pointer shadow-md bg-black/40 flex flex-col justify-between p-3.5"
-                          >
-                            {entity.imageUrl && (
-                              <img
-                                src={entity.imageUrl}
-                                alt={entity.name}
-                                className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-75 group-hover:scale-105 transition-all duration-500 pointer-events-none"
-                              />
-                            )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {activeEntities.map((entity) => {
+                          const roleLabel =
+                            entity.domain === "OBJECTS" ? "Tactile Armor" :
+                            entity.domain === "MUSIC" ? "Acoustic Shield" :
+                            entity.domain === "BOOKS" ? "Hidden Shelf" :
+                            entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
 
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 pointer-events-none" />
-
-                            {/* Top: Role Tag & Affinity Pill */}
-                            <div className="relative z-10 flex items-center justify-between w-full">
-                              <span className="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/10 backdrop-blur-md text-[9px] font-mono tracking-tight text-[#E06B55] uppercase font-bold">
-                                {roleLabel}
-                              </span>
-
-                              {entity.affinityScore !== undefined && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-black/50 border border-white/10 backdrop-blur-md text-[10px] font-sans font-bold text-[#F7F7D9]/90">
-                                  {entity.affinityScore}%
+                          return (
+                            <button
+                              key={entity.id}
+                              onClick={() => handleEntityClick(entity)}
+                              className="group p-3.5 rounded-[18px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-[#E06B55]/40 transition-all duration-200 text-left cursor-pointer flex flex-col justify-between gap-2 shadow-sm"
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[9px] font-mono tracking-tight text-[#E06B55] uppercase font-bold">
+                                  {roleLabel}
                                 </span>
-                              )}
-                            </div>
+                                {entity.affinityScore !== undefined && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-black/40 border border-white/10 text-[10px] font-sans font-bold text-[#F7F7D9]/90">
+                                    {entity.affinityScore}%
+                                  </span>
+                                )}
+                              </div>
 
-                            {/* Bottom: Title & Description */}
-                            <div className="relative z-10 flex flex-col gap-0.5">
-                              <span className="font-serif italic font-bold text-sm sm:text-[15px] text-[#F7F7D9] group-hover:text-white transition-colors">
-                                {entity.name}
-                              </span>
-                              <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
-                                {entity.description}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-serif italic font-bold text-sm text-[#F7F7D9] group-hover:text-[#E06B55] transition-colors truncate">
+                                  {entity.name}
+                                </span>
+                                <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
+                                  {entity.description}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}

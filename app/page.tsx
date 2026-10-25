@@ -37,6 +37,7 @@ export default function Home() {
   const mirrorRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<HTMLSpanElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lensCacheRef = useRef<Record<string, Lens>>({});
 
   const samplePrompts = [
     {
@@ -97,7 +98,7 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateMarkerPosition);
   }, []);
 
-  // Fetch ONE single contextual lens from the fast LLM as the user types
+  // Fetch ONE single contextual lens from the fast LLM as the user types (Throttled 1200ms)
   useEffect(() => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
@@ -117,7 +118,17 @@ export default function Home() {
       }
     }
 
-    // Fast 300ms debounced refinement
+    // Check in-memory cache first
+    const cacheKey = `${trimmed.slice(0, 100)}_${addedLensesCount}`;
+    if (lensCacheRef.current[cacheKey]) {
+      const cached = lensCacheRef.current[cacheKey];
+      if (!trimmed.toLowerCase().includes(cached.query.toLowerCase())) {
+        setCurrentLens(cached);
+      }
+      return;
+    }
+
+    // Conservative 1200ms debounced refinement so fast typing does not drain Gemini 15 RPM
     debounceTimerRef.current = setTimeout(async () => {
       try {
         const res = await fetch("/api/suggest-lenses", {
@@ -127,14 +138,15 @@ export default function Home() {
         });
         const data = await res.json();
         if (data.lens && data.lens.label && data.lens.query) {
+          lensCacheRef.current[cacheKey] = data.lens;
           if (!trimmed.toLowerCase().includes(data.lens.query.toLowerCase())) {
             setCurrentLens(data.lens);
           }
         }
       } catch (err) {
-        console.error("Lens suggestion error:", err);
+        console.warn("Lens suggestion notice:", err);
       }
-    }, 300);
+    }, 1200);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
