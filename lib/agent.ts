@@ -148,17 +148,27 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
   const allDiscoveredEntities: AgentCulturalEntity[] = [];
   const resolvedSeedRecords: { name: string; entityId: string; type?: string }[] = [];
 
-  // Fallback map if an obscure query fails to resolve in Qloo
+  // Fallback map if an obscure query fails to resolve in Qloo, tuned to character archetype
+  const promptLower = (prompt + " " + profiling.summary).toLowerCase();
+  const loc = (profiling.constraints.locality || "").toLowerCase();
+  const isGritty = /mechanic|skate|club|grease|moped|diy|garage|punk|industrial|noise|bamboo/i.test(promptLower);
+
   const fallbackDomainSeeds: Record<string, string> = {
-    OBJECTS: "Staedtler",
-    MUSIC: "Erik Satie",
-    PLACES: profiling.constraints.locality?.toLowerCase().includes("marseille")
-      ? "Le Panier"
-      : profiling.constraints.locality?.toLowerCase().includes("nagoya")
+    OBJECTS: isGritty ? "Leatherman" : "Staedtler",
+    MUSIC: isGritty ? "Boredoms" : "Hiroshi Yoshimura",
+    PLACES: loc.includes("osaka")
+      ? "Shinsekai"
+      : loc.includes("nagoya")
       ? "Osu Kannon"
+      : loc.includes("tokyo")
+      ? "Shinjuku"
+      : loc.includes("marseille")
+      ? "Le Panier"
+      : loc.includes("berlin")
+      ? "Kreuzberg"
       : "Palais Longchamp",
-    BOOKS: "In Praise of Shadows",
-    CONTRADICTION: "Snow Peak",
+    BOOKS: isGritty ? "Beautiful Star" : "The Poetics of Space",
+    CONTRADICTION: isGritty ? "Hasami porcelain" : "Snow Peak",
   };
 
   for (const item of allInquiryPlans) {
@@ -228,6 +238,7 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     const curatedEntities = await curateEntitiesForInquiry(
       profiling.characterName,
       profiling.summary,
+      profiling.constraints,
       plan.question,
       plan.domain,
       normalizedCandidates
@@ -293,9 +304,16 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     highlight: inq.vignetteHighlightEntity || "Quiet Anchor",
   }));
 
-  const allVignettes = await generateAllVignettes(profiling.characterName, vignetteInputs);
+  const allVignettes = await generateAllVignettes(
+    profiling.characterName,
+    profiling.summary,
+    profiling.constraints,
+    vignetteInputs
+  );
   inquiries.forEach((inq) => {
-    inq.vignette = allVignettes[inq.id] || `Elena turns to ${inq.vignetteHighlightEntity}, where the quiet work makes the room feel grounded.`;
+    inq.vignette =
+      allVignettes[inq.id] ||
+      `${profiling.characterName} keeps ${inq.vignetteHighlightEntity} close at hand—a tactile anchor against the noise of ${profiling.constraints.locality || "the city"}, chosen for the quiet, unvarnished weight it carries in everyday use.`;
     console.log(`  - [${inq.source.toUpperCase()}] "${inq.question}"`);
     console.log(`    Highlight: "${inq.vignetteHighlightEntity}"`);
     console.log(`    Vignette: "${inq.vignette}"`);
@@ -438,15 +456,20 @@ CRITICAL RULES FOR CULTURAL ANCHORS (NO GOODREADS PULP, NO GENERIC CONCEPTS):
 1. characterName: (e.g. Tsukuru, Elena, or a fitting name if unnamed).
 2. summary: One crisp literary sentence defining their cultural soul without generic tropes.
 3. constraints: { locality, era, occupation }
+   - era: Specify precise temporal setting (e.g. "1970s", "1980s", "1990s", "Contemporary", "Contemporary with 1970s vintage obsession").
+   - locality: Main city or district (e.g. "Osaka", "Nagoya", "Marseille", "Berlin", "Tokyo").
+   - occupation: Professional craft or role.
 4. explicitAnchors: 2-3 concrete facts directly stated in the prompt.
 5. creatorInquiries: 1-3 concise questions (<12 words) directly fulfilling what the creator asked (e.g. her worktable tools, his secret bookshelf, 2 AM soundscape, where they walk).
    For EACH inquiry provide:
    - question: concise question title
    - domain: "OBJECTS" | "MUSIC" | "PLACES" | "BOOKS" | "CONTRADICTION"
    - searchSeed: A REAL, HIGH-TASTE CULTURAL ENTITY in Qloo:
-     * For tools/industrial design: use real makers like "Opinel Knives", "Staedtler", "Faber-castell", "Snow Peak", "Anglepoise", "Vitra", "Alessi", "FLOS", "Leatherman", "Bodum", "Royal Copenhagen".
-     * For music/soundscapes: use real composers or ambient artists like "Erik Satie", "Claude Debussy", "Brian Eno", "Hiroshi Yoshimura", "Ryuichi Sakamoto", "Harold Budd".
-     * For places/haunts: use real cities, famous districts, or station areas like "Marseille", "Calanques", "Le Panier", "Nagoya", "Kyoto", "Shinjuku".
+     * For tools/industrial design: MUST match their subculture, budget, and physical labor!
+       - For gritty, mechanic, DIY, underground, club, or skate characters: use rugged working tools/gear like "Leatherman", "Opinel Knives", "Knipex", "Tajima", "Makita", "Carhartt", "Danner". NEVER give a greasy moped mechanic delicate royal tableware like "Royal Copenhagen"!
+       - For monastic, architectural, or clean studio designers: use "Rotring", "Staedtler", "Faber-castell", "Snow Peak", "Anglepoise", "Vitra", "Alessi".
+     * For music/soundscapes: use real composers, bands, or ambient artists like "Erik Satie", "Claude Debussy", "Brian Eno", "Hiroshi Yoshimura", "Ryuichi Sakamoto", "Harold Budd", "Boredoms", "Merzbow".
+     * For places/haunts: MUST strictly belong to the character's active city/locality! For Osaka: "Shinsekai", "Dotonbori", "Amemura". For Nagoya: "Osu Kannon", "Sakae". For Marseille: "Le Panier", "Noailles". NEVER pick foreign countries or unrelated distant cities!
      * For bookshelf/reading (ONLY when reading is asked): ALWAYS use EXACT CANONICAL BOOK TITLES (e.g. "In Praise of Shadows", "The Poetics of Space", "Snow Country", "The Woman in the Dunes", "Invisible Cities", "The Stranger"). NEVER search author last names (e.g. do NOT search "Kobo Abe" or "Gaston Bachelard" as Qloo fuzzy-matches series crime novels like "Guilt (Abe Glitsky)")!
        NEVER search for generic theme words like "Guilt", "Loneliness", or "Architecture" (this returns cheap airport thrillers)!
        NEVER use series novels or pulp fiction!
@@ -509,6 +532,7 @@ Respond ONLY with valid JSON:
 async function curateEntitiesForInquiry(
   characterName: string,
   characterSummary: string,
+  constraints: { locality?: string; era?: string; occupation?: string },
   question: string,
   domain: string,
   candidateEntities: AgentCulturalEntity[]
@@ -520,22 +544,32 @@ async function curateEntitiesForInquiry(
   try {
     const prompt = `You are the Lead Cultural Curator for "Poppies", a prestige auteur character studio.
 Character: "${characterName}" (${characterSummary})
+Constraints: Locality="${constraints.locality || "Unspecified"}", Era="${constraints.era || "Contemporary"}", Occupation="${constraints.occupation || "Unspecified"}"
 Inquiry Question: "${question}"
 Domain: ${domain}
 
 Candidate Entities from Qloo Taste Graph:
 ${candidateEntities.map((c, i) => `${i + 1}. "${c.name}" (${c.domain}): ${c.description} [tags: ${c.tags?.join(", ") || "none"}]`).join("\n")}
 
-CURATORIAL MANDATE:
+CURATORIAL MANDATE & CONSTRAINT BOUNDARIES:
 1. Understand the exact angle and tone of the question:
    - Is it asking about specific professional craft tools or instruments?
    - Is it asking for quiet domestic rituals?
    - Is it asking for something they love, or something they secretly despise/reject?
    - Is it an unexpected friction, contradiction, or guilty pleasure?
-2. Rigorously filter and select the 3 to 5 MOST AUTHENTIC, TRUTHFUL entities.
-   CRITICAL NEGATIVE FILTER:
-   - For tools/worktable/industrial design: REJECT all cars/automotive brands (e.g. Peugeot, Opel, Volvo, Fiat), hair styling/grooming appliances (e.g. Babyliss), and random fashion.
-   - For literature/books: REJECT all airport thrillers, series crime novels, and self-help paperbacks.
+
+2. ENFORCE DEEP CONSTRAINTS & NEGATIVE FILTERS:
+   - ERA & TEMPORAL REALISM ("${constraints.era || "Contemporary"}"):
+     If historical period (e.g. 1970s, 1990s), REJECT any entities created after that period.
+     If contemporary with a retro fixation (e.g. restoring 1970s arcade cabinets in 2026), ensure the modern setting is respected while honoring the vintage passion.
+   - GEOGRAPHIC BOUNDING ("${constraints.locality || "Active City"}"):
+     For PLACES or neighborhood inquiries: REJECT places in foreign countries or distant cities. (e.g. if character is in Osaka or Nagoya, REJECT venues in Tel Aviv, London, or New York).
+   - SOCIOECONOMIC & SUBCULTURAL COHERENCE:
+     Match the character's economic status and labor. If working-class, DIY, skater, or mechanic: REJECT delicate luxury royal tableware (e.g. Royal Copenhagen) or $500 designer pens unless explicitly an heirloom or contradiction.
+   - STRICT NEGATIVE FILTER:
+     * For tools/worktable/industrial design: REJECT all cars/automotive brands (e.g. Peugeot, Opel, Volvo, Fiat), hair styling/grooming appliances (e.g. Babyliss), and random fashion.
+     * For literature/books: REJECT all airport thrillers, series crime novels, and self-help paperbacks.
+
 3. For EACH selected entity, write a bespoke 1-sentence curatorial note (editorial rationale) explaining its exact role or physical reality in this character's world.
 
 Respond ONLY with valid JSON:
@@ -588,17 +622,22 @@ Respond ONLY with valid JSON:
  */
 async function generateAllVignettes(
   characterName: string,
+  characterSummary: string,
+  constraints: { locality?: string; era?: string; occupation?: string },
   inquiries: { id: string; question: string; domain: string; highlight: string }[]
 ): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
   inquiries.forEach((inq) => {
-    result[inq.id] = `At the end of a long day, ${characterName} turns to ${inq.highlight}, where the quiet consistency of the work makes the room feel grounded and intentional.`;
+    result[inq.id] = `${characterName} keeps ${inq.highlight} close at hand—a tactile anchor against the noise of ${constraints.locality || "the city"}, chosen for the quiet, unvarnished weight it carries in everyday use.`;
   });
 
   if (!ai || inquiries.length === 0) return result;
 
   try {
     const prompt = `You are an editorial novelist writing 2-sentence scene vignettes for character "${characterName}".
+Character Profile: "${characterSummary}"
+Locality: "${constraints.locality || "Unspecified"}", Era: "${constraints.era || "Contemporary"}", Occupation: "${constraints.occupation || "Unspecified"}"
+
 For EACH inquiry below, write exactly 2 concise, richly textured sentences naturally incorporating the specified cultural entity.
 
 Inquiries:
@@ -606,8 +645,9 @@ ${inquiries.map((q, i) => `${i + 1}. [ID: ${q.id}] [${q.domain}] Question: "${q.
 
 Rules:
 - Exactly 2 sentences per inquiry.
-- Grounded in physical textures (paper, wood, analog tape, damp stone, coffee, rain, iron, chalk).
+- Grounded in physical textures (paper, wood, analog tape, damp stone, coffee, rain, iron, grease, chalk).
 - Third-person perspective only.
+- Respect the temporal era ("${constraints.era || "Contemporary"}") and physical surroundings.
 - Zero generic AI hype, zero cliches.
 
 Respond ONLY in JSON:
@@ -626,8 +666,37 @@ Respond ONLY in JSON:
     const parsed = JSON.parse(res.text || "{}");
     if (parsed.vignettes && Array.isArray(parsed.vignettes)) {
       for (const v of parsed.vignettes) {
-        if (v.id && v.vignette) {
-          result[v.id] = v.vignette.replace(/^["']|["']$/g, "").trim();
+        if (!v || !v.vignette) continue;
+        const cleanedVignette = v.vignette.replace(/^["']|["']$/g, "").trim();
+
+        // 1. Exact ID match
+        const exactMatch = inquiries.find((q) => q.id === v.id);
+        if (exactMatch) {
+          result[exactMatch.id] = cleanedVignette;
+          continue;
+        }
+
+        // 2. Numeric / prefix index match
+        const indexMatch = inquiries.find(
+          (q, idx) =>
+            v.id === String(idx + 1) ||
+            v.id === `inquiry-${idx + 1}` ||
+            v.id === `inquiry-creator-${idx + 1}` ||
+            v.id === `inquiry-agent-${idx + 1}`
+        );
+        if (indexMatch) {
+          result[indexMatch.id] = cleanedVignette;
+          continue;
+        }
+
+        // 3. Highlight entity name match
+        const highlightMatch = inquiries.find(
+          (q) =>
+            q.highlight &&
+            cleanedVignette.toLowerCase().includes(q.highlight.toLowerCase())
+        );
+        if (highlightMatch) {
+          result[highlightMatch.id] = cleanedVignette;
         }
       }
     }
@@ -753,5 +822,144 @@ Respond ONLY in JSON:
   } catch (e) {
     console.error("Dossier synthesis error:", e);
     return fallback;
+  }
+}
+
+/**
+ * Runs the unconstrained Base LLM research cycle (Gemini Flash Lite without Qloo graph constraints).
+ * Used when the user toggles to "Vanilla Base LLM" mode to visibly expose AI monoculture tropes.
+ */
+export async function runBaseLLMResearchCycle(prompt: string): Promise<AgentDossier> {
+  const agentDecisions = [
+    "Bypassed Qloo Taste Graph.",
+    "Resolving purely via frontier LLM next-token probability (Base AI mode)...",
+    "Warning: Susceptible to internet co-occurrence clichés and cultural monoculture.",
+  ];
+
+  const profiling = await profileCharacter(prompt);
+
+  if (!ai) {
+    return {
+      characterName: profiling.characterName,
+      summary: profiling.summary,
+      constraints: profiling.constraints,
+      explicitAnchors: profiling.explicitAnchors,
+      resolvedSeeds: [],
+      culturalDossier: {
+        tasteThesis: `${profiling.characterName}'s aesthetic world is generated directly from base LLM statistical co-occurrence.`,
+        observedClusters: ["Generic AI Co-occurrence", "Statistical Internet Mean"],
+        unconsideredAngles: [
+          {
+            title: "AI Monoculture Warning",
+            description: "Generated without empirical cultural graph grounding.",
+            groundedEntity: "Vanilla LLM",
+          },
+        ],
+      },
+      inquiries: [],
+      agentDecisions,
+    };
+  }
+
+  const baseLLMPrompt = `You are a character designer in Vanilla LLM mode (WITHOUT taste graph grounding).
+Character Brief: "${prompt}"
+Name: "${profiling.characterName}"
+Locality: "${profiling.constraints.locality}", Era: "${profiling.constraints.era}"
+
+Generate 4 inquiry sections:
+1. Worktable & Everyday Tools (Domain: OBJECTS, list 3 real brands/items)
+2. Music & Soundscape (Domain: MUSIC, list 3 real artists/composers)
+3. Secret Bookshelf (Domain: BOOKS, list 2 real books)
+4. Night Haunts & Places (Domain: PLACES, list 2 real spots/neighborhoods)
+
+For EACH inquiry, provide:
+- question: creative question title
+- domain: "OBJECTS" | "MUSIC" | "BOOKS" | "PLACES"
+- items: [ { name: string, description: string } ]
+- vignette: a 2-sentence scene naturally featuring one of the items.
+
+Respond ONLY in JSON:
+{
+  "thesis": string,
+  "inquiries": [
+    {
+      "question": string,
+      "domain": "OBJECTS" | "MUSIC" | "BOOKS" | "PLACES",
+      "items": [ { "name": string, "description": string } ],
+      "vignette": string
+    }
+  ]
+}`;
+
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: baseLLMPrompt,
+      config: { responseMimeType: "application/json", temperature: 0.7 },
+    });
+
+    const parsed = JSON.parse(res.text || "{}");
+    const inquiries: AgentInquiry[] = (parsed.inquiries || []).map((inq: any, idx: number) => {
+      const highlight = inq.items?.[0]?.name || "Generic Artifact";
+      return {
+        id: `inquiry-base-${idx + 1}`,
+        question: inq.question || `Inquiry ${idx + 1}`,
+        source: idx < 2 ? "creator" : "agent",
+        domain: inq.domain || "OBJECTS",
+        vignette: inq.vignette || `${profiling.characterName} reaches for ${highlight}, surrounded by familiar tropes.`,
+        vignetteHighlightEntity: highlight,
+        hasAudio: inq.domain === "MUSIC",
+        audioTrackName: inq.domain === "MUSIC" ? `${highlight} — Probabilistic Stream` : undefined,
+        entities: (inq.items || []).map((item: any, iIdx: number) => ({
+          id: `base-entity-${idx}-${iIdx}`,
+          name: item.name,
+          domain: inq.domain,
+          description: item.description,
+          entityId: `urn:ai:probabilistic:${encodeURIComponent(item.name.toLowerCase().replace(/[^a-z0-9]/g, "_"))}`,
+          entityType: `urn:entity:${(inq.domain || "object").toLowerCase()}`,
+          affinityScore: 50,
+          tags: ["LLM Statistical Mean", "Unverified"],
+          seedEntities: ["Frontier LLM Token Prior"],
+          qlooReasoning: "Predicted purely from common internet training data without empirical taste graph verification.",
+        })),
+      };
+    });
+
+    return {
+      characterName: profiling.characterName,
+      summary: profiling.summary,
+      constraints: profiling.constraints,
+      explicitAnchors: profiling.explicitAnchors,
+      resolvedSeeds: [],
+      culturalDossier: {
+        tasteThesis: parsed.thesis || `${profiling.characterName}'s world is assembled from high-frequency statistical internet tropes.`,
+        observedClusters: ["Top 0.1% Internet Co-occurrence", "Predictive Token Frequency"],
+        unconsideredAngles: [
+          {
+            title: "AI Monoculture Warning",
+            description: "Base LLM mode lacks empirical graph distance, risking repetitive aesthetic clichés.",
+            groundedEntity: "Vanilla Gemini",
+          },
+        ],
+      },
+      inquiries,
+      agentDecisions,
+    };
+  } catch (err: any) {
+    console.error("Base LLM generation error:", err);
+    return {
+      characterName: profiling.characterName,
+      summary: profiling.summary,
+      constraints: profiling.constraints,
+      explicitAnchors: profiling.explicitAnchors,
+      resolvedSeeds: [],
+      culturalDossier: {
+        tasteThesis: `${profiling.characterName}'s aesthetic profile collapsed into generic tropes.`,
+        observedClusters: ["AI Monoculture Trap"],
+        unconsideredAngles: [],
+      },
+      inquiries: [],
+      agentDecisions,
+    };
   }
 }
