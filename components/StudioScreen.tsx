@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import HeaderControls from "@/components/HeaderControls";
+import AssembledDossierModal from "@/components/AssembledDossierModal";
 
 interface StudioScreenProps {
   initialData: any;
@@ -235,6 +236,7 @@ export default function StudioScreen({
   const [isFetchingMore, setIsFetchingMore] = useState<boolean>(false);
   const [isPromptFocused, setIsPromptFocused] = useState<boolean>(false);
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState<boolean>(false);
+  const [isDossierModalOpen, setIsDossierModalOpen] = useState<boolean>(false);
   const [selectedEntity, setSelectedEntity] = useState<CulturalEntity | null>(null);
 
   const promptInputRef = useRef<HTMLInputElement>(null);
@@ -580,7 +582,10 @@ export default function StudioScreen({
           <div className="pt-2 flex-shrink-0">
             <button
               type="button"
-              onClick={onAssembleDossier}
+              onClick={() => {
+                setIsDossierModalOpen(true);
+                onAssembleDossier?.();
+              }}
               className="w-full flex items-center justify-between p-3 rounded-[18px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.12] backdrop-blur-lg text-[#F7F7D9] transition-all group cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -1140,6 +1145,17 @@ export default function StudioScreen({
           </div>
         </div>
       )}
+
+      {/* Assembled Cultural Dossier Modal (Printable / Exportable Full Lookbook) */}
+      <AssembledDossierModal
+        isOpen={isDossierModalOpen}
+        onClose={() => setIsDossierModalOpen(false)}
+        characterName={characterName}
+        characterSummary={characterSummary}
+        constraints={constraints}
+        culturalDossier={culturalDossier}
+        inquiries={inquiries}
+      />
     </div>
   );
 }

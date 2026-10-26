@@ -36,19 +36,19 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     stepNumber: "03",
-    title: "The Auteur Studio",
+    title: "Curatorial Intelligence",
     icon: BookOpen,
-    headline: "Dramatic scenes over raw shopping lists.",
-    body: "An entity list with affinity percentages is an e-commerce catalog, not a person. Poppies synthesizes Qloo's empirical data into dramatic 2-sentence scene vignettes, psychological armor, and tactile rituals that make characters feel alive.",
-    highlight: "Tactile Physical Armor & Scenes",
+    headline: "Authoritative taste curation over fake fiction.",
+    body: "Creators reject AI trying to write purple prose fiction for them. Poppies acts as an authoritative cultural curator—directly answering questions, explaining why each pick fits the character's taste clusters and daily realities, and weaving clickable tags with live Qloo backing.",
+    highlight: "Cross-Taste Inference & Curated Ensembles",
   },
   {
     stepNumber: "04",
-    title: "The Evidence Inspector",
+    title: "The Evidence Inspector & Expansion",
     icon: Layers,
-    headline: "Verifiable pedigree & full creative control.",
-    body: "Every cultural reference links directly to canonical Qloo Entity IDs, seed pedigrees, and curatorial notes. Steer the agent in real time, swap references, and compile a production-ready Character Lookbook.",
-    highlight: "Grounding Pedigree & Dossier Compilation",
+    headline: "Empirical pedigree & on-demand expansion.",
+    body: "Tapping any highlighted tag opens the Qloo Evidence Inspector with canonical entity IDs, latent affinities, and seed pedigrees. Need a deeper collection? Use '+ Fetch 4 More from Qloo' to expand anytime, steer with open-ended prompt capsules, or assemble the complete Dossier.",
+    highlight: "Grounding Pedigree & Collection Expansion",
   },
 ];
 

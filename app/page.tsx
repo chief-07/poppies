@@ -247,7 +247,7 @@ export default function Home() {
           engine={engine}
           onToggleEngine={setEngine}
           onOpenTour={() => setIsTourOpen(true)}
-          onAssembleDossier={() => alert("Dossier compilation ready! Let me know if you want a printable lookbook view.")}
+          onAssembleDossier={() => {}}
         />
         <TourGuide isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
       </div>
