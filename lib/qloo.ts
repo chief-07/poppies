@@ -98,6 +98,15 @@ function cleanMojibake(str: string): string {
     .replace(/Â/g, "");
 }
 
+const NON_CULTURAL_REGEX =
+  /insurance|cancer center|health system|hospital|medical center|diabetes association|clinic|mutual fund|pharmaceutical|healthcare|workday|automatic data processing|ziprecruiter|staffing|payroll|cloud platform|enterprise software|talent acquisition|\bmd\b|nutrition|supplements|vitamins|wellness center/i;
+
+function isCleanCulturalEntity(e: QlooEntity): boolean {
+  const name = e.name || "";
+  const desc = e.properties?.description || "";
+  return !NON_CULTURAL_REGEX.test(name) && !NON_CULTURAL_REGEX.test(desc);
+}
+
 /**
  * Normalizes an entity returned from Qloo so the UI has immediate access to
  * real image CDN URLs, clean descriptions, and computed affinity percentages.
@@ -183,7 +192,7 @@ export async function searchQloo(query: string, type?: string): Promise<QlooEnti
     }
 
     const data: QlooSearchResponse = await res.json();
-    return data.results || [];
+    return (data.results || []).filter(isCleanCulturalEntity);
   } catch (err) {
     console.error("Qloo search network error:", err);
     return [];
@@ -224,7 +233,7 @@ export async function getQlooInsights(
     }
 
     const data: QlooInsightsResponse = await res.json();
-    return data.results?.entities || [];
+    return (data.results?.entities || []).filter(isCleanCulturalEntity);
   } catch (err) {
     console.error("Qloo insights network error:", err);
     return [];

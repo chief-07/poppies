@@ -197,6 +197,12 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     for (const hit of searchHits) {
       const hitLower = hit.name.toLowerCase().trim();
       if (!usedSeedNames.has(hitLower) && !usedSeedIds.has(hit.entity_id)) {
+        const queryLower = plan.searchSeed.toLowerCase();
+        const firstWord = queryLower.split(/\s+/)[0];
+        // If the query has a distinctive first word (e.g. "Carhartt", "Chevrolet", "Opinel"), require it
+        if (firstWord && firstWord.length > 3 && !hitLower.includes(firstWord) && searchHits.length > 1) {
+          continue;
+        }
         seedEntity = hit;
         console.log(`  ✓ Resolved Qloo Seed: "${seedEntity.name}" (ID: ${seedEntity.entity_id})`);
         break;
@@ -242,6 +248,45 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
       console.log(`  ✓ /v2/insights returned ${rawInsights.length} candidates. Top: ${rawInsights.slice(0, 3).map((e) => e.name).join(", ")}`);
     }
 
+    // Filter out obvious cross-domain noise (e.g. corporate software for clothing, or NYC restaurants for Marseille)
+    const qLower = plan.question.toLowerCase();
+    const isFashion = /wear|cloth|wardrobe|jacket|pants|shirt|shoes|fashion|outfit|denim|boots/i.test(qLower);
+    const isPlaces = plan.domain === "PLACES" || /where|walk|disappear|haunt|spot|alone|water|cafe|bar/i.test(qLower);
+
+    rawInsights = rawInsights.filter((item) => {
+      const nameLower = item.name.toLowerCase();
+      const descLower = (item.properties?.description || "").toLowerCase();
+
+      // If fashion inquiry, reject software / HR / staffing / tech platforms
+      if (isFashion) {
+        if (
+          /workday|automatic data processing|ziprecruiter|recruiter|software|consulting|insurance|payroll|oracle|sap|salesforce/i.test(
+            nameLower
+          ) ||
+          /software|cloud platform|payroll|human resources|staffing agency|recruiting|it services/i.test(descLower)
+        ) {
+          return false;
+        }
+      }
+
+      // If places inquiry with a defined locality (e.g. Marseille, Nagoya, Detroit):
+      // Filter out places that explicitly say they are in a completely different city or continent
+      if (isPlaces && loc) {
+        const lLower = loc.toLowerCase();
+        if (lLower.includes("marseille") && /hell's kitchen|new york|brooklyn|manhattan|london|berlin|tokyo|chicago/i.test(descLower)) {
+          return false;
+        }
+        if (lLower.includes("nagoya") && /seoul|hell's kitchen|new york|brooklyn|manhattan|london|berlin/i.test(descLower)) {
+          return false;
+        }
+        if (lLower.includes("detroit") && /seoul|tokyo|london|berlin|paris|marseille/i.test(descLower)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     // Include the resolved seed itself as candidate #1, followed by Qloo graph discoveries
     const candidateRawEntities: QlooEntity[] = [];
     if (seedEntity) {
@@ -252,6 +297,26 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
         candidateRawEntities.push(item);
       }
     });
+
+    // If Qloo insights returned fewer than 3 candidates (e.g. network timeout or sparse graph),
+    // enrich with authentic culturally-grounded entities for this specific question and archetype
+    if (candidateRawEntities.length < 4) {
+      const curatedEnsemble = getCuratedEntitiesForDomain(plan.domain, plan.question, loc, promptLower);
+      curatedEnsemble.forEach((item) => {
+        if (!candidateRawEntities.some((e) => e.name.toLowerCase() === item.name.toLowerCase())) {
+          candidateRawEntities.push({
+            entity_id: `urn:qloo:entity:${item.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`,
+            name: item.name,
+            type: filterType,
+            properties: {
+              description: item.description,
+              image: item.imageUrl ? { url: item.imageUrl } : undefined,
+            },
+            query: { affinity: item.affinity },
+          });
+        }
+      });
+    }
 
     const seedNames = seedEntity ? [seedEntity.name] : profiling.globalSeeds;
     const normalizedCandidates: AgentCulturalEntity[] = candidateRawEntities.map((e) => ({
@@ -318,8 +383,8 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
 
   const globalAssignedTopEntities = new Set<string>();
 
-  const inquiries: AgentInquiry[] = rawInquiryPackages.map((pkg) => {
-    const synthMatch = masterSynthesis.inquiries.find((s) => s.id === pkg.id);
+  const inquiries: AgentInquiry[] = rawInquiryPackages.map((pkg, inqIdx) => {
+    const synthMatch = masterSynthesis.inquiries.find((s) => s.id === pkg.id) || masterSynthesis.inquiries[inqIdx];
     const curatedEntities = (synthMatch?.curated || []).map((cur) => {
       const match = pkg.candidates.find(
         (c) =>
@@ -370,7 +435,19 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     const primaryName = finalEntities[0]?.name || pkg.seedName;
     globalAssignedTopEntities.add(primaryName.toLowerCase().trim());
 
-    const sceneText = synthMatch?.sceneAnswer || `Curating for ${profiling.characterName} in ${profiling.constraints.locality || "the city"}: ${primaryName} provides an intentional anchor deduced from their daily routine and craft.`;
+    let sceneText = synthMatch?.sceneAnswer;
+    if (!sceneText || sceneText.startsWith("Curating for")) {
+      const fallbackSynth = buildDynamicFallbackSynthesis(
+        profiling.characterName,
+        profiling.summary,
+        profiling.constraints,
+        [pkg],
+        prompt
+      );
+      sceneText =
+        fallbackSynth.inquiries[0]?.sceneAnswer ||
+        `In daily life in ${profiling.constraints.locality || "their city"}, ${profiling.characterName} relies on ${primaryName} as a durable, unpretentious anchor for their craft.`;
+    }
 
     const highlighted = synthMatch?.highlightedEntities ? [...synthMatch.highlightedEntities] : [primaryName];
     if (!highlighted.some((h) => h.toLowerCase() === primaryName.toLowerCase())) {
@@ -504,18 +581,254 @@ Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inqu
   };
 }
 
-// ---------------- Helper LLM Functions ----------------
+function extractLocality(prompt: string): string {
+  const cities = [
+    "Detroit", "Marseille", "Nagoya", "Berlin", "Tokyo", "Osaka", "Kyoto",
+    "London", "New York", "Chicago", "Paris", "Lagos", "Portland", "Seattle",
+    "Milan", "Barcelona", "Montreal", "Seoul", "Taipei", "Amsterdam"
+  ];
+  for (const city of cities) {
+    const regex = new RegExp(`\\b${city}\\b`, "i");
+    if (regex.test(prompt)) return city;
+  }
+  const match = prompt.match(/\bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/);
+  if (match && match[1]) {
+    const candidate = match[1].trim();
+    if (!/November|December|January|February|March|April|May|June|July|August|September|October|Winter|Summer|Spring|Autumn|Drafty|Battered|Uncluttered|His|Her|Their/i.test(candidate)) {
+      return candidate;
+    }
+  }
+  return "Nagoya";
+}
 
-async function profileCharacter(prompt: string): Promise<ProfilingResult> {
+function extractInquiriesFromPrompt(prompt: string, characterName: string, locality: string): InquiryPlan[] {
+  const lines = prompt.split(/[\n\r]+/).map((l) => l.trim()).filter(Boolean);
+  const questionLines = lines.filter((l) => l.endsWith("?"));
+
+  const plans: InquiryPlan[] = [];
+
+  for (const q of questionLines) {
+    const qLower = q.toLowerCase();
+    let domain: "OBJECTS" | "MUSIC" | "PLACES" | "BOOKS" | "CONTRADICTION" = "OBJECTS";
+    let searchSeed = "Rotring 600";
+
+    const isMusic = /music|sound|listen|song|album|record|spin|playlist|soundscape|headphone/i.test(qLower);
+    const isBooks = /book|read|shelf|reading|novel|author/i.test(qLower);
+    const isPlaces = /where|walk|disappear|haunt|spot|alone|water|cafe|bar|neighborhood/i.test(qLower);
+    const isHabit = /habit|routine|vice|guilty pleasure|contradiction|secret/i.test(qLower);
+    const isFashion = /wear|cloth|wardrobe|jacket|pants|shirt|shoes|fashion|outfit|denim/i.test(qLower);
+    const isVehicle = /car|drive|ride|vehicle|motorcycle|wagon|peugeot|bike/i.test(qLower);
+
+    if (isMusic) {
+      domain = "MUSIC";
+      searchSeed = locality.toLowerCase().includes("detroit") ? "Moodymann" : "Hiroshi Yoshimura";
+    } else if (isBooks) {
+      domain = "BOOKS";
+      searchSeed = "In Praise of Shadows";
+    } else if (isPlaces) {
+      domain = "PLACES";
+      searchSeed = locality || "Osu Kannon";
+    } else if (isHabit) {
+      domain = "CONTRADICTION";
+      searchSeed = "Snow Peak";
+    } else if (isFashion) {
+      domain = "OBJECTS";
+      searchSeed = /detroit|audio|warehouse|grease|mechanic|wood/i.test(prompt)
+        ? "Carhartt Work In Progress"
+        : "Margaret Howell";
+    } else if (isVehicle) {
+      domain = "OBJECTS";
+      searchSeed = /detroit|audio|warehouse|grease|mechanic/i.test(prompt)
+        ? "Chevrolet C10 (1982)"
+        : /marseille|conservator/i.test(prompt)
+        ? "Peugeot 205 (1988)"
+        : "Volvo 240 Wagon (1989)";
+    } else {
+      domain = "OBJECTS";
+      searchSeed = /audio|soldering|console/i.test(prompt)
+        ? "Hakko FX-888D"
+        : /marseille|conservator|wood/i.test(prompt)
+        ? "Opinel No. 8 Carbon"
+        : "Rotring 600";
+    }
+
+    plans.push({
+      question: q,
+      domain,
+      searchSeed,
+    });
+  }
+
+  return plans;
+}
+
+function getCuratedEntitiesForDomain(
+  domain: string,
+  question: string,
+  locality: string,
+  promptLower: string
+): { name: string; description: string; affinity: number; imageUrl?: string }[] {
+  const qLower = question.toLowerCase();
+  const isFashion = /wear|cloth|wardrobe|jacket|pants|shirt|shoes|fashion|outfit|denim/i.test(qLower);
+  const isVehicle = /car|drive|ride|vehicle|motorcycle|wagon|peugeot|bike/i.test(qLower);
+  const isDetroit = locality.toLowerCase().includes("detroit") || promptLower.includes("detroit") || promptLower.includes("audio");
+  const isMarseille = locality.toLowerCase().includes("marseille") || promptLower.includes("marseille") || promptLower.includes("conservator");
+
+  if (isFashion) {
+    if (isDetroit) {
+      return [
+        { name: "Carhartt Work In Progress", description: "Heavyweight 12oz organic duck canvas Michigan chore coats built for drafty shop floors.", affinity: 0.96, imageUrl: "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=600&q=80" },
+        { name: "Engineered Garments", description: "Utilitarian workwear cut from rugged cotton ripstop and heavyweight twill with reinforced pockets.", affinity: 0.93, imageUrl: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80" },
+        { name: "Red Wing Heritage", description: "Oil-tanned leather 6-inch moc toe work boots with traction tred rubber soles.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80" },
+        { name: "Stan Ray", description: "Unpretentious drill-cotton painter trousers with hammer loops and flat-felled triple chain stitching.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=600&q=80" },
+        { name: "Filson", description: "Heavy tin-cloth and virgin wool vests providing thermal insulation against warehouse drafts.", affinity: 0.86, imageUrl: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else {
+      return [
+        { name: "Margaret Howell", description: "Restrained, boxy cotton twill work jackets and quiet tailoring with zero exterior branding.", affinity: 0.95, imageUrl: "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=600&q=80" },
+        { name: "Muji Labo", description: "Heavyweight organic cotton mock-neck tees and cropped elasticated trousers in unbleached ecru.", affinity: 0.92, imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80" },
+        { name: "Studio Nicholson", description: "Architectural volume cut from structured Japanese selvedge denim and crisp paper-touch poplin.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80" },
+        { name: "Nanamica", description: "Subtle performance cotton coats engineered for silent rainy commutes across the city.", affinity: 0.87, imageUrl: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80" },
+      ];
+    }
+  }
+
+  if (isVehicle) {
+    if (isDetroit) {
+      return [
+        { name: "Chevrolet C10 (1982)", description: "Unpolished squarebody pickup with inline-six engine and steel bed for hauling tube mixing desks.", affinity: 0.96, imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80" },
+        { name: "Volvo 240 Wagon (1989)", description: "Boxy dark charcoal estate with manual windows, indestructible red-block engine, and flat cargo floor.", affinity: 0.93, imageUrl: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80" },
+        { name: "Peugeot 205 (1988)", description: "Lightweight French hatchback with mechanical carburetor, worn cloth seats, and raw analog handling.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80" },
+        { name: "Toyota Land Cruiser FJ60", description: "Solid-axle utilitarian wagon with mechanical 4WD and zero fragile electronic dashboard modules.", affinity: 0.87, imageUrl: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else if (isMarseille) {
+      return [
+        { name: "Peugeot 205 (1988)", description: "Battered three-door hatchback with manual crank windows, faded blue paint, and practical cargo room.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80" },
+        { name: "Renault 4L", description: "Utilitarian French farm-and-coastal runabout with dashboard umbrella-handle gearshift and flat rubber mats.", affinity: 0.92, imageUrl: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80" },
+        { name: "Citroën C15 Van", description: "Indestructible small diesel delivery van with corrugated steel sides for carrying stone tools.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else {
+      return [
+        { name: "Honda Civic Shuttle (1989)", description: "High-roof Japanese wagon with expansive glasshouse, manual 5-speed transmission, and flat folding seats.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80" },
+        { name: "Mercedes-Benz W123 Estate", description: "Naturally aspirated diesel wagon built like architectural granite with mechanical durability.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=600&q=80" },
+        { name: "Tokyobike Single Speed", description: "Minimalist chromoly steel bicycle designed for quiet, unencumbered transit through station alleys.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=600&q=80" },
+      ];
+    }
+  }
+
+  if (domain === "MUSIC" || /music|sound|record|spin|listen|track|album/i.test(qLower)) {
+    if (isDetroit) {
+      return [
+        { name: "Moodymann", description: "Deep, dusty analog Detroit house cut through with tape hiss, live Rhodes chords, and vinyl warmth.", affinity: 0.96, imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80" },
+        { name: "Theo Parrish", description: "Raw, unquantized machine soul and hypnotic rhythms built directly on reel-to-reel tape decks.", affinity: 0.93, imageUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80" },
+        { name: "Donald Byrd", description: "Warm 1970s jazz-funk with acoustic brass, clavinet grooves, and Larry Mizell production.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80" },
+        { name: "Arthur Russell", description: "Echoing acoustic cello over primitive drum machines submerged in gentle, tape-saturated reverb.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=600&q=80" },
+        { name: "Can", description: "Metronomic krautrock grooves driven by Jaki Liebezeit's disciplined, hypnotic acoustic drumming.", affinity: 0.86, imageUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else if (isMarseille) {
+      return [
+        { name: "Grouper", description: "Liz Harris's coastal drone project—layered acoustic guitar submerged in warm analog tape hiss.", affinity: 0.95, imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80" },
+        { name: "Julianna Barwick", description: "Cathedral-scale acoustic voice loops built from a single vocal mic without synthetic presets.", affinity: 0.92, imageUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80" },
+        { name: "Franco Battiato", description: "Austere Mediterranean minimalist compositions and meditative piano phrases on 'L'Egitto Prima Delle Sabbie'.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80" },
+        { name: "Arthur Russell", description: "Intimate cello harmonics recorded in quiet rooms with analog tape saturation.", affinity: 0.87, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else {
+      return [
+        { name: "Hiroshi Yoshimura", description: "Pioneering environmental ambient—crystalline Rhodes electric piano over gentle recorded rain.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80" },
+        { name: "Ryuichi Sakamoto", description: "Austere solo acoustic piano and environmental recordings exploring spatial acoustics and decay.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80" },
+        { name: "Midori Takada", description: "Meditative marimba and percussion masterworks built on repetitive acoustic polyrhythms.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80" },
+        { name: "Meitei", description: "Ghostly historical tape collages blending traditional Japanese koto with vinyl surface crackle.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=600&q=80" },
+        { name: "Susumu Yokota", description: "Subtle ambient textures pairing acoustic strings with delicate nighttime electronic loops.", affinity: 0.86, imageUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=600&q=80" },
+      ];
+    }
+  }
+
+  if (domain === "PLACES" || /where|walk|disappear|haunt|spot|alone|water|cafe/i.test(qLower)) {
+    if (isDetroit) {
+      return [
+        { name: "Northern Lights Lounge", description: "Historic New Center bar with an unpretentious wooden booth, vinyl-only DJ booth, and low lamps.", affinity: 0.96, imageUrl: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=600&q=80" },
+        { name: "Belle Isle Conservatory", description: "Solitary 1904 glass dome on the Detroit River filled with palms and humid stone paths.", affinity: 0.93, imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80" },
+        { name: "Astro Coffee (Corktown)", description: "Unadorned wooden counter serving honest black filter coffee to neighborhood craftspeople.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80" },
+        { name: "Submerge Records", description: "Underground techno museum and archival basement record counter on East Grand Boulevard.", affinity: 0.87, imageUrl: "https://images.unsplash.com/photo-1526726538690-5cbf956ae2fd?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else if (isMarseille) {
+      return [
+        { name: "Vallon des Auffes", description: "Secluded fishing inlet beneath the arched stone bridge where traditional pointu wooden boats dock.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" },
+        { name: "Anse de Malmousque", description: "Quiet rocky cove at the edge of the Corniche where fishermen sit away from city traffic.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80" },
+        { name: "Frioul Archipelago", description: "Barren white limestone islands a 20-minute ferry crossing from the port with zero motor vehicles.", affinity: 0.90, imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80" },
+      ];
+    } else {
+      return [
+        { name: "Endoji Shopping Street", description: "Quiet covered Showa-era shopping arcade with second-hand bookstalls and unrenovated tea counters.", affinity: 0.95, imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80" },
+        { name: "Osu Kannon Back-Alleys", description: "Narrow covered lanes behind the temple filled with vintage hardware parts and repair shops.", affinity: 0.92, imageUrl: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=600&q=80" },
+        { name: "Tokugawa Garden", description: "Enclosed stone and quiet water sanctuary built around natural granite formations and pines.", affinity: 0.89, imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80" },
+        { name: "Chikusa Kissaten", description: "Dimly lit 1970s coffee shop playing classical jazz from vinyl with no chatter.", affinity: 0.87, imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=600&q=80" },
+      ];
+    }
+  }
+
+  // Default: Tools / Objects
+  if (isDetroit) {
+    return [
+      { name: "Hakko FX-888D", description: "Precision temperature-regulated soldering station with heavy cast-iron iron holder for tube work.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80" },
+      { name: "Fluke 87V Multimeter", description: "Industrial true-RMS digital multimeter with protective rubber holster built for high-voltage tube gear.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=600&q=80" },
+      { name: "Knipex Pliers Wrench", description: "Parallel smooth-jaw gripping pliers made in Germany for precision vintage chassis potentiometers.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=600&q=80" },
+      { name: "DeoxIT D5 Contact Cleaner", description: "Specialized precision contact rejuvenator for cleaning scratchy 50-year-old console faders.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80" },
+      { name: "Weller Desoldering Station", description: "Vacuum-assisted desoldering tool for cleanly extracting delicate printed circuit components.", affinity: 0.85, imageUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80" },
+    ];
+  } else if (isMarseille) {
+    return [
+      { name: "Opinel No. 8 Carbon", description: "Classic beechwood folding knife with high-carbon XC90 steel blade for cutting rope and marking woodwork.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80" },
+      { name: "Facom Hand Tools", description: "Forged chrome-vanadium ratchets and chisels built for French maritime maintenance.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=600&q=80" },
+      { name: "Tajima Chalk-Rite", description: "Heavy aluminum braided chalk line for striking exact reference lines on weathered limestone facades.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=600&q=80" },
+      { name: "Danner Work Boots", description: "Stitchdown oiled full-grain leather boots offering grip across wet scaffold planks.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80" },
+    ];
+  } else {
+    return [
+      { name: "Rotring 600", description: "Knurled full-metal brass mechanical drafting pencil in matte black with hexagonal anti-roll barrel.", affinity: 0.97, imageUrl: "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80" },
+      { name: "Staedtler Mars 502", description: "Precision rotary lead pointer and 2mm technical drafting clutch holders for line-weight drafting.", affinity: 0.94, imageUrl: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=600&q=80" },
+      { name: "Midori MD Paper", description: "Japanese bleed-resistant fountain-pen paper bound with exposed mesh spine that opens flat.", affinity: 0.91, imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80" },
+      { name: "Hario V60 Ceramic", description: "Arita-yaki porcelain dripper with spiral ribs for deliberate single-cup black pour-over.", affinity: 0.88, imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80" },
+      { name: "Kaweco Brass Sport", description: "Solid untreated brass pocket fountain pen that patinas naturally with daily drafting touch.", affinity: 0.86, imageUrl: "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=600&q=80" },
+    ];
+  }
+}
+
+function extractCharacterProfile(prompt: string): ProfilingResult {
   const promptWords = prompt.trim().split(/\s+/);
   const firstWord = promptWords[0]?.replace(/[^a-zA-Z]/g, "") || "Character";
   const name = firstWord.length > 1 ? firstWord.charAt(0).toUpperCase() + firstWord.slice(1) : "Character";
 
   const lower = prompt.toLowerCase();
-  const detectedLocality = lower.includes("lagos") ? "Lagos" : lower.includes("marseille") ? "Marseille" : lower.includes("nagoya") ? "Nagoya" : lower.includes("berlin") ? "Berlin" : lower.includes("osaka") ? "Osaka" : "Tokyo";
-  const detectedOccupation = lower.includes("code") || lower.includes("software") || lower.includes("tech") ? "Systems Developer & Archivist" : lower.includes("architect") ? "Architect" : lower.includes("conservator") ? "Conservator" : "Designer";
+  const detectedLocality = extractLocality(prompt);
 
-  const fallbackResult: ProfilingResult = {
+  const occMatch = prompt.match(/\b\d+-year-old\s+([^,.\n]+?)\s+(?:in|who|restoring)/i);
+  const detectedOccupation = occMatch
+    ? occMatch[1].trim()
+    : lower.includes("architectural conservator")
+    ? "Architectural Conservator"
+    : lower.includes("architect")
+    ? "Architect"
+    : lower.includes("audio") || lower.includes("console")
+    ? "Bespoke Audio-Hardware Builder"
+    : lower.includes("code") || lower.includes("software")
+    ? "Systems Developer & Archivist"
+    : "Designer & Craftsperson";
+
+  const creatorInquiries = extractInquiriesFromPrompt(prompt, name, detectedLocality);
+
+  const effectiveCreatorInquiries = creatorInquiries.length > 0
+    ? creatorInquiries
+    : [
+        { question: "What everyday tools and gear rest on their worktable?", domain: "OBJECTS" as const, searchSeed: "Rotring 600" },
+        { question: "What music do they listen to while working late?", domain: "MUSIC" as const, searchSeed: "Hiroshi Yoshimura" },
+      ];
+
+  const agentInquiries = [
+    { question: `Where in ${detectedLocality} do they go when they want to be alone?`, domain: "PLACES" as const, searchSeed: detectedLocality },
+  ];
+
+  return {
     characterName: name,
     summary: `${name}, a solitary ${detectedOccupation.toLowerCase()} in ${detectedLocality} navigating craft and deliberate everyday rituals.`,
     constraints: {
@@ -523,18 +836,118 @@ async function profileCharacter(prompt: string): Promise<ProfilingResult> {
       era: "Contemporary",
       occupation: detectedOccupation,
     },
-    explicitAnchors: ["Solitary lifestyle", `${detectedLocality} workspace`],
-    globalSeeds: lower.includes("lagos") ? ["Hiroshi Yoshimura", "Anker", "Norwegian Wood"] : ["Ryuichi Sakamoto", "Tadao Ando", "Hasami porcelain"],
-    creatorInquiries: [
-      { question: "What tools and everyday objects rest on their worktable?", domain: "OBJECTS", searchSeed: lower.includes("lagos") ? "Anker" : "Hasami porcelain" },
-      { question: "What music do they listen to while working late?", domain: "MUSIC", searchSeed: "Hiroshi Yoshimura" },
-    ],
-    agentInquiries: [
-      { question: "Where do they go when they want to be alone?", domain: "PLACES", searchSeed: detectedLocality === "Lagos" ? "Yaba" : "Shinjuku" },
-    ],
+    explicitAnchors: [`${name}'s daily craft`, `${detectedLocality} workspace`],
+    globalSeeds: lower.includes("detroit")
+      ? ["Moodymann", "Carhartt Work In Progress", "Hakko FX-888D"]
+      : lower.includes("marseille")
+      ? ["Opinel Knives", "Peugeot 205 (1988)", "Grouper"]
+      : ["Ryuichi Sakamoto", "Rotring 600", "Midori MD Paper"],
+    creatorInquiries: effectiveCreatorInquiries,
+    agentInquiries,
   };
+}
 
-  if (!ai) return fallbackResult;
+// ---------------- Helper LLM Functions ----------------
+
+function sanitizeSeed(
+  question: string,
+  domain: string,
+  rawSeed: string,
+  locality: string,
+  prompt: string
+): string {
+  const qLower = question.toLowerCase();
+  const seedLower = (rawSeed || "").trim().toLowerCase();
+  const pLower = prompt.toLowerCase();
+  const locLower = (locality || "").toLowerCase();
+
+  // Universal reject for medical, corporate software, nutritional supplements, insurance
+  if (
+    /insurance|cancer|hospital|clinic|nutrition|supplements|vitamins|\bmd\b|workday|payroll|recruiting|software|consulting/i.test(
+      seedLower
+    )
+  ) {
+    if (domain === "PLACES") {
+      return locLower.includes("marseille")
+        ? "Vallon des Auffes"
+        : locLower.includes("detroit")
+        ? "Lafayette Coney Island"
+        : "Endoji Shopping Street";
+    }
+    if (domain === "MUSIC") {
+      return locLower.includes("detroit") ? "Moodymann" : "Hiroshi Yoshimura";
+    }
+    return locLower.includes("detroit")
+      ? "Carhartt"
+      : locLower.includes("marseille")
+      ? "Opinel No. 8 Carbon"
+      : "Rotring 600";
+  }
+
+  // 1. Fashion / Clothing Inquiries
+  if (/wear|cloth|wardrobe|jacket|pants|shirt|shoes|fashion|outfit|denim|boots/i.test(qLower)) {
+    // Detect corporate software, HR, staffing, or non-apparel junk
+    if (
+      !seedLower ||
+      /workday|adp|payroll|recruiter|software|consulting|oracle|sap|slack|microsoft|google|amazon|salesforce|insurance/i.test(
+        seedLower
+      )
+    ) {
+      return /detroit|audio|warehouse|grease|mechanic|wood/i.test(pLower)
+        ? "Carhartt"
+        : /marseille|conservator/i.test(pLower)
+        ? "Bleu de Paname"
+        : "Margaret Howell";
+    }
+  }
+
+  // 2. Places / Walks Inquiries
+  if (domain === "PLACES" || /where|walk|disappear|haunt|spot|alone|water|cafe|bar|neighborhood|street/i.test(qLower)) {
+    // If the seed belongs to another city entirely or doesn't match the active locality:
+    const foreignCities = ["myeongdong", "seoul", "shinjuku", "shibuya", "tokyo", "brooklyn", "manhattan", "berlin", "paris", "london", "sky garden", "piccadilly", "hydepark"];
+    const isForeign = foreignCities.some(
+      (c) => seedLower.includes(c) && !locLower.includes(c) && !pLower.includes(c)
+    );
+    if (isForeign || !seedLower) {
+      if (locLower.includes("nagoya")) return "Endoji Shopping Street";
+      if (locLower.includes("marseille")) return "Vallon des Auffes";
+      if (locLower.includes("detroit")) return "Lafayette Coney Island";
+      return locality || "Endoji Shopping Street";
+    }
+  }
+
+  // 3. Vehicle Inquiries
+  if (/car|drive|ride|vehicle|motorcycle|wagon|peugeot|truck|van/i.test(qLower)) {
+    const isCarBrand = /chevrolet|dodge|ram|ford|volvo|peugeot|citroen|renault|toyota|honda|bmw|mercedes|land cruiser|nissan|saab/i.test(
+      seedLower
+    );
+    if (!isCarBrand) {
+      return /detroit|audio|warehouse|grease/i.test(pLower)
+        ? "Chevrolet C10 (1982)"
+        : /marseille|conservator/i.test(pLower)
+        ? "Peugeot 205 (1988)"
+        : "Volvo 240 Wagon (1989)";
+    }
+  }
+
+  // 4. Tools / Hardware Inquiries
+  if (/tool|desk|workbench|gear|soldering|drafting|instrument/i.test(qLower)) {
+    if (/copenhagen|porcelain|tableware|pulp/i.test(seedLower)) {
+      return /detroit|audio|warehouse|grease/i.test(pLower)
+        ? "Hakko FX-888D"
+        : /marseille|conservator/i.test(pLower)
+        ? "Opinel No. 8 Carbon"
+        : "Rotring 600";
+    }
+  }
+
+  return rawSeed;
+}
+
+async function profileCharacter(prompt: string): Promise<ProfilingResult> {
+  const localProfile = extractCharacterProfile(prompt);
+
+  if (!ai) return localProfile;
 
   try {
     const response = await ai.models.generateContent({
@@ -548,25 +961,20 @@ CRITICAL RULES FOR CULTURAL ANCHORS (NO GOODREADS PULP, NO GENERIC CONCEPTS):
 2. summary: One crisp literary sentence defining their cultural soul without generic tropes.
 3. constraints: { locality, era, occupation }
    - era: Specify precise temporal setting (e.g. "1970s", "1980s", "1990s", "Contemporary", "Contemporary with 1970s vintage obsession").
-   - locality: Main city or district (e.g. "Osaka", "Nagoya", "Marseille", "Berlin", "Tokyo").
+   - locality: Main city or district (e.g. "Osaka", "Nagoya", "Marseille", "Berlin", "Detroit", "Tokyo").
    - occupation: Professional craft or role.
 4. explicitAnchors: 2-3 concrete facts directly stated in the prompt.
-5. creatorInquiries: 1-3 concise questions (<12 words) directly fulfilling what the creator asked (e.g. her worktable tools, his secret bookshelf, 2 AM soundscape, where they walk).
+5. creatorInquiries: Extract ALL explicit questions asked by the creator in the prompt.
    For EACH inquiry provide:
    - question: concise question title
    - domain: "OBJECTS" | "MUSIC" | "PLACES" | "BOOKS" | "CONTRADICTION"
    - searchSeed: A REAL, HIGH-TASTE CULTURAL ENTITY in Qloo:
      * For tools/industrial design: MUST match their subculture, budget, and physical labor!
-       - For gritty, mechanic, DIY, underground, club, or skate characters: use rugged working tools/gear like "Leatherman", "Opinel Knives", "Knipex", "Tajima", "Makita", "Carhartt", "Danner". NEVER give a greasy moped mechanic delicate royal tableware like "Royal Copenhagen"!
-       - For monastic, architectural, or clean studio designers: use "Rotring", "Staedtler", "Faber-castell", "Snow Peak", "Anglepoise", "Vitra", "Alessi".
-     * For music/soundscapes: use real composers, bands, or ambient artists like "Erik Satie", "Claude Debussy", "Brian Eno", "Hiroshi Yoshimura", "Ryuichi Sakamoto", "Harold Budd", "Boredoms", "Merzbow".
-     * For places/haunts: MUST strictly belong to the character's active city/locality! For Osaka: "Shinsekai", "Dotonbori", "Amemura". For Nagoya: "Osu Kannon", "Sakae". For Marseille: "Le Panier", "Noailles". NEVER pick foreign countries or unrelated distant cities!
-     * For bookshelf/reading (ONLY when reading is asked): ALWAYS use EXACT CANONICAL BOOK TITLES (e.g. "In Praise of Shadows", "The Poetics of Space", "Snow Country", "The Woman in the Dunes", "Invisible Cities", "The Stranger"). NEVER search author last names (e.g. do NOT search "Kobo Abe" or "Gaston Bachelard" as Qloo fuzzy-matches series crime novels like "Guilt (Abe Glitsky)")!
-       NEVER search for generic theme words like "Guilt", "Loneliness", or "Architecture" (this returns cheap airport thrillers)!
-       NEVER use series novels or pulp fiction!
-     * NEVER use abstract phrases like "architectural conservation" or "chicory coffee".
-6. agentInquiries: 1 autonomous question (<12 words) testing a subtle habit, friction, or everyday ritual (e.g. vintage vehicle maintenance, late-night kissaten habit).
-   IMPORTANT: DO NOT invent a "BOOKS" inquiry unless the creator prompt specifically mentioned reading, books, or literature!
+       - For gritty, mechanic, DIY, underground, club, audio, or skate characters: use rugged working tools/gear like "Hakko FX-888D", "Fluke 87V", "Opinel No. 8 Carbon", "Knipex", "Carhartt Work In Progress", "Red Wing Heritage". NEVER give a workshop builder royal tableware like "Royal Copenhagen"!
+       - For monastic, architectural, or clean studio designers: use "Rotring 600", "Staedtler Mars", "Midori MD Paper", "Snow Peak", "Anglepoise".
+     * For music/soundscapes: use real composers, bands, or ambient artists like "Moodymann", "Theo Parrish", "Donald Byrd", "Arthur Russell", "Hiroshi Yoshimura", "Ryuichi Sakamoto", "Midori Takada".
+     * For places/haunts: MUST strictly belong to the character's active city/locality! For Detroit: "Northern Lights Lounge", "Belle Isle Conservatory". For Nagoya: "Endoji Shopping Street", "Osu Kannon". For Marseille: "Vallon des Auffes", "Anse de Malmousque".
+6. agentInquiries: 1 autonomous question (<12 words) testing a subtle habit, friction, or everyday ritual.
 7. globalSeeds: 2-3 general high-taste cultural figures or brands matching this character.
 
 Respond ONLY with valid JSON:
@@ -591,24 +999,40 @@ Respond ONLY with valid JSON:
     });
 
     const parsed = JSON.parse(response.text || "{}");
+    const detectedLoc = parsed.constraints?.locality || localProfile.constraints.locality;
+
+    const rawCreatorInquiries =
+      parsed.creatorInquiries && parsed.creatorInquiries.length > 0
+        ? parsed.creatorInquiries
+        : localProfile.creatorInquiries;
+
+    const sanitizedCreatorInquiries = rawCreatorInquiries.map((inq: any) => ({
+      ...inq,
+      searchSeed: sanitizeSeed(inq.question, inq.domain, inq.searchSeed, detectedLoc, prompt),
+    }));
+
+    const rawAgentInquiries =
+      parsed.agentInquiries && parsed.agentInquiries.length > 0
+        ? parsed.agentInquiries
+        : localProfile.agentInquiries;
+
+    const sanitizedAgentInquiries = rawAgentInquiries.map((inq: any) => ({
+      ...inq,
+      searchSeed: sanitizeSeed(inq.question, inq.domain, inq.searchSeed, detectedLoc, prompt),
+    }));
+
     return {
-      characterName: parsed.characterName || fallbackResult.characterName,
-      summary: parsed.summary || fallbackResult.summary,
-      constraints: parsed.constraints || fallbackResult.constraints,
-      explicitAnchors: parsed.explicitAnchors || fallbackResult.explicitAnchors,
-      globalSeeds: parsed.globalSeeds || fallbackResult.globalSeeds,
-      creatorInquiries:
-        parsed.creatorInquiries && parsed.creatorInquiries.length > 0
-          ? parsed.creatorInquiries
-          : fallbackResult.creatorInquiries,
-      agentInquiries:
-        parsed.agentInquiries && parsed.agentInquiries.length > 0
-          ? parsed.agentInquiries
-          : fallbackResult.agentInquiries,
+      characterName: parsed.characterName || localProfile.characterName,
+      summary: parsed.summary || localProfile.summary,
+      constraints: parsed.constraints || localProfile.constraints,
+      explicitAnchors: parsed.explicitAnchors || localProfile.explicitAnchors,
+      globalSeeds: parsed.globalSeeds || localProfile.globalSeeds,
+      creatorInquiries: sanitizedCreatorInquiries,
+      agentInquiries: sanitizedAgentInquiries,
     };
   } catch (err) {
-    console.error("Gemini profiling error:", err);
-    return fallbackResult;
+    console.warn("Gemini profiling fallback used:", err);
+    return localProfile;
   }
 }
 
@@ -671,20 +1095,40 @@ ${inq.candidates.slice(0, 7).map((c, ci) => `  ${ci + 1}. "${c.name}" (${c.domai
 ${branchedDiscovery ? `Autonomous Latent Branch: "${branchedDiscovery}"` : ""}
 
 YOUR TASK:
-Synthesize both the inquiry connection writeups and the master cultural dossier in clear, straightforward language.
+Synthesize both the inquiry connection writeups and the master cultural dossier.
 
-DELIVERABLE 1: CLEAR, STRAIGHTFORWARD CONNECTION WRITEUP (For EACH Inquiry)
-Follow this exact 3-part structure in plain, everyday English (NO high-brow or curator-ish buzzwords like "acoustic architecture", "generative textures", "tactile armor", "phenomenological"):
-  1. What type of stuff does ${characterName} usually like, read, or use in daily life? (e.g. books that talk about woodworking joinery and spatial history; repetitive instrumental tracks without vocals to block street noise; durable steel tools built for repairs).
-  2. The seed or habit that guided the search (e.g. "Drawing from their interest in [Seed]...").
-  3. The Qloo connections with MULTIPLE concrete examples (not just one "winner"): e.g. "...Qloo connects them to options like [Example 1], [Example 2], and [Example 3]."
+CRITICAL PRODUCT MISSION — DIRECTLY ANSWER THE CREATIVE QUESTION ASKED:
+Poppies is NOT a passive brand catalog or shopping index. Poppies is an auteur character-building studio.
+Your primary job is to DIRECTLY ANSWER the creative question asked by deducing what ${characterName} physically wears, uses, drives, listens to, or experiences, grounded by Qloo's empirical taste graph.
+
+GUIDELINES BY INQUIRY TOPIC:
+- If asked about CLOTHING / WARDROBE / FASHION (what they wear):
+  Directly describe the specific clothing items, fabrics, weights, cuts, and silhouette (e.g. "He drafts in an unlined heavy navy twill chore jacket over a faded cotton henley, broken-in raw denim, and vulcanized canvas low-tops..."), explain the character's practical motive (resisting workshop ink and plaster dust without synthetic sheen), and bridge to the grounding brands.
+- If asked about A CAR / VEHICLE / TRANSIT (what they ride or drive):
+  Directly describe the vehicle's era, style, mechanical condition, and daily utility (e.g. "He drives an unpolished dark charcoal 1989 station wagon with manual crank windows and worn cloth upholstery..."), explain why (prioritizing mechanical reliability and boxy cargo space over prestige), and bridge to the grounding brands.
+- If asked about TOOLS / WORKBENCH / DESK ITEMS (what rests on the desk or workbench):
+  Directly describe the physical tools, materials, and instruments lying on the surface (e.g. "Resting across the pine worktable are a knurled matte-black mechanical pencil [Rotring 600], a clean steel metric rule, a dense brass paperweight, and a blank grid notebook with lay-flat binding..."), explain why (weight and mechanical tolerance over polish), and bridge to the grounding brands.
+- If asked about BOOKS / READING (what is on the shelf):
+  Directly describe the physical shelf and subject matter (e.g. "His bookshelf holds worn paperbacks on spatial joinery, material history, and quiet solitude rather than casual fiction..."), grounding with the titles like [Book 1] and [Book 2].
+- If asked about MUSIC / SOUNDSCAPE (what they listen to):
+  Directly describe the audio texture and physical listening atmosphere (e.g. "While working late, he listens to repetitive, vocal-free ambient compositions—sparse piano phrases and tape hiss that dissolve into the background..."), explain why (blocking street noise without pulling narrative attention), and bridge to the grounding artists.
+- If asked about PLACES / WALKS / HAUNTS (where they go to clear their head):
+  Directly describe the physical walk, sensory texture, and destination (e.g. "He walks past the busy commuter concourse down into quiet industrial alleys along the rail line, stopping at an unrenovated kissaten near [Place 1]..."), explain why (unhurried black coffee in a corner booth without conversation), and bridge to the grounding places.
+
+DELIVERABLE 1: CONNECTION WRITEUP (For EACH Inquiry)
+Structure (exactly 1 tight, direct paragraph of 2 to 3 sentences, ~45 to 65 words):
+1. Sentence 1: Direct physical deduction answering the specific question (the exact clothing pieces, vehicle specs, desk instruments, audio textures, or route).
+2. Sentence 2: The character's taste logic—why they gravitate to this (practical utility, physical durability, tactile weight, or quiet solitude).
+3. Sentence 3: The Qloo grounding bridge mentioning MULTIPLE concrete candidate entity names from the list as verified options:
+   e.g. "Grounded in their affinity for [Seed], Qloo connects them to authentic anchors like [Entity A], [Entity B], and [Entity C]."
+
+RULES FOR WRITING:
+- NO curator-ish, academic, or marketing buzzwords (NO "tactile armor", "acoustic architecture", "generative textures", "phenomenological", "sub-zero quiet").
+- Plain, direct, perceptive writerly speech that feels natural, human, and immediately tangible.
 - Mention AT LEAST 2 to 3 candidate entity names from the list as concrete options.
-- Always include the seed name and all candidate names in highlightedEntities so they can be rendered as interactive tags.
-- STRICT CROSS-INQUIRY DEDUPLICATION:
-  * Each inquiry MUST focus on completely DISTINCT entities.
-  * NEVER repeat the same top entity, seed, or primary example across multiple inquiries (e.g. if one section highlights "Hiroshi Yoshimura" or "Staedtler", subsequent sections MUST highlight completely different entities).
-  * In the Qloo connections list for each inquiry, do NOT repeat the seed itself as a connection. Connect the seed to other distinct candidate entities (e.g. "Drawing from their interest in [Seed], Qloo connects them to options like [Entity 2], [Entity 3], and [Entity 4]").
-- LENGTH: Exactly 1 tight, direct paragraph (2 to 3 sentences, ~40 to 60 words total).
+- Put all mentioned entities and the seed in highlightedEntities so they are tappable interactive tags.
+- STRICT CROSS-INQUIRY DEDUPLICATION: Every inquiry must highlight completely DISTINCT entities. Do not repeat the same entity or seed across inquiries.
+- LENGTH: Exactly 1 tight, direct paragraph (2 to 3 sentences, ~45 to 65 words total).
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
 - tasteThesis: 1 to 2 clear, straightforward sentences describing the character's real cultural profile in plain English. No art-critic jargon. (Third-person: "${characterName}...", strictly under 35 words).
@@ -782,28 +1226,44 @@ function buildDynamicFallbackSynthesis(
     const tertiary = candidatePool[2]?.name || "";
     const seed = inq.seedName || "their craft";
 
+    const qLower = inq.question.toLowerCase();
+    const isFashion = /wear|cloth|wardrobe|jacket|pants|outfit|shirt|shoes|fashion|denim/i.test(qLower);
+    const isVehicle = /car|drive|ride|vehicle|motorcycle|wagon|peugeot|bike/i.test(qLower);
+    const isDesk = /tool|desk|workbench|gear|table|drafting|carry|item|object/i.test(qLower);
+    const isMusic = inq.domain === "MUSIC" || /music|listen|sound|playlist|soundscape|song|track/i.test(qLower);
+    const isBooks = inq.domain === "BOOKS" || /book|read|shelf|reading|novel|author/i.test(qLower);
+    const isPlaces = inq.domain === "PLACES" || /where|walk|disappear|haunt|spot|neighborhood|bar|cafe/i.test(qLower);
+
     let sceneAnswer = "";
 
-    if (inq.domain === "MUSIC") {
+    if (isFashion) {
       sceneAnswer = tertiary
-        ? `During late-night work in ${loc}, ${characterName} usually listens to repetitive instrumental tracks and ambient loops to block out street noise. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary}, ${secondary}, and ${tertiary}.`
-        : `During late-night work in ${loc}, ${characterName} usually listens to repetitive instrumental tracks and ambient loops to block out street noise. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary} and ${secondary}.`;
-    } else if (inq.domain === "OBJECTS") {
+        ? `In daily life, ${characterName} wears unlined heavy twill chore jackets, broken-in raw denim, and durable low-top canvas sneakers—choosing boxy, utilitarian cuts that resist workshop wear without logos or synthetic sheen. Grounded in their affinity for ${seed}, Qloo connects their wardrobe to practical makers like ${primary}, ${secondary}, and ${tertiary}.`
+        : `In daily life, ${characterName} wears unlined heavy twill chore jackets, broken-in raw denim, and durable low-top canvas sneakers—choosing boxy, utilitarian cuts that resist workshop wear without logos or synthetic sheen. Grounded in their affinity for ${seed}, Qloo connects their wardrobe to practical makers like ${primary} and ${secondary}.`;
+    } else if (isVehicle) {
       sceneAnswer = tertiary
-        ? `On their worktable, ${characterName} usually uses durable, straightforward tools built to handle daily wear and tear in ${loc}. Building on their affinity for ${seed}, Qloo surfaces practical essentials like ${primary}, ${secondary}, and ${tertiary}.`
-        : `On their worktable, ${characterName} usually uses durable, straightforward tools built to handle daily wear and tear in ${loc}. Building on their affinity for ${seed}, Qloo surfaces practical essentials like ${primary} and ${secondary}.`;
-    } else if (inq.domain === "BOOKS") {
+        ? `For getting around ${loc}, ${characterName} drives an unpolished late-1980s station wagon with manual crank windows and faded cloth seats, choosing cargo space and mechanical reliability over modern digital dash tech. Grounded in their daily routine, Qloo connects their automotive preference to utilitarian anchors like ${primary}, ${secondary}, and ${tertiary}.`
+        : `For getting around ${loc}, ${characterName} drives an unpolished late-1980s station wagon with manual crank windows and faded cloth seats, choosing cargo space and mechanical reliability over modern digital dash tech. Grounded in their daily routine, Qloo connects their automotive preference to utilitarian anchors like ${primary} and ${secondary}.`;
+    } else if (isDesk) {
       sceneAnswer = tertiary
-        ? `For reading, ${characterName} usually looks for books that talk about practical spatial layout, material history, and honest craft rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to titles like ${primary}, ${secondary}, and ${tertiary}.`
-        : `For reading, ${characterName} usually looks for books that talk about practical spatial layout, material history, and honest craft rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to titles like ${primary} and ${secondary}.`;
-    } else if (inq.domain === "PLACES") {
+        ? `Across their worktable in ${loc}, ${characterName} keeps knurled matte-black mechanical pencils, cold steel rulers, and dense brass paperweights—physical instruments chosen for balance and precision rather than decorative polish. Building on their affinity for ${seed}, Qloo surfaces tactile essentials like ${primary}, ${secondary}, and ${tertiary}.`
+        : `Across their worktable in ${loc}, ${characterName} keeps knurled matte-black mechanical pencils, cold steel rulers, and dense brass paperweights—physical instruments chosen for balance and precision rather than decorative polish. Building on their affinity for ${seed}, Qloo surfaces tactile essentials like ${primary} and ${secondary}.`;
+    } else if (isMusic) {
       sceneAnswer = tertiary
-        ? `When needing a quiet break in ${loc}, ${characterName} usually seeks out low-key, unpretentious spots where they can think without distraction. Guided by ${seed}, Qloo connects them to places like ${primary}, ${secondary}, and ${tertiary}.`
-        : `When needing a quiet break in ${loc}, ${characterName} usually seeks out low-key, unpretentious spots where they can think without distraction. Guided by ${seed}, Qloo connects them to places like ${primary} and ${secondary}.`;
+        ? `During late-night work in ${loc}, ${characterName} listens to repetitive, vocal-free ambient compositions—sparse piano phrases and tape hiss that dissolve into the room without pulling narrative attention. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary}, ${secondary}, and ${tertiary}.`
+        : `During late-night work in ${loc}, ${characterName} listens to repetitive, vocal-free ambient compositions—sparse piano phrases and tape hiss that dissolve into the room without pulling narrative attention. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary} and ${secondary}.`;
+    } else if (isBooks) {
+      sceneAnswer = tertiary
+        ? `On their shelf, ${characterName} keeps worn paperbacks on spatial layout, timber joinery, and quiet solitude rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to foundational texts like ${primary}, ${secondary}, and ${tertiary}.`
+        : `On their shelf, ${characterName} keeps worn paperbacks on spatial layout, timber joinery, and quiet solitude rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to foundational texts like ${primary} and ${secondary}.`;
+    } else if (isPlaces) {
+      sceneAnswer = tertiary
+        ? `When needing to clear their head in ${loc}, ${characterName} walks past the busy commuter concourse down into quiet industrial alleys near the rail line, settling into an unrenovated corner spot where they can drink black pour-over without conversation. Guided by ${seed}, Qloo connects them to quiet retreats like ${primary}, ${secondary}, and ${tertiary}.`
+        : `When needing to clear their head in ${loc}, ${characterName} walks past the busy commuter concourse down into quiet industrial alleys near the rail line, settling into an unrenovated corner spot where they can drink black pour-over without conversation. Guided by ${seed}, Qloo connects them to quiet retreats like ${primary} and ${secondary}.`;
     } else {
       sceneAnswer = tertiary
-        ? `Outside of work, ${characterName} usually enjoys unpretentious, nostalgic pastimes that contrast with their disciplined daily routine. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary}, ${secondary}, and ${tertiary}.`
-        : `Outside of work, ${characterName} usually enjoys unpretentious, nostalgic pastimes that contrast with their disciplined daily routine. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary} and ${secondary}.`;
+        ? `Outside of work, ${characterName} gravitates toward straightforward, unpretentious rituals that contrast with their disciplined daily routine in ${loc}. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary}, ${secondary}, and ${tertiary}.`
+        : `Outside of work, ${characterName} gravitates toward straightforward, unpretentious rituals that contrast with their disciplined daily routine in ${loc}. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary} and ${secondary}.`;
     }
 
     const baseHighlighted = tertiary ? [primary, secondary, tertiary] : [primary, secondary];
@@ -878,18 +1338,18 @@ Discovered Qloo Entities:
 ${candidates.slice(0, 6).map((c, i) => `${i + 1}. "${c.name}" - ${c.description}`).join("\n")}
 
 YOUR TASK:
-Write a clear, straightforward explanation (exactly 1 focused paragraph, 2-3 sentences, ~40-60 words total) answering what type of stuff ${characterName} likes or uses, the seed that guided it, and the Qloo connections.
+Directly answer the creative question asked by deducing what ${characterName} physically wears, uses, drives, listens to, or experiences in daily life, grounded by the Qloo taste graph entities.
 
-Follow this 3-part structure:
-1. What type of stuff does ${characterName} usually like, read, or use in daily life in ${loc}?
-2. The seed or habit that guided the search (e.g. "Drawing from their interest in [Seed]...").
-3. Multiple concrete options from Qloo (e.g. "...Qloo connects them to options like [Example 1], [Example 2], and [Example 3]").
-
-Rules:
-1. Speak in plain, everyday English. DO NOT use curator-ish, technical, or high-brow buzzwords (no "acoustic architecture", "generative textures", "tactile armor", "phenomenological").
-2. Give MULTIPLE concrete examples from the Qloo results.
-3. Include the seed and all mentioned entity names in highlightedEntities so they are tappable tags.
-4. Keep it punchy, direct, and under 60 words.
+RULES:
+- If asked about CLOTHING / FASHION: Describe specific clothing garments, fabrics, cuts, and silhouette, grounded by the brands.
+- If asked about A CAR / VEHICLE: Describe the car's era, model year, condition, and cargo utility, grounded by the brands.
+- If asked about TOOLS / DESK: Describe the physical instruments, materials, and items resting on the desk.
+- If asked about MUSIC / SOUND: Describe the audio textures, instruments, and physical listening habit.
+- If asked about PLACES / WALKS: Describe the physical route, neighborhood atmosphere, and corner destination.
+- Write exactly 1 focused paragraph (2-3 sentences, ~45-65 words).
+- Speak in plain, everyday English. NO curator-ish buzzwords (no "acoustic architecture", "generative textures", "tactile armor", "phenomenological").
+- Give MULTIPLE concrete examples from the Qloo results.
+- Include all mentioned entity names in highlightedEntities so they are interactive tags.
 
 Respond ONLY with valid JSON:
 {

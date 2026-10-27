@@ -897,36 +897,53 @@ export default function StudioScreen({
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {activeEntities.map((entity) => {
-                          const roleLabel =
-                            entity.domain === "OBJECTS" ? "Tactile Armor" :
-                            entity.domain === "MUSIC" ? "Acoustic Shield" :
-                            entity.domain === "BOOKS" ? "Hidden Shelf" :
-                            entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
+                          const domainPhoto =
+                            entity.domain === "MUSIC"
+                              ? "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80"
+                              : entity.domain === "BOOKS"
+                              ? "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80"
+                              : entity.domain === "PLACES"
+                              ? "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80"
+                              : "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80";
+
+                          const photoSrc = entity.imageUrl || domainPhoto;
 
                           return (
                             <button
                               key={entity.id}
                               onClick={() => handleEntityClick(entity)}
-                              className="group p-3.5 rounded-[18px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-[#E06B55]/40 transition-all duration-200 text-left cursor-pointer flex flex-col justify-between gap-2 shadow-sm"
+                              className="group rounded-[20px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-[#E06B55]/40 transition-all duration-200 text-left cursor-pointer flex flex-col overflow-hidden shadow-sm hover:shadow-md"
                             >
-                              <div className="flex items-center justify-between w-full">
-                                <span className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[9px] font-mono tracking-tight text-[#E06B55] uppercase font-bold">
-                                  {roleLabel}
-                                </span>
+                              {/* Entity Photography Banner */}
+                              <div className="relative w-full h-24 sm:h-28 bg-black/40 overflow-hidden">
+                                <img
+                                  src={photoSrc}
+                                  alt={entity.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80 group-hover:opacity-100"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#162a1c] via-transparent to-transparent opacity-90" />
                                 {entity.affinityScore !== undefined && (
-                                  <span className="px-1.5 py-0.5 rounded-full bg-black/40 border border-white/10 text-[10px] font-sans font-bold text-[#F7F7D9]/90">
+                                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[10px] font-sans font-bold text-[#F7F7D9] shadow-sm">
                                     {entity.affinityScore}%
-                                  </span>
+                                  </div>
                                 )}
+                                <div className="absolute bottom-1.5 left-2.5">
+                                  <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                                    {entity.domain}
+                                  </span>
+                                </div>
                               </div>
 
-                              <div className="flex flex-col gap-0.5">
+                              <div className="p-3.5 flex flex-col gap-1">
                                 <span className="font-serif italic font-bold text-sm text-[#F7F7D9] group-hover:text-[#E06B55] transition-colors truncate">
                                   {entity.name}
                                 </span>
-                                <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
+                                <p className="font-sans text-[11px] text-[#F7F7D9]/75 line-clamp-2 leading-relaxed">
                                   {entity.description}
                                 </p>
                               </div>
@@ -961,42 +978,56 @@ export default function StudioScreen({
                 {/* View 2: Scannable Index Mode */}
                 {viewMode === "index" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col divide-y divide-white/[0.05] custom-scrollbar-red">
-                    {activeEntities.map((entity) => {
-                      const roleLabel =
-                        entity.domain === "OBJECTS" ? "Tactile Armor" :
-                        entity.domain === "MUSIC" ? "Acoustic Shield" :
-                        entity.domain === "BOOKS" ? "Hidden Shelf" :
-                        entity.domain === "PLACES" ? "Sanctuary" : "Sub-Surface Friction";
+                    {activeEntities.map((entity) => (
+                      <button
+                        key={entity.id}
+                        onClick={() => handleEntityClick(entity)}
+                        className="group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer hover:bg-white/[0.05] rounded-xl flex-shrink-0"
+                      >
+                        <div className="min-w-[150px] max-w-[200px] flex-shrink-0 flex items-center gap-2">
+                          <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold flex-shrink-0">
+                            [{entity.domain}]
+                          </span>
+                          <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
+                            {entity.name}
+                          </span>
+                        </div>
 
-                      return (
-                        <button
-                          key={entity.id}
-                          onClick={() => handleEntityClick(entity)}
-                          className="group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer hover:bg-white/[0.05] rounded-xl flex-shrink-0"
-                        >
-                          <div className="min-w-[170px] flex-shrink-0 flex items-center gap-2">
-                            <span className="px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[9px] font-mono uppercase text-[#E06B55]">
-                              {roleLabel}
-                            </span>
-                            <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
-                              {entity.name}
+                        <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
+                          {entity.description}
+                        </p>
+
+                        {entity.affinityScore !== undefined && (
+                          <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
+                            <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
+                              {entity.affinityScore}%
                             </span>
                           </div>
+                        )}
+                      </button>
+                    ))}
 
-                          <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
-                            {entity.description}
-                          </p>
-
-                          {entity.affinityScore !== undefined && (
-                            <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
-                              <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
-                                {entity.affinityScore}%
-                              </span>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                    {/* Fetch More from Qloo in Index Mode */}
+                    <div className="pt-3 pb-2 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={handleFetchMore}
+                        disabled={isFetchingMore}
+                        className="w-full py-2.5 px-4 rounded-[16px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
+                      >
+                        {isFetchingMore ? (
+                          <>
+                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
+                            <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
+                            <span>+ Fetch 4 More from Qloo</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
