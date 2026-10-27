@@ -173,6 +173,7 @@ export async function searchQloo(query: string, type?: string): Promise<QlooEnti
         "X-Api-Key": API_KEY,
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(8000),
       next: { revalidate: 3600 },
     });
 
@@ -213,6 +214,7 @@ export async function getQlooInsights(
         "X-Api-Key": API_KEY,
         Accept: "application/json",
       },
+      signal: AbortSignal.timeout(8000),
       next: { revalidate: 3600 },
     });
 

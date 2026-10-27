@@ -150,28 +150,39 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
   const rawInquiryPackages: AuteurPackageInput[] = [];
   const resolvedSeedRecords: { name: string; entityId: string; type?: string }[] = [];
 
-  // Fallback map if an obscure query fails to resolve in Qloo, tuned to character archetype
+  // Fallback pools if an obscure query fails to resolve in Qloo, tuned to character archetype
   const promptLower = (prompt + " " + profiling.summary).toLowerCase();
   const loc = (profiling.constraints.locality || "").toLowerCase();
   const isGritty = /mechanic|skate|club|grease|moped|diy|garage|punk|industrial|noise|bamboo/i.test(promptLower);
 
-  const fallbackDomainSeeds: Record<string, string> = {
-    OBJECTS: isGritty ? "Leatherman" : "Staedtler",
-    MUSIC: isGritty ? "Boredoms" : "Hiroshi Yoshimura",
+  const fallbackDomainSeedPools: Record<string, string[]> = {
+    OBJECTS: isGritty
+      ? ["Leatherman", "Knipex", "Tajima", "Makita", "Opinel Knives", "Danner", "Carhartt"]
+      : ["Staedtler", "Rotring", "Midori MD", "Hario", "Faber-Castell", "Snow Peak", "Anglepoise"],
+    MUSIC: isGritty
+      ? ["Boredoms", "Merzbow", "Death Grips", "Sleaford Mods", "Lightning Bolt", "Squarepusher"]
+      : ["Hiroshi Yoshimura", "Ryuichi Sakamoto", "Midori Takada", "Harold Budd", "Susumu Yokota", "Toshifumi Hinata"],
     PLACES: loc.includes("osaka")
-      ? "Shinsekai"
+      ? ["Shinsekai", "Dotonbori", "Amemura", "Nakazakicho"]
       : loc.includes("nagoya")
-      ? "Osu Kannon"
+      ? ["Osu Kannon", "Sakae", "Nagoya Castle", "Endoji Shopping Street"]
       : loc.includes("tokyo")
-      ? "Shinjuku"
+      ? ["Shinjuku", "Shimokitazawa", "Daikanyama", "Yanaka", "Kichijoji"]
       : loc.includes("marseille")
-      ? "Le Panier"
+      ? ["Le Panier", "Noailles", "Vallon des Auffes", "Cours Julien"]
       : loc.includes("berlin")
-      ? "Kreuzberg"
-      : "Palais Longchamp",
-    BOOKS: isGritty ? "Beautiful Star" : "The Poetics of Space",
-    CONTRADICTION: isGritty ? "Hasami porcelain" : "Snow Peak",
+      ? ["Kreuzberg", "Neukölln", "Mitte", "Friedrichshain"]
+      : ["Palais Longchamp", "Daikanyama", "Le Panier", "Kreuzberg"],
+    BOOKS: isGritty
+      ? ["Beautiful Star", "Hard-Boiled Wonderland", "The Woman in the Dunes", "Snow Country"]
+      : ["The Poetics of Space", "In Praise of Shadows", "A Pattern Language", "Wabi-Sabi: for Artists", "Invisible Cities"],
+    CONTRADICTION: isGritty
+      ? ["Hasami porcelain", "Snow Peak", "Kaweco", "Hario V60"]
+      : ["Snow Peak", "Hasami porcelain", "Porter Yoshida", "Muji Aluminum", "Casio G-Shock"],
   };
+
+  const usedSeedNames = new Set<string>();
+  const usedSeedIds = new Set<string>();
 
   for (const item of allInquiryPlans) {
     const { plan, source, id } = item;
@@ -180,23 +191,39 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     console.log(`- Resolving inquiry [${source.toUpperCase()}]: "${plan.question}"`);
     console.log(`  Domain: ${plan.domain} (${filterType}), Seed Query: "${plan.searchSeed}"`);
 
-    // Typed search in Qloo
+    // Typed search in Qloo with deduplication against previously used seeds
     let seedEntity: QlooEntity | null = null;
     const searchHits = await searchQloo(plan.searchSeed, filterType);
-    if (searchHits && searchHits.length > 0) {
-      seedEntity = searchHits[0];
-      console.log(`  ✓ Resolved Qloo Seed: "${seedEntity.name}" (ID: ${seedEntity.entity_id})`);
-    } else {
-      // Fallback: If typed search failed, use verified high-taste domain fallback anchor
-      const fallbackQuery = fallbackDomainSeeds[plan.domain] || "Staedtler";
-      const fbHits = await searchQloo(fallbackQuery, filterType);
-      if (fbHits && fbHits.length > 0) {
-        seedEntity = fbHits[0];
-        console.log(`  [Fallback Anchor] "${fallbackQuery}" -> "${seedEntity.name}" (ID: ${seedEntity.entity_id})`);
+    for (const hit of searchHits) {
+      const hitLower = hit.name.toLowerCase().trim();
+      if (!usedSeedNames.has(hitLower) && !usedSeedIds.has(hit.entity_id)) {
+        seedEntity = hit;
+        console.log(`  ✓ Resolved Qloo Seed: "${seedEntity.name}" (ID: ${seedEntity.entity_id})`);
+        break;
+      }
+    }
+
+    // Fallback: If typed search failed or hit was duplicate, draw from domain seed pool
+    if (!seedEntity) {
+      const pool = fallbackDomainSeedPools[plan.domain] || ["Staedtler", "Midori MD", "Hario"];
+      for (const fallbackQuery of pool) {
+        if (usedSeedNames.has(fallbackQuery.toLowerCase().trim())) continue;
+        const fbHits = await searchQloo(fallbackQuery, filterType);
+        for (const hit of fbHits) {
+          const hitLower = hit.name.toLowerCase().trim();
+          if (!usedSeedNames.has(hitLower) && !usedSeedIds.has(hit.entity_id)) {
+            seedEntity = hit;
+            console.log(`  [Fresh Fallback Anchor] "${fallbackQuery}" -> "${seedEntity.name}" (ID: ${seedEntity.entity_id})`);
+            break;
+          }
+        }
+        if (seedEntity) break;
       }
     }
 
     if (seedEntity) {
+      usedSeedNames.add(seedEntity.name.toLowerCase().trim());
+      usedSeedIds.add(seedEntity.entity_id);
       resolvedSeedRecords.push({
         name: seedEntity.name,
         entityId: seedEntity.entity_id,
@@ -263,11 +290,15 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
         (i) => i.source === "agent" && (i.domain === "PLACES" || i.domain === "CONTRADICTION")
       );
       if (matchingAgentInq) {
-        matchingAgentInq.candidates = [
-          ...secondOrderRaw.map((e) => ({
+        const existingNames = new Set(matchingAgentInq.candidates.map((c) => c.name.toLowerCase()));
+        const uniqueSecondOrder = secondOrderRaw
+          .filter((e) => !existingNames.has(e.name.toLowerCase()))
+          .map((e) => ({
             ...normalizeEntity(e, matchingAgentInq.domain, [primaryMusicEntity.name]),
             qlooReasoning: `Second-order cross-domain discovery branching from "${primaryMusicEntity.name}".`,
-          })),
+          }));
+        matchingAgentInq.candidates = [
+          ...uniqueSecondOrder,
           ...matchingAgentInq.candidates,
         ];
       }
@@ -284,6 +315,8 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
     rawInquiryPackages,
     branchedDiscovery
   );
+
+  const globalAssignedTopEntities = new Set<string>();
 
   const inquiries: AgentInquiry[] = rawInquiryPackages.map((pkg) => {
     const synthMatch = masterSynthesis.inquiries.find((s) => s.id === pkg.id);
@@ -304,9 +337,9 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
       return null;
     }).filter(Boolean) as AgentCulturalEntity[];
 
-    const finalEntities: AgentCulturalEntity[] = [...curatedEntities];
+    let finalEntities: AgentCulturalEntity[] = [...curatedEntities];
     for (const c of pkg.candidates) {
-      if (finalEntities.length >= 5) break;
+      if (finalEntities.length >= 6) break;
       if (!finalEntities.some((e) => e.name.toLowerCase() === c.name.toLowerCase())) {
         finalEntities.push(c);
       }
@@ -315,8 +348,34 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
       finalEntities.push(...pkg.candidates.slice(0, 5));
     }
 
+    // CROSS-INQUIRY TOP ENTITY DEDUPLICATION:
+    // If finalEntities[0] was already assigned as top in a previous inquiry, swap in an unused entity!
+    if (finalEntities.length > 1 && globalAssignedTopEntities.has(finalEntities[0].name.toLowerCase().trim())) {
+      const freshIdx = finalEntities.findIndex(
+        (e) => !globalAssignedTopEntities.has(e.name.toLowerCase().trim())
+      );
+      if (freshIdx > 0) {
+        const [freshEntity] = finalEntities.splice(freshIdx, 1);
+        finalEntities.unshift(freshEntity);
+      } else {
+        const freshCandidate = pkg.candidates.find(
+          (c) => !globalAssignedTopEntities.has(c.name.toLowerCase().trim())
+        );
+        if (freshCandidate) {
+          finalEntities.unshift(freshCandidate);
+        }
+      }
+    }
+
     const primaryName = finalEntities[0]?.name || pkg.seedName;
+    globalAssignedTopEntities.add(primaryName.toLowerCase().trim());
+
     const sceneText = synthMatch?.sceneAnswer || `Curating for ${profiling.characterName} in ${profiling.constraints.locality || "the city"}: ${primaryName} provides an intentional anchor deduced from their daily routine and craft.`;
+
+    const highlighted = synthMatch?.highlightedEntities ? [...synthMatch.highlightedEntities] : [primaryName];
+    if (!highlighted.some((h) => h.toLowerCase() === primaryName.toLowerCase())) {
+      highlighted.unshift(primaryName);
+    }
 
     return {
       id: pkg.id,
@@ -325,7 +384,7 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
       domain: pkg.domain,
       vignette: sceneText,
       vignetteHighlightEntity: primaryName,
-      highlightedEntities: synthMatch?.highlightedEntities || [primaryName],
+      highlightedEntities: highlighted,
       hasAudio: pkg.domain === "MUSIC",
       audioTrackName: pkg.domain === "MUSIC" ? `${primaryName} — Solitary Frequencies` : undefined,
       entities: finalEntities,
@@ -621,6 +680,10 @@ Follow this exact 3-part structure in plain, everyday English (NO high-brow or c
   3. The Qloo connections with MULTIPLE concrete examples (not just one "winner"): e.g. "...Qloo connects them to options like [Example 1], [Example 2], and [Example 3]."
 - Mention AT LEAST 2 to 3 candidate entity names from the list as concrete options.
 - Always include the seed name and all candidate names in highlightedEntities so they can be rendered as interactive tags.
+- STRICT CROSS-INQUIRY DEDUPLICATION:
+  * Each inquiry MUST focus on completely DISTINCT entities.
+  * NEVER repeat the same top entity, seed, or primary example across multiple inquiries (e.g. if one section highlights "Hiroshi Yoshimura" or "Staedtler", subsequent sections MUST highlight completely different entities).
+  * In the Qloo connections list for each inquiry, do NOT repeat the seed itself as a connection. Connect the seed to other distinct candidate entities (e.g. "Drawing from their interest in [Seed], Qloo connects them to options like [Entity 2], [Entity 3], and [Entity 4]").
 - LENGTH: Exactly 1 tight, direct paragraph (2 to 3 sentences, ~40 to 60 words total).
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
@@ -700,11 +763,23 @@ function buildDynamicFallbackSynthesis(
   const occ = constraints.occupation || "creative practice";
   const era = constraints.era || "contemporary";
 
+  const usedFallbackTopEntities = new Set<string>();
+
   const synthInquiries = inquiries.map((inq) => {
-    const topCandidates = inq.candidates.slice(0, 5);
-    const primary = topCandidates[0]?.name || "Tactile Anchor";
-    const secondary = topCandidates[1]?.name || "Field Recordings";
-    const tertiary = topCandidates[2]?.name || "";
+    const seedLower = (inq.seedName || "").toLowerCase().trim();
+    // Exclude the seed itself from the connections so it is not repeated twice in prose
+    const freshCandidates = inq.candidates.filter(
+      (c) => c.name.toLowerCase().trim() !== seedLower && !usedFallbackTopEntities.has(c.name.toLowerCase().trim())
+    );
+    const candidatePool = freshCandidates.length > 0
+      ? freshCandidates
+      : inq.candidates.filter((c) => c.name.toLowerCase().trim() !== seedLower);
+
+    const primary = candidatePool[0]?.name || inq.candidates[0]?.name || "Tactile Anchor";
+    usedFallbackTopEntities.add(primary.toLowerCase().trim());
+
+    const secondary = candidatePool[1]?.name || inq.candidates[1]?.name || "Field Recordings";
+    const tertiary = candidatePool[2]?.name || "";
     const seed = inq.seedName || "their craft";
 
     let sceneAnswer = "";
