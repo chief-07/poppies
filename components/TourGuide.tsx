@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, ChevronRight, ChevronLeft, Sparkles, MessageSquare, Compass, Layers, ToggleRight, Check } from "lucide-react";
+import { X, ChevronRight, ChevronLeft, MessageSquare, Compass, Layers, ToggleRight, Bookmark, Check } from "lucide-react";
 
 interface TourGuideProps {
   isOpen: boolean;
@@ -56,7 +56,7 @@ const TOUR_STEPS: TourStep[] = [
     title: "Tappable Qloo Objects",
     headline: "Every pick is grounded and verifiable.",
     body: "Every terracotta tag [Name ↗] and ensemble card is interactive. Tap any item to inspect Qloo entity IDs, latent affinities, and provenance. Use '+ Fetch 4 More' to expand.",
-    icon: Sparkles,
+    icon: Bookmark,
     arrowPosition: "bottom",
     preferredOffset: { x: 0, y: -16 },
   },
@@ -104,42 +104,55 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
     let left = 0;
     let top = 0;
 
-    switch (step.arrowPosition) {
-      case "bottom":
-        // Card placed above target, arrow points down
-        top = Math.max(padding, rect.top - cardHeight + step.preferredOffset.y);
-        left = Math.max(
-          padding,
-          Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
-        );
-        break;
+    // Special placement for large elements like the center pane
+    if (step.targetId === "tour-center-pane") {
+      top = Math.max(padding, rect.top + 30);
+      left = Math.max(
+        padding,
+        Math.min(winWidth - cardWidth - padding, rect.left + 35)
+      );
+    } else {
+      switch (step.arrowPosition) {
+        case "bottom":
+          // Card placed above target, arrow points down
+          top = Math.max(padding, rect.top - cardHeight + step.preferredOffset.y);
+          left = Math.max(
+            padding,
+            Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
+          );
+          break;
 
-      case "top":
-        // Card placed below target, arrow points up
-        top = Math.min(winHeight - cardHeight - padding, rect.bottom + step.preferredOffset.y);
-        left = Math.max(
-          padding,
-          Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
-        );
-        break;
+        case "top":
+          // Card placed below target, arrow points up
+          top = Math.min(winHeight - cardHeight - padding, rect.bottom + step.preferredOffset.y);
+          if (rect.right > winWidth - cardWidth) {
+            left = Math.max(padding, rect.right - cardWidth);
+          } else {
+            left = Math.max(
+              padding,
+              Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
+            );
+          }
+          break;
 
-      case "left":
-        // Card placed to the right of target, arrow points left
-        left = Math.min(winWidth - cardWidth - padding, rect.right + step.preferredOffset.x);
-        top = Math.max(
-          padding,
-          Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
-        );
-        break;
+        case "left":
+          // Card placed to the right of target, arrow points left
+          left = Math.min(winWidth - cardWidth - padding, rect.right + step.preferredOffset.x);
+          top = Math.max(
+            padding,
+            Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
+          );
+          break;
 
-      case "right":
-        // Card placed to the left of target, arrow points right
-        left = Math.max(padding, rect.left - cardWidth - step.preferredOffset.x);
-        top = Math.max(
-          padding,
-          Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
-        );
-        break;
+        case "right":
+          // Card placed to the left of target, arrow points right
+          left = Math.max(padding, rect.left - cardWidth - step.preferredOffset.x);
+          top = Math.max(
+            padding,
+            Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
+          );
+          break;
+      }
     }
 
     setCardPos({ top, left });
@@ -186,29 +199,40 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
-      {/* Dimmed backdrop */}
-      <div
-        className="fixed inset-0 bg-black/45 backdrop-blur-[1.5px] transition-opacity duration-300"
+      {/* Dimmed overlay with SVG mask cutout: Target element is 100% un-dimmed and un-blurred, no glowing border */}
+      <svg
+        className="fixed inset-0 w-full h-full z-[100] cursor-pointer"
         onClick={onClose}
-      />
-
-      {/* Pulsing Spotlight Ring around the Target Element */}
-      {targetRect && (
-        <div
-          className="fixed pointer-events-none rounded-[24px] border-2 border-[#E06B55] shadow-[0_0_35px_rgba(224,107,85,0.45),inset_0_0_15px_rgba(224,107,85,0.2)] transition-all duration-300 ease-out z-[101]"
-          style={{
-            top: targetRect.top - 4,
-            left: targetRect.left - 4,
-            width: targetRect.width + 8,
-            height: targetRect.height + 8,
-          }}
+      >
+        <defs>
+          <mask id="tour-spotlight-mask">
+            {/* White dims the background screen */}
+            <rect width="100%" height="100%" fill="white" />
+            {/* Black cutout keeps the target section completely crisp, clear, and unblurred */}
+            {targetRect && (
+              <rect
+                x={targetRect.left - 4}
+                y={targetRect.top - 4}
+                width={targetRect.width + 8}
+                height={targetRect.height + 8}
+                rx="20"
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect
+          width="100%"
+          height="100%"
+          fill="rgba(0, 0, 0, 0.45)"
+          mask="url(#tour-spotlight-mask)"
         />
-      )}
+      </svg>
 
-      {/* Anchored Tooltip Card */}
+      {/* Cream Tour Card with Thick Green Border */}
       <div
         ref={cardRef}
-        className={`fixed z-[102] w-full max-w-[380px] rounded-[24px] bg-[#16271a]/98 border border-white/20 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.25)] flex flex-col justify-between transition-all duration-300 ease-out ${
+        className={`fixed z-[102] w-full max-w-[380px] rounded-[24px] bg-[#F7F7D9] border-[2.5px] border-[#182a1d] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-col justify-between transition-all duration-300 ease-out select-none ${
           cardPos ? "" : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         }`}
         style={
@@ -221,32 +245,52 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
         }
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pointer Arrow */}
+        {/* Pointer Arrow in matching cream color */}
         {cardPos && targetRect && (
           <>
             {step.arrowPosition === "bottom" && (
-              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-[#16271a]" />
+              <div
+                style={{
+                  left: `${Math.min(350, Math.max(30, targetRect.left + targetRect.width / 2 - cardPos.left))}px`,
+                }}
+                className="absolute -bottom-2.5 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-[#F7F7D9] filter drop-shadow-[0_2px_1px_rgba(24,42,29,0.4)]"
+              />
             )}
             {step.arrowPosition === "top" && (
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-[#16271a]" />
+              <div
+                style={{
+                  left: `${Math.min(350, Math.max(30, targetRect.left + targetRect.width / 2 - cardPos.left))}px`,
+                }}
+                className="absolute -top-2.5 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-[#F7F7D9] filter drop-shadow-[0_-2px_1px_rgba(24,42,29,0.4)]"
+              />
             )}
             {step.arrowPosition === "left" && (
-              <div className="absolute -left-2.5 top-8 w-0 h-0 border-y-8 border-y-transparent border-r-8 border-r-[#16271a]" />
+              <div
+                style={{
+                  top: `${Math.min(190, Math.max(25, targetRect.top + 30 - cardPos.top))}px`,
+                }}
+                className="absolute -left-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-r-8 border-r-[#F7F7D9] filter drop-shadow-[-2px_0_1px_rgba(24,42,29,0.4)]"
+              />
             )}
             {step.arrowPosition === "right" && (
-              <div className="absolute -right-2.5 top-8 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-[#16271a]" />
+              <div
+                style={{
+                  top: `${Math.min(190, Math.max(25, targetRect.top + 30 - cardPos.top))}px`,
+                }}
+                className="absolute -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-[#F7F7D9] filter drop-shadow-[2px_0_1px_rgba(24,42,29,0.4)]"
+              />
             )}
           </>
         )}
 
         {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="flex items-center justify-between border-b border-[#182a1d]/15 pb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/10 text-[#F7F7D9]/80 font-bold">
+            <span className="font-mono text-[10.5px] px-2 py-0.5 rounded-full bg-[#182a1d]/10 border border-[#182a1d]/20 text-[#182a1d] font-bold">
               {step.stepNumber} / 05
             </span>
-            <span className="font-serif italic font-medium text-xs text-[#E06B55] flex items-center gap-1">
-              <StepIcon className="w-3 h-3" />
+            <span className="font-serif italic font-bold text-xs text-[#E06B55] flex items-center gap-1.5">
+              <StepIcon className="w-3.5 h-3.5" />
               {step.title}
             </span>
           </div>
@@ -254,8 +298,8 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
           <button
             type="button"
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-[#F7F7D9]/70 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-            title="Skip tour"
+            className="w-6 h-6 rounded-full bg-[#182a1d]/10 hover:bg-[#182a1d]/20 text-[#182a1d]/70 hover:text-[#182a1d] flex items-center justify-center transition-all cursor-pointer"
+            title="Close tour"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -263,16 +307,16 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
 
         {/* Card Body */}
         <div className="py-3.5 flex flex-col gap-1.5">
-          <h4 className="font-serif font-bold text-base text-[#F7F7D9] leading-snug tracking-tight">
+          <h4 className="font-serif font-bold text-base sm:text-[17px] text-[#182a1d] leading-snug tracking-tight">
             {step.headline}
           </h4>
-          <p className="font-sans text-xs text-[#F7F7D9]/80 leading-relaxed font-light">
+          <p className="font-sans text-xs sm:text-[12.5px] text-[#182a1d]/85 leading-relaxed font-normal">
             {step.body}
           </p>
         </div>
 
         {/* Card Footer Controls */}
-        <div className="flex items-center justify-between border-t border-white/10 pt-3 mt-1">
+        <div className="flex items-center justify-between border-t border-[#182a1d]/15 pt-3 mt-1">
           {/* Progress dots */}
           <div className="flex items-center gap-1.5">
             {TOUR_STEPS.map((_, idx) => (
@@ -283,7 +327,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
                 className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                   idx === currentStepIndex
                     ? "w-5 bg-[#E06B55]"
-                    : "w-1.5 bg-white/20 hover:bg-white/40"
+                    : "w-1.5 bg-[#182a1d]/20 hover:bg-[#182a1d]/40"
                 }`}
                 title={`Go to step ${idx + 1}`}
               />
@@ -296,7 +340,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
               <button
                 type="button"
                 onClick={handlePrev}
-                className="px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-xs font-sans text-[#F7F7D9]/80 hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                className="px-2.5 py-1 rounded-full bg-[#182a1d]/10 hover:bg-[#182a1d]/15 text-xs font-sans font-medium text-[#182a1d] transition-all cursor-pointer flex items-center gap-1"
               >
                 <ChevronLeft className="w-3 h-3" />
                 <span>Back</span>
@@ -306,7 +350,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
             <button
               type="button"
               onClick={handleNext}
-              className="px-3.5 py-1 rounded-full bg-[#E06B55] hover:bg-[#E06B55]/90 text-xs font-sans font-bold text-white transition-all cursor-pointer shadow-md flex items-center gap-1 active:scale-95"
+              className="px-3.5 py-1 rounded-full bg-[#182a1d] hover:bg-[#253f2c] active:scale-95 text-xs font-sans font-bold text-[#F7F7D9] transition-all cursor-pointer shadow-md flex items-center gap-1"
             >
               <span>{isLast ? "Done" : "Next"}</span>
               {isLast ? (

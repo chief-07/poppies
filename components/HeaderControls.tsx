@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 interface HeaderControlsProps {
   engine: "qloo" | "base_llm";
@@ -16,7 +16,7 @@ export default function HeaderControls({
   const isQloo = engine === "qloo";
 
   return (
-    <div className="flex items-center gap-2.5 z-40">
+    <div className="flex items-center gap-2 z-40">
       {/* 60s Tour Button */}
       <button
         type="button"
@@ -28,7 +28,7 @@ export default function HeaderControls({
         <span className="hidden sm:inline font-medium">60s Tour</span>
       </button>
 
-      {/* Clean Qloo Toggle Switch Button */}
+      {/* Clean Qloo Toggle Switch Button (No AI sparkle icon) */}
       <button
         id="tour-qloo-toggle"
         type="button"
@@ -41,7 +41,6 @@ export default function HeaderControls({
         }
       >
         <span className="text-xs font-sans text-[#F7F7D9] font-medium flex items-center gap-1.5">
-          <Sparkles className={`w-3.5 h-3.5 ${isQloo ? "text-[#E06B55]" : "text-white/40"}`} />
           <span>Qloo:</span>
           <strong className={`font-mono font-bold text-xs ${isQloo ? "text-[#E06B55]" : "text-[#F7F7D9]/50"}`}>
             {isQloo ? "ON" : "OFF"}

@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
+import HeaderControls from "@/components/HeaderControls";
 
 interface StudioScreenProps {
   initialData: any;
@@ -519,7 +520,7 @@ export default function StudioScreen({
   };
 
   return (
-    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#101b13] pt-16 pb-4 px-4 sm:pt-18 sm:pb-6 sm:px-6 lg:pt-20 lg:pb-7 lg:px-7 select-none">
+    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#101b13] p-3 sm:p-5 lg:p-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-90 scale-[1.01]"
@@ -664,33 +665,41 @@ export default function StudioScreen({
 
         {/* ================= RIGHT COLUMN: Header + Main Card + Prompt ================= */}
         <div className="flex-1 flex flex-col gap-3 max-w-[1040px] h-full min-h-0">
-          {/* Header Row: Character Name & Quiet Constraints */}
-          <div className="flex-shrink-0 flex items-baseline justify-between gap-4 flex-wrap">
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#F7F7D9] tracking-tight leading-tight">
+          {/* Top Bar: Character Title & Right Edge Controls */}
+          <div className="flex-shrink-0 flex items-center justify-between gap-4">
+            <div className="flex items-baseline gap-3 flex-wrap min-w-0">
+              <h1 className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-[#F7F7D9] tracking-tight leading-tight">
                 {characterName}
               </h1>
-              <p className="font-serif italic text-sm text-[#F7F7D9]/60 max-w-lg truncate">
+              <p className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/60 max-w-md truncate hidden md:inline">
                 {characterSummary}
               </p>
             </div>
 
-            {/* Subtle Constraint Pills */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Right Edge: Constraint Pills + Qloo Toggle & Tour */}
+            <div className="flex items-center gap-2.5 flex-shrink-0">
               {constraints.locality && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                <span className="hidden lg:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
                   {constraints.locality}
                 </span>
               )}
               {constraints.era && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                <span className="hidden xl:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
                   {constraints.era}
                 </span>
               )}
               {constraints.occupation && (
-                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                <span className="hidden xl:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
                   {constraints.occupation}
                 </span>
+              )}
+
+              {onToggleEngine && onOpenTour && (
+                <HeaderControls
+                  engine={engine}
+                  onToggleEngine={onToggleEngine}
+                  onOpenTour={onOpenTour}
+                />
               )}
             </div>
           </div>

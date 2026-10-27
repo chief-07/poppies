@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { ArrowUpRight, ArrowRight, AlertTriangle } from "lucide-react";
 import ResolvingScreen from "@/components/ResolvingScreen";
 import StudioScreen from "@/components/StudioScreen";
-import HeaderControls from "@/components/HeaderControls";
 import TourGuide from "@/components/TourGuide";
 
 type ScreenState = "input" | "resolving" | "studio";
@@ -322,31 +321,6 @@ export default function Home() {
   if (screenState === "studio") {
     return (
       <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
-        {/* Fixed Top Header Bar anchored to the screen with controls at the right edge */}
-        <header className="fixed top-0 left-0 right-0 z-40 px-5 sm:px-8 py-3 flex items-center justify-between backdrop-blur-md bg-black/20 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
-              style={{
-                backgroundImage: "url('/poppies-bg.jpg')",
-                backgroundPosition: "42% 49%",
-                backgroundSize: "650%",
-              }}
-            />
-            <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
-              Poppies
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <HeaderControls
-              engine={engine}
-              onToggleEngine={setEngine}
-              onOpenTour={() => setIsTourOpen(true)}
-            />
-          </div>
-        </header>
-
         <StudioScreen
           initialData={resolvedData}
           engine={engine}
