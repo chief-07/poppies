@@ -593,7 +593,7 @@ async function synthesizeAuteurWorld(
   }
 
   try {
-    const prompt = `You are the Lead Cultural Intelligence Curator for "Poppies", an auteur studio grounded in Qloo's cultural taste graph.
+    const prompt = `You are a Cultural Advisor and Character Consultant for "Poppies", helping creators build authentic characters grounded in Qloo's taste graph.
 
 Character Name: "${characterName}"
 User Prompt / Creative Brief:
@@ -605,35 +605,31 @@ DISCOVERED QLOO CULTURAL ANCHORS FOR EACH INQUIRY:
 ${inquiries.map((inq, i) => `
 Inquiry #${i + 1} [ID: ${inq.id}] [Domain: ${inq.domain}] [Source: ${inq.source}]
 Question: "${inq.question}"
+Starting Seed / Taste Anchor: "${inq.seedName || "Character background"}"
 Candidate Entities from Qloo Taste Graph:
 ${inq.candidates.slice(0, 7).map((c, ci) => `  ${ci + 1}. "${c.name}" (${c.domain}) - Raw context: ${c.description}`).join("\n")}
 `).join("\n")}
 ${branchedDiscovery ? `Autonomous Latent Branch: "${branchedDiscovery}"` : ""}
 
 YOUR TASK:
-Synthesize both the direct curatorial inquiry answers and the master cultural dossier in ONE unified, cohesive output.
+Synthesize both the inquiry connection writeups and the master cultural dossier in clear, straightforward language.
 
-DELIVERABLE 1: DIRECT, TIGHT CURATORIAL ANSWER (For EACH Inquiry)
-- Directly and unpretentiously answer the question asked about ${characterName}.
-- EXTREMELY IMPORTANT - CUT VERBOSITY: Keep the curation concise, sharp, and punchy. Exactly 1 focused paragraph (~45 to 65 words total). Do NOT write multi-paragraph essays or long academic dissertations.
-- State what was deduced from who they are, their craft, and environment (${constraints.locality || "their city"}), and why these picks answer the question.
-- Naturally weave 2 to 3 candidate Qloo entities into the sentence as concrete examples.
-- CRITICAL TONE & CONTENT RULES:
-  * NO verbosity, NO essay padding, NO multi-paragraph bloat.
-  * NO fake fiction, purple prose, or melodramatic creative writing (do NOT write storytelling fanfiction like "Deep in the humid night, Fortune reaches for...").
-  * NO sing-songy melodrama or meta-AI commentary ("The research begins with...", "As an AI curator...").
-  * NO raw percentages or technical Qloo parameters in the text prose (keep the text clean; technical parameters belong in the evidence inspector drawer).
-  * Direct, dignified, intelligent cultural curation only.
-- For each selected entity (3-5 entities per inquiry), provide a concise 1-sentence curatorial note explaining why it fits ${characterName}'s life.
-- Return highlightedEntities: array of string names for all entities woven into the text.
+DELIVERABLE 1: CLEAR, STRAIGHTFORWARD CONNECTION WRITEUP (For EACH Inquiry)
+Follow this exact 3-part structure in plain, everyday English (NO high-brow or curator-ish buzzwords like "acoustic architecture", "generative textures", "tactile armor", "phenomenological"):
+  1. What type of stuff does ${characterName} usually like, read, or use in daily life? (e.g. books that talk about woodworking joinery and spatial history; repetitive instrumental tracks without vocals to block street noise; durable steel tools built for repairs).
+  2. The seed or habit that guided the search (e.g. "Drawing from their interest in [Seed]...").
+  3. The Qloo connections with MULTIPLE concrete examples (not just one "winner"): e.g. "...Qloo connects them to options like [Example 1], [Example 2], and [Example 3]."
+- Mention AT LEAST 2 to 3 candidate entity names from the list as concrete options.
+- Always include the seed name and all candidate names in highlightedEntities so they can be rendered as interactive tags.
+- LENGTH: Exactly 1 tight, direct paragraph (2 to 3 sentences, ~40 to 60 words total).
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
-- tasteThesis: Exactly 1 to 2 crisp, substantive sentences articulating who ${characterName} is through their cultural choices. (Strictly under 45 words. Third-person: "${characterName}...", never first-person).
-- psychologicalWound: 1 sentence identifying their underlying vulnerability, loneliness, or internal friction.
-- tactileArmor: 1 sentence explaining how their material belongings or sounds act as protective armor against external noise.
-- observedClusters: 3-4 concise, authentic subcultural phrases describing their real taste patterns.
-- unconsideredAngles: 1 genuine surprise, friction, or unexpected contradiction that emerged from the cultural graph:
-  { "title": string, "description": string (1 concise sentence), "groundedEntity": string }
+- tasteThesis: 1 to 2 clear, straightforward sentences describing the character's real cultural profile in plain English. No art-critic jargon. (Third-person: "${characterName}...", strictly under 35 words).
+- psychologicalWound: 1 plain sentence identifying their core vulnerability or quiet friction.
+- tactileArmor: 1 plain sentence explaining what objects or routines they use to feel grounded against daily stress.
+- observedClusters: 3-4 simple, authentic subcultural phrases describing their real taste patterns.
+- unconsideredAngles: 1 genuine surprise or contradiction that emerged from the cultural graph:
+  { "title": string, "description": string (1 plain sentence), "groundedEntity": string }
 - highlightedNodes: Array of 3-5 real entity names for quick interactive inspection.
 
 Respond ONLY with valid JSON:
@@ -706,30 +702,45 @@ function buildDynamicFallbackSynthesis(
 
   const synthInquiries = inquiries.map((inq) => {
     const topCandidates = inq.candidates.slice(0, 5);
-    const primary = topCandidates[0]?.name || inq.seedName || "Tactile Anchor";
+    const primary = topCandidates[0]?.name || "Tactile Anchor";
     const secondary = topCandidates[1]?.name || "Field Recordings";
+    const tertiary = topCandidates[2]?.name || "";
+    const seed = inq.seedName || "their craft";
 
     let sceneAnswer = "";
 
     if (inq.domain === "MUSIC") {
-      sceneAnswer = `For late-night focus in ${loc}, ${characterName} relies on acoustic shielding rather than passive background noise. Disciplined, cyclical textures from ${primary} and ${secondary} establish a focused perimeter against urban commotion during solitary ${occ} hours.`;
+      sceneAnswer = tertiary
+        ? `During late-night work in ${loc}, ${characterName} usually listens to repetitive instrumental tracks and ambient loops to block out street noise. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary}, ${secondary}, and ${tertiary}.`
+        : `During late-night work in ${loc}, ${characterName} usually listens to repetitive instrumental tracks and ambient loops to block out street noise. Grounded in their appreciation for ${seed}, Qloo connects them to artists like ${primary} and ${secondary}.`;
     } else if (inq.domain === "OBJECTS") {
-      sceneAnswer = `On the worktable in ${loc}, everyday gear prioritizes mechanical endurance over trends. Items like ${primary} and ${secondary} function as tactile armor against work disruptions, chosen for reliability and zero decorative pretense.`;
+      sceneAnswer = tertiary
+        ? `On their worktable, ${characterName} usually uses durable, straightforward tools built to handle daily wear and tear in ${loc}. Building on their affinity for ${seed}, Qloo surfaces practical essentials like ${primary}, ${secondary}, and ${tertiary}.`
+        : `On their worktable, ${characterName} usually uses durable, straightforward tools built to handle daily wear and tear in ${loc}. Building on their affinity for ${seed}, Qloo surfaces practical essentials like ${primary} and ${secondary}.`;
     } else if (inq.domain === "BOOKS") {
-      sceneAnswer = `On ${characterName}'s desk, selections like ${primary} and ${secondary} reflect a deliberate appetite for craft, spatial structure, and disciplined solitude rather than casual entertainment.`;
+      sceneAnswer = tertiary
+        ? `For reading, ${characterName} usually looks for books that talk about practical spatial layout, material history, and honest craft rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to titles like ${primary}, ${secondary}, and ${tertiary}.`
+        : `For reading, ${characterName} usually looks for books that talk about practical spatial layout, material history, and honest craft rather than casual fiction. Starting from their interest in ${seed}, Qloo connects them to titles like ${primary} and ${secondary}.`;
     } else if (inq.domain === "PLACES") {
-      sceneAnswer = `When stepping away from immediate pressures in ${loc}, ${characterName} retreats to unpretentious sanctuaries like ${primary} and ${secondary}, offering quiet anonymity and room to recalibrate.`;
+      sceneAnswer = tertiary
+        ? `When needing a quiet break in ${loc}, ${characterName} usually seeks out low-key, unpretentious spots where they can think without distraction. Guided by ${seed}, Qloo connects them to places like ${primary}, ${secondary}, and ${tertiary}.`
+        : `When needing a quiet break in ${loc}, ${characterName} usually seeks out low-key, unpretentious spots where they can think without distraction. Guided by ${seed}, Qloo connects them to places like ${primary} and ${secondary}.`;
     } else {
-      sceneAnswer = `Breaking the clean discipline of their daily routine, an affinity for ${primary} and ${secondary} reveals the human friction between functional restraint and instinctive private loyalty.`;
+      sceneAnswer = tertiary
+        ? `Outside of work, ${characterName} usually enjoys unpretentious, nostalgic pastimes that contrast with their disciplined daily routine. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary}, ${secondary}, and ${tertiary}.`
+        : `Outside of work, ${characterName} usually enjoys unpretentious, nostalgic pastimes that contrast with their disciplined daily routine. Branching from ${seed}, Qloo surfaces unexpected favorites like ${primary} and ${secondary}.`;
     }
+
+    const baseHighlighted = tertiary ? [primary, secondary, tertiary] : [primary, secondary];
+    const highlighted = inq.seedName ? [inq.seedName, ...baseHighlighted] : baseHighlighted;
 
     return {
       id: inq.id,
       sceneAnswer,
-      highlightedEntities: [primary, secondary],
+      highlightedEntities: highlighted,
       curated: topCandidates.map((c) => ({
         name: c.name,
-        curatorialNote: `Curated for ${characterName}'s world as an authentic anchor of ${inq.domain.toLowerCase()}.`,
+        curatorialNote: `Selected for ${characterName}'s world as an authentic anchor of ${inq.domain.toLowerCase()}.`,
       })),
     };
   });
@@ -770,16 +781,19 @@ async function generateCuratorialAnswer(
   const topNames = candidates.slice(0, 3).map((c) => c.name);
   const primary = topNames[0] || "Cultural Anchor";
   const secondary = topNames[1] || "Deliberate Ritual";
+  const tertiary = topNames[2] || "";
   const loc = constraints.locality || "their city";
 
-  const fallbackText = `For ${characterName} in ${loc}, addressing "${question}" centers on deliberate utility. Selections like ${primary} and ${secondary} fulfill practical physical demands while reinforcing the focused habits of their craft.`;
+  const fallbackText = tertiary
+    ? `For ${characterName} in ${loc}, answering "${question}" comes down to practical utility. Based on their daily routine, Qloo connects them to options like ${primary}, ${secondary}, and ${tertiary}.`
+    : `For ${characterName} in ${loc}, answering "${question}" comes down to practical utility. Based on their daily routine, Qloo connects them to options like ${primary} and ${secondary}.`;
 
   if (!ai) {
-    return { text: fallbackText, highlightedEntities: topNames.slice(0, 2) };
+    return { text: fallbackText, highlightedEntities: topNames.slice(0, 3) };
   }
 
   try {
-    const prompt = `You are the Lead Cultural Intelligence Curator for "Poppies", an auteur studio grounded in Qloo's taste graph.
+    const prompt = `You are a Cultural Advisor for "Poppies", helping creators build authentic characters grounded in Qloo's taste graph.
 
 Character: "${characterName}" (${contextSummary || ""})
 Constraints: Locality="${loc}", Era="${constraints.era || "Contemporary"}", Occupation="${constraints.occupation || "Unspecified"}"
@@ -789,17 +803,18 @@ Discovered Qloo Entities:
 ${candidates.slice(0, 6).map((c, i) => `${i + 1}. "${c.name}" - ${c.description}`).join("\n")}
 
 YOUR TASK:
-Write a tight, direct curatorial explanation (exactly 1 focused paragraph, ~40-65 words maximum) directly answering the question asked about ${characterName}.
+Write a clear, straightforward explanation (exactly 1 focused paragraph, 2-3 sentences, ~40-60 words total) answering what type of stuff ${characterName} likes or uses, the seed that guided it, and the Qloo connections.
+
+Follow this 3-part structure:
+1. What type of stuff does ${characterName} usually like, read, or use in daily life in ${loc}?
+2. The seed or habit that guided the search (e.g. "Drawing from their interest in [Seed]...").
+3. Multiple concrete options from Qloo (e.g. "...Qloo connects them to options like [Example 1], [Example 2], and [Example 3]").
 
 Rules:
-1. Explain why these picks were chosen based on what ${characterName} likes, their habits/craft, and physical environment (${loc}).
-2. State the deduction clearly and name 2 to 3 candidate entities naturally as concrete examples.
-3. CRITICAL: NO verbosity, NO essay fluff, NO multi-paragraph bloat. Keep it sharp, punchy, and under 65 words.
-4. STRICT CONTENT & STYLE CONSTRAINTS:
-   - NO fake fiction, purple prose, or dramatic storytelling vignettes (do NOT write creative fanfiction).
-   - NO sing-songy melodrama or meta AI commentary ("The research begins with...", "As an AI...").
-   - NO raw percentages or technical Qloo parameters in the text prose (keep the text clean; technical parameters belong in the drawer).
-   - Direct, intelligent curatorial analysis only.
+1. Speak in plain, everyday English. DO NOT use curator-ish, technical, or high-brow buzzwords (no "acoustic architecture", "generative textures", "tactile armor", "phenomenological").
+2. Give MULTIPLE concrete examples from the Qloo results.
+3. Include the seed and all mentioned entity names in highlightedEntities so they are tappable tags.
+4. Keep it punchy, direct, and under 60 words.
 
 Respond ONLY with valid JSON:
 {

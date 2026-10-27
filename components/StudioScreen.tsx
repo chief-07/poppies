@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   Plus,
   BookOpen,
@@ -77,17 +77,27 @@ function renderTextWithEntityTags(
 ) {
   if (!text || entities.length === 0) return <span>{text}</span>;
 
+  const seen = new Set<string>();
   const validEntities = entities
-    .filter((e) => e && e.name && e.name.trim().length > 1)
+    .filter((e) => {
+      if (!e || !e.name || e.name.trim().length <= 1) return false;
+      const lower = e.name.toLowerCase().trim();
+      if (seen.has(lower)) return false;
+      seen.add(lower);
+      return true;
+    })
     .sort((a, b) => b.name.length - a.name.length);
 
   if (validEntities.length === 0) return <span>{text}</span>;
 
-  const namesPattern = validEntities
-    .map((e) => e.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
+  const patterns = validEntities.map((e) => {
+    const esc = e.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const sb = /^\w/.test(e.name.trim()) ? "\\b" : "";
+    const eb = /\w$/.test(e.name.trim()) ? "\\b" : "";
+    return `${sb}${esc}${eb}`;
+  });
 
-  const regex = new RegExp(`(${namesPattern})`, "gi");
+  const regex = new RegExp(`(${patterns.join("|")})`, "gi");
   const parts = text.split(regex);
 
   return (
@@ -252,6 +262,55 @@ export default function StudioScreen({
     activeInquiry?.entities && activeInquiry.entities.length > 0
       ? activeInquiry.entities
       : MOCK_ENTITIES_TOOLS;
+
+  // Global pool of taggable entities (active inquiry + all inquiries + seeds + dossier nodes)
+  const allTaggableEntities = useMemo(() => {
+    const list: CulturalEntity[] = [];
+    const seen = new Set<string>();
+
+    const add = (ent: Partial<CulturalEntity> & { name: string }) => {
+      if (!ent || !ent.name) return;
+      const cleanName = ent.name.trim();
+      const lower = cleanName.toLowerCase();
+      if (!lower || lower.length <= 1 || seen.has(lower)) return;
+      seen.add(lower);
+      list.push({
+        id: ent.id || `ent-${lower.replace(/[^a-z0-9]/g, "-")}`,
+        name: cleanName,
+        domain: ent.domain || "CULTURE",
+        description: ent.description || `Cultural anchor connected with ${characterName}'s world.`,
+        affinityScore: ent.affinityScore || 90,
+        entityId: ent.entityId || `urn:qloo:entity:${lower.replace(/[^a-z0-9]/g, "_")}`,
+        entityType: ent.entityType || "urn:entity:anchor",
+        seedEntities: ent.seedEntities || [],
+        qlooReasoning: ent.qlooReasoning || `Grounds ${characterName}'s taste pattern.`,
+      });
+    };
+
+    // 1. Entities in active inquiry (highest priority)
+    activeEntities.forEach(add);
+
+    // 2. Entities across all inquiries
+    inquiries.forEach((inq) => {
+      inq.entities?.forEach(add);
+      if (inq.vignetteHighlightEntity) {
+        add({ name: inq.vignetteHighlightEntity, domain: inq.domain });
+      }
+    });
+
+    // 3. Highlighted nodes from dossier
+    culturalDossier.highlightedNodes?.forEach((name) => add({ name, domain: "CULTURE" }));
+
+    // 4. Seeds from initialData
+    if (initialData?.seeds) {
+      initialData.seeds.forEach((s: any) => {
+        if (typeof s === "string") add({ name: s, domain: "SEED" });
+        else if (s?.name) add({ name: s.name, domain: s.domain || "SEED" });
+      });
+    }
+
+    return list;
+  }, [activeEntities, inquiries, culturalDossier, initialData, characterName]);
 
   // Global key listener: typing activates prompt box
   useEffect(() => {
@@ -438,6 +497,11 @@ export default function StudioScreen({
   };
 
   const findEntityByName = (name: string): CulturalEntity => {
+    const found = allTaggableEntities.find(
+      (e) => e.name.toLowerCase() === name.toLowerCase()
+    );
+    if (found) return found;
+
     for (const inq of inquiries) {
       const match = inq.entities?.find((e) => e.name.toLowerCase() === name.toLowerCase());
       if (match) return match;
@@ -650,7 +714,7 @@ export default function StudioScreen({
                 {/* Cultural Dossier Thesis Card */}
                 <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-4">
                   <p className="font-serif text-[16px] sm:text-[18px] leading-[1.8] text-[#F7F7D9] font-light">
-                    {renderTextWithEntityTags(culturalDossier.tasteThesis, activeEntities, handleEntityClick)}
+                    {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
                   </p>
                 </div>
 
@@ -818,7 +882,7 @@ export default function StudioScreen({
                             key={pIdx}
                             className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/90 font-light"
                           >
-                            {renderTextWithEntityTags(para.trim(), activeEntities, handleEntityClick)}
+                            {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
                           </p>
                         ))}
                       </div>
