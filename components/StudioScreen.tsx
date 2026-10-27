@@ -544,7 +544,7 @@ export default function StudioScreen({
       {/* 3. Studio Main Stage */}
       <div className="relative w-full max-w-[1360px] h-full flex gap-7 lg:gap-9 items-stretch justify-center">
         {/* ================= LEFT COLUMN: Sidebar ================= */}
-        <aside className="w-[250px] sm:w-[270px] flex-shrink-0 flex flex-col justify-between h-full min-h-0">
+        <aside id="tour-left-pane" className="w-[250px] sm:w-[270px] flex-shrink-0 flex flex-col justify-between h-full min-h-0">
           <div className="flex flex-col gap-3 min-h-0 flex-1">
             {/* Logo */}
             <div className="flex items-center gap-2.5 pl-1 flex-shrink-0">
@@ -707,7 +707,7 @@ export default function StudioScreen({
           </div>
 
           {/* Main Card */}
-          <main className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+          <main id="tour-center-pane" className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
             {/* VIEW A: CULTURAL DOSSIER (Clean, quiet, zero marketing clutter) */}
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6">
@@ -889,7 +889,7 @@ export default function StudioScreen({
                     </div>
 
                     {/* Curated Ensemble Tray */}
-                    <div className="flex flex-col gap-2.5 pt-1">
+                    <div id="tour-tappable-objects" className="flex flex-col gap-2.5 pt-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/70">
                           Curated Ensemble ({activeEntities.length} verified via Qloo)
@@ -1007,6 +1007,7 @@ export default function StudioScreen({
 
           {/* Bottom Steering Input Capsule: Fixed at Bottom with Focus Mode */}
           <div
+            id="tour-prompt-bar"
             className={`w-full flex-shrink-0 rounded-[22px] sm:rounded-[24px] p-1.5 backdrop-blur-md border transition-all duration-300 ease-out transform-gpu ${
               isPromptFocused
                 ? "relative z-50 scale-[1.015] bg-white/[0.08] border-white/30 shadow-[0_24px_60px_rgba(0,0,0,0.85),inset_0_1px_1px_0_rgba(255,255,255,0.35)] ring-1 ring-white/20"

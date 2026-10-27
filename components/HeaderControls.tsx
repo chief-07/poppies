@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Cpu, HelpCircle } from "lucide-react";
+import { Sparkles, HelpCircle } from "lucide-react";
 
 interface HeaderControlsProps {
   engine: "qloo" | "base_llm";
@@ -28,42 +28,45 @@ export default function HeaderControls({
         <span className="hidden sm:inline font-medium">60s Tour</span>
       </button>
 
-      {/* Taste Engine Toggle Pill */}
-      <div
-        className="flex items-center p-1 rounded-full bg-black/40 border border-white/20 backdrop-blur-lg shadow-inner"
-        role="group"
-        aria-label="Select Intelligence Engine"
+      {/* Clean Qloo Toggle Switch Button */}
+      <button
+        id="tour-qloo-toggle"
+        type="button"
+        onClick={() => onToggleEngine(isQloo ? "base_llm" : "qloo")}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-lg transition-all cursor-pointer shadow-sm active:scale-95 group"
+        title={
+          isQloo
+            ? "Qloo Empirical Taste Graph Grounding is ACTIVE (Click to toggle Vanilla LLM mode)"
+            : "Vanilla Base LLM mode active (Click to enable Qloo Grounding)"
+        }
       >
-        {/* Option 1: Qloo Taste Graph */}
-        <button
-          type="button"
-          onClick={() => onToggleEngine("qloo")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all duration-200 cursor-pointer ${
-            isQloo
-              ? "bg-[#28402a] text-[#F7F7D9] font-bold shadow-md border border-[#F7F7D9]/30"
-              : "text-[#F7F7D9]/60 hover:text-[#F7F7D9] font-medium"
-          }`}
-          title="Powered by Qloo's 10-billion-entity empirical taste graph"
-        >
+        <span className="text-xs font-sans text-[#F7F7D9] font-medium flex items-center gap-1">
           <Sparkles className={`w-3 h-3 ${isQloo ? "text-[#E06B55]" : "text-white/40"}`} />
-          <span>Qloo Taste Graph</span>
-        </button>
+          <span>Qloo</span>
+        </span>
 
-        {/* Option 2: Vanilla Base LLM */}
-        <button
-          type="button"
-          onClick={() => onToggleEngine("base_llm")}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all duration-200 cursor-pointer ${
-            !isQloo
-              ? "bg-[#333333] text-gray-200 font-bold shadow-md border border-white/30"
-              : "text-[#F7F7D9]/60 hover:text-[#F7F7D9] font-medium"
+        {/* Toggle Track: Red when on, dark when off */}
+        <div
+          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center ${
+            isQloo ? "bg-[#E06B55]" : "bg-white/20"
           }`}
-          title="Vanilla LLM mode without taste graph grounding (Demonstrates AI monoculture & clichés)"
         >
-          <Cpu className="w-3 h-3 text-gray-400" />
-          <span>Vanilla Base LLM</span>
-        </button>
-      </div>
+          {/* White Thumb */}
+          <div
+            className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-300 ${
+              isQloo ? "translate-x-4" : "translate-x-0"
+            }`}
+          />
+        </div>
+
+        <span
+          className={`text-[10px] font-mono font-bold tracking-tight ${
+            isQloo ? "text-[#E06B55]" : "text-[#F7F7D9]/40"
+          }`}
+        >
+          {isQloo ? "ON" : "OFF"}
+        </span>
+      </button>
     </div>
   );
 }

@@ -813,7 +813,7 @@ function buildDynamicFallbackSynthesis(
       id: inq.id,
       sceneAnswer,
       highlightedEntities: highlighted,
-      curated: topCandidates.map((c) => ({
+      curated: candidatePool.slice(0, 5).map((c) => ({
         name: c.name,
         curatorialNote: `Selected for ${characterName}'s world as an authentic anchor of ${inq.domain.toLowerCase()}.`,
       })),

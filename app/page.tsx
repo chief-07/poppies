@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { ArrowUpRight, ArrowRight, AlertTriangle } from "lucide-react";
 import ResolvingScreen from "@/components/ResolvingScreen";
 import StudioScreen from "@/components/StudioScreen";
-import HeaderControls from "@/components/HeaderControls";
 import TourGuide from "@/components/TourGuide";
 
 type ScreenState = "input" | "resolving" | "studio";
@@ -222,6 +221,7 @@ export default function Home() {
   const handleResolutionComplete = (data: any) => {
     setResolvedData(data);
     setScreenState("studio");
+    setIsTourOpen(true);
   };
 
   // State 2: Resolving Screen
@@ -233,7 +233,6 @@ export default function Home() {
           engine={engine}
           onResolved={handleResolutionComplete}
         />
-        <TourGuide isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
       </div>
     );
   }
@@ -254,33 +253,10 @@ export default function Home() {
     );
   }
 
-  // State 1: Input Screen
+  // State 1: Input Screen (Clean canvas, unencumbered by header)
   return (
     <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
-      {/* Top Header Bar */}
-      <header className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between backdrop-blur-sm bg-black/15 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
-            style={{
-              backgroundImage: "url('/poppies-bg.jpg')",
-              backgroundPosition: "42% 49%",
-              backgroundSize: "650%",
-            }}
-          />
-          <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
-            Poppies
-          </span>
-        </div>
-
-        <HeaderControls
-          engine={engine}
-          onToggleEngine={setEngine}
-          onOpenTour={() => setIsTourOpen(true)}
-        />
-      </header>
-
-      <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] pt-20 pb-8 sm:py-12 px-4 sm:px-6">
+      <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-8 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
           className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
