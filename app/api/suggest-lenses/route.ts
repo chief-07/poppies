@@ -6,11 +6,11 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // Domain-resolvable fallback questions across 5 distinct Qloo categories
 const DOMAIN_QUESTIONS = [
-  { domain: "music", label: "+ 2 AM Soundscape?", query: "What does their 2 AM solitary playlist sound like?" },
-  { domain: "objects", label: "+ Worktable Tools?", query: "What tools and everyday objects rest on their worktable?" },
-  { domain: "places", label: "+ Sunday Haunt?", query: "Where do they disappear to on Sunday afternoons?" },
-  { domain: "books", label: "+ Secret Bookshelf?", query: "What books lean on their secret shelf?" },
-  { domain: "contradiction", label: "+ The Contradiction?", query: "What unlikely vice or habit complicates their taste?" },
+  { domain: "music", label: "+ Late Night Music?", query: "What music do they listen to while working late?" },
+  { domain: "objects", label: "+ Worktable Tools?", query: "What everyday tools rest on their desk?" },
+  { domain: "places", label: "+ Quiet Spots?", query: "Where do they go when they want to be alone?" },
+  { domain: "books", label: "+ Bookshelf?", query: "What books rest on their shelf?" },
+  { domain: "contradiction", label: "+ Unexpected Habit?", query: "What unlikely habit breaks their usual routine?" },
 ];
 
 export async function POST(req: NextRequest) {
@@ -68,11 +68,11 @@ CRITICAL WRITING RULES:
 4. Label must be 2-3 words starting with "+" and ending with "?" (e.g. "+ 2 AM Soundscape?", "+ Worktable Tools?", "+ Sunday Haunt?").
 
 Examples of the exact tone:
-- "+ 2 AM Soundscape?" -> "What does their 2 AM solitary playlist sound like?"
-- "+ Worktable Tools?" -> "What tools and everyday objects rest on their worktable?"
-- "+ Sunday Haunt?" -> "Where do they disappear to on Sunday afternoons?"
-- "+ Secret Shelf?" -> "What books lean on their secret shelf?"
-- "+ The Contradiction?" -> "What unlikely vice or habit complicates their taste?"
+- "+ Late Night Music?" -> "What music do they listen to while working late?"
+- "+ Worktable Tools?" -> "What everyday tools rest on their desk?"
+- "+ Quiet Spots?" -> "Where do they go when they want to be alone?"
+- "+ Bookshelf?" -> "What books rest on their shelf?"
+- "+ Unexpected Habit?" -> "What unlikely habit breaks their usual routine?"
 
 Respond ONLY with valid JSON:
 {

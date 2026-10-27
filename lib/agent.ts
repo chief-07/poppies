@@ -527,10 +527,10 @@ async function profileCharacter(prompt: string): Promise<ProfilingResult> {
     globalSeeds: lower.includes("lagos") ? ["Hiroshi Yoshimura", "Anker", "Norwegian Wood"] : ["Ryuichi Sakamoto", "Tadao Ando", "Hasami porcelain"],
     creatorInquiries: [
       { question: "What tools and everyday objects rest on their worktable?", domain: "OBJECTS", searchSeed: lower.includes("lagos") ? "Anker" : "Hasami porcelain" },
-      { question: "What does their 2 AM solitary soundscape sound like?", domain: "MUSIC", searchSeed: "Hiroshi Yoshimura" },
+      { question: "What music do they listen to while working late?", domain: "MUSIC", searchSeed: "Hiroshi Yoshimura" },
     ],
     agentInquiries: [
-      { question: "Where do they retreat when they need to disappear?", domain: "PLACES", searchSeed: detectedLocality === "Lagos" ? "Yaba" : "Shinjuku" },
+      { question: "Where do they go when they want to be alone?", domain: "PLACES", searchSeed: detectedLocality === "Lagos" ? "Yaba" : "Shinjuku" },
     ],
   };
 

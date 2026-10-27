@@ -33,16 +33,19 @@ export default function HeaderControls({
         id="tour-qloo-toggle"
         type="button"
         onClick={() => onToggleEngine(isQloo ? "base_llm" : "qloo")}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-lg transition-all cursor-pointer shadow-sm active:scale-95 group"
+        className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-lg transition-all cursor-pointer shadow-sm active:scale-95 group"
         title={
           isQloo
-            ? "Qloo Empirical Taste Graph Grounding is ACTIVE (Click to toggle Vanilla LLM mode)"
-            : "Vanilla Base LLM mode active (Click to enable Qloo Grounding)"
+            ? "Qloo Grounding is ON. Click to switch to Vanilla Base LLM."
+            : "Qloo Grounding is OFF. Click to enable Qloo Grounding."
         }
       >
-        <span className="text-xs font-sans text-[#F7F7D9] font-medium flex items-center gap-1">
-          <Sparkles className={`w-3 h-3 ${isQloo ? "text-[#E06B55]" : "text-white/40"}`} />
-          <span>Qloo</span>
+        <span className="text-xs font-sans text-[#F7F7D9] font-medium flex items-center gap-1.5">
+          <Sparkles className={`w-3.5 h-3.5 ${isQloo ? "text-[#E06B55]" : "text-white/40"}`} />
+          <span>Qloo:</span>
+          <strong className={`font-mono font-bold text-xs ${isQloo ? "text-[#E06B55]" : "text-[#F7F7D9]/50"}`}>
+            {isQloo ? "ON" : "OFF"}
+          </strong>
         </span>
 
         {/* Toggle Track: Red when on, dark when off */}
@@ -58,14 +61,6 @@ export default function HeaderControls({
             }`}
           />
         </div>
-
-        <span
-          className={`text-[10px] font-mono font-bold tracking-tight ${
-            isQloo ? "text-[#E06B55]" : "text-[#F7F7D9]/40"
-          }`}
-        >
-          {isQloo ? "ON" : "OFF"}
-        </span>
       </button>
     </div>
   );

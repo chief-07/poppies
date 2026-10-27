@@ -15,7 +15,6 @@ import {
   Briefcase,
   ArrowRight,
 } from "lucide-react";
-import HeaderControls from "@/components/HeaderControls";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 
 interface StudioScreenProps {
@@ -520,7 +519,7 @@ export default function StudioScreen({
   };
 
   return (
-    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#101b13] p-4 sm:p-6 lg:p-7 select-none">
+    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#101b13] pt-16 pb-4 px-4 sm:pt-18 sm:pb-6 sm:px-6 lg:pt-20 lg:pb-7 lg:px-7 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-90 scale-[1.01]"
@@ -676,32 +675,22 @@ export default function StudioScreen({
               </p>
             </div>
 
-            {/* Subtle Constraint Pills & Header Controls */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="hidden sm:flex items-center gap-2">
-                {constraints.locality && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                    {constraints.locality}
-                  </span>
-                )}
-                {constraints.era && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                    {constraints.era}
-                  </span>
-                )}
-                {constraints.occupation && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                    {constraints.occupation}
-                  </span>
-                )}
-              </div>
-
-              {onToggleEngine && onOpenTour && (
-                <HeaderControls
-                  engine={engine}
-                  onToggleEngine={onToggleEngine}
-                  onOpenTour={onOpenTour}
-                />
+            {/* Subtle Constraint Pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {constraints.locality && (
+                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                  {constraints.locality}
+                </span>
+              )}
+              {constraints.era && (
+                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                  {constraints.era}
+                </span>
+              )}
+              {constraints.occupation && (
+                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
+                  {constraints.occupation}
+                </span>
               )}
             </div>
           </div>

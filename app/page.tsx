@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { ArrowUpRight, ArrowRight, AlertTriangle } from "lucide-react";
 import ResolvingScreen from "@/components/ResolvingScreen";
 import StudioScreen from "@/components/StudioScreen";
+import HeaderControls from "@/components/HeaderControls";
 import TourGuide from "@/components/TourGuide";
 
 type ScreenState = "input" | "resolving" | "studio";
@@ -14,9 +15,10 @@ interface Lens {
 }
 
 const DEFAULT_STARTER_LENSES: Lens[] = [
-  { label: "+ 2 AM Soundscape?", query: "What does their 2 AM solitary playlist sound like?" },
-  { label: "+ Worktable Tools?", query: "What tools and everyday objects rest on their worktable?" },
-  { label: "+ The Local Haunt?", query: "Where do they disappear to when they need to be alone?" },
+  { label: "+ What music do they listen to while working late?", query: "What music do they listen to while working late?" },
+  { label: "+ What everyday tools rest on their desk?", query: "What everyday tools and gear rest on their desk?" },
+  { label: "+ Where do they go when they want to be alone?", query: "Where do they go in the city when they want to be alone?" },
+  { label: "+ What books are on their shelf?", query: "What books rest on their shelf?" },
 ];
 
 export default function Home() {
@@ -41,11 +43,11 @@ export default function Home() {
   const samplePrompts = [
     {
       label: "Meet Tsukuru the Japanese architect",
-      text: "Tsukuru, 36, an architect in Nagoya who designs train stations. He lives alone in an uncluttered apartment, drinks black pour-over coffee from simple Hasami porcelain, and spends his Sunday afternoons sitting on station benches observing passenger flow. He is haunted by an abrupt estrangement from his four closest childhood friends. What are his quiet habits, his secret bookshelf, and where does he walk at night?",
+      text: "Tsukuru is a 36-year-old architect in Nagoya who designs train stations. He lives a quiet, solitary life in an uncluttered apartment, drinks black pour-over coffee, and is still carrying the quiet weight of four close childhood friends who abruptly cut him off years ago.\n\nWhat music does he listen to when sketching late at night?\nWhat drafting tools and everyday items rest on his work desk?\nWhere in Nagoya does he walk when he wants to clear his head?\nDescribe a quiet scene of him sitting on a station platform bench on a rainy Sunday morning.",
     },
     {
       label: "Meet Elena the Marseille conservator",
-      text: "Elena, 34, an architectural conservator in Marseille restoring 18th-century stone facades and overlooked woodwork. She lives in a drafty apartment near the old port, drinks bitter chicory tea, and refuses to sell her battered 1988 Peugeot 205. I want to understand her worktable tools, her 2 AM solitary soundscape, and where she disappears on Sunday afternoons.",
+      text: "Elena is a 34-year-old architectural conservator in Marseille restoring 18th-century stone facades and maritime woodwork. She drives a battered 1988 Peugeot 205, lives near the old port, and prefers practical, well-worn tools over anything polished or decorative.\n\nWhat everyday tools and gear rest on her workbench?\nWhat music does she listen to in her car after a long day of restoration work?\nWhere does she go by the water when she needs to disappear?\nDescribe a quiet scene of her working late in her drafty studio as the sun sets over the harbor.",
     },
   ];
 
@@ -241,6 +243,31 @@ export default function Home() {
   if (screenState === "studio") {
     return (
       <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
+        {/* Fixed Top Header Bar anchored to the screen with controls at the right edge */}
+        <header className="fixed top-0 left-0 right-0 z-40 px-5 sm:px-8 py-3 flex items-center justify-between backdrop-blur-md bg-black/20 border-b border-white/[0.08]">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
+              style={{
+                backgroundImage: "url('/poppies-bg.jpg')",
+                backgroundPosition: "42% 49%",
+                backgroundSize: "650%",
+              }}
+            />
+            <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
+              Poppies
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <HeaderControls
+              engine={engine}
+              onToggleEngine={setEngine}
+              onOpenTour={() => setIsTourOpen(true)}
+            />
+          </div>
+        </header>
+
         <StudioScreen
           initialData={resolvedData}
           engine={engine}
