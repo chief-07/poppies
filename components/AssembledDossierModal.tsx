@@ -57,15 +57,6 @@ export default function AssembledDossierModal({
     md += `**Summary:** ${characterSummary}\n`;
     md += `**Setting & Constraints:** Locality: ${constraints.locality || "Unspecified"} | Era: ${constraints.era || "Contemporary"} | Occupation: ${constraints.occupation || "Unspecified"}\n\n`;
 
-    if (userPrompt) {
-      md += `## Creator Origin Brief & Questions Asked\n> ${userPrompt}\n\n`;
-      md += `### Inquiries Investigated\n`;
-      inquiries.forEach((inq, idx) => {
-        md += `${idx + 1}. **${inq.question}** [${inq.domain || "Ensemble"}]\n`;
-      });
-      md += `\n`;
-    }
-
     md += `## Master Cultural Thesis\n${culturalDossier.tasteThesis}\n\n`;
 
     if (culturalDossier.psychologicalWound || culturalDossier.tactileArmor) {
@@ -221,45 +212,6 @@ export default function AssembledDossierModal({
               {characterSummary}
             </p>
           </div>
-
-          {/* Creator Origin Brief & Questions Asked */}
-          {userPrompt && (
-            <div className="flex flex-col gap-3">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[#E06B55] font-bold">
-                Creator Origin Brief & Questions Asked
-              </span>
-              <div className="rounded-[20px] bg-white/[0.03] border border-white/10 p-5 sm:p-6 flex flex-col gap-3.5">
-                <blockquote className="font-serif italic text-sm text-[#F7F7D9]/85 border-l-2 border-[#E06B55]/70 pl-3.5 py-1 leading-relaxed bg-white/[0.02] rounded-r-lg">
-                  "{userPrompt}"
-                </blockquote>
-                <div className="flex flex-col gap-2 pt-1">
-                  <span className="font-sans text-[11px] font-medium uppercase tracking-wider text-[#F7F7D9]/50">
-                    Investigated Inquiries
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {inquiries.map((inq, idx) => (
-                      <div
-                        key={inq.id || idx}
-                        className="flex items-start gap-2.5 p-2.5 rounded-[12px] bg-white/[0.025] border border-white/[0.06]"
-                      >
-                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#E06B55]/20 text-[#E06B55] flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
-                          {idx + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-serif italic text-xs text-[#F7F7D9] line-clamp-2 leading-snug">
-                            {inq.question}
-                          </p>
-                          <span className="text-[10px] font-sans font-bold uppercase text-[#E06B55] mt-0.5 block">
-                            {inq.domain || "Ensemble"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Master Cultural Thesis */}
           <div className="flex flex-col gap-2.5">
