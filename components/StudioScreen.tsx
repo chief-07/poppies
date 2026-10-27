@@ -566,14 +566,14 @@ export default function StudioScreen({
                 );
               })}
 
-              {/* Add question button */}
+              {/* Add question or explore scene button */}
               <button
                 type="button"
                 onClick={handleActivatePrompt}
                 className="flex items-center gap-2 px-3 py-2 rounded-[16px] bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur-md border border-dashed border-white/15 text-[#F7F7D9]/70 hover:text-[#F7F7D9] text-xs font-sans transition-all cursor-pointer flex-shrink-0 mt-0.5"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Ask a new question</span>
+                <span>Ask a question or explore a scene</span>
               </button>
             </div>
           </div>
@@ -958,7 +958,7 @@ export default function StudioScreen({
                 onChange={(e) => setSteeringInput(e.target.value)}
                 onFocus={() => setIsPromptFocused(true)}
                 onKeyDown={(e) => e.key === "Enter" && handleSteer()}
-                placeholder="Ask a question about their world or steer taste..."
+                placeholder={`Ask a question or explore a scene for ${characterName}...`}
                 className="w-full bg-transparent border-none outline-none font-serif text-sm sm:text-base text-[#1c2b1e] placeholder:text-[#1c2b1e]/50"
               />
 

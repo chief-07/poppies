@@ -613,30 +613,27 @@ ${branchedDiscovery ? `Autonomous Latent Branch: "${branchedDiscovery}"` : ""}
 YOUR TASK:
 Synthesize both the direct curatorial inquiry answers and the master cultural dossier in ONE unified, cohesive output.
 
-DELIVERABLE 1: DIRECT CURATORIAL ANSWER (For EACH Inquiry)
+DELIVERABLE 1: DIRECT, TIGHT CURATORIAL ANSWER (For EACH Inquiry)
 - Directly and unpretentiously answer the question asked about ${characterName}.
-- Explain the chosen items in the context of:
-  1. What ${characterName} likes, their daily habits, craft/occupation, and physical environment (${constraints.locality || "their city"}, power realities, workspace, solitude).
-  2. What was deduced from the creator prompt and seeds.
-  3. Why these specific items were chosen for ${characterName} to answer this question.
-  4. Perform cross-taste inference across their domains (e.g. how their acoustic isolation, reading preferences, or physical tools intersect).
-- FORMAT: Exactly 2 clean, insightful curatorial paragraphs (~100 to 140 words total, separated by \\n\\n).
-- GROUNDING: Naturally name and weave 2 to 4 of the candidate Qloo entities into the prose.
+- EXTREMELY IMPORTANT - CUT VERBOSITY: Keep the curation concise, sharp, and punchy. Exactly 1 focused paragraph (~45 to 65 words total). Do NOT write multi-paragraph essays or long academic dissertations.
+- State what was deduced from who they are, their craft, and environment (${constraints.locality || "their city"}), and why these picks answer the question.
+- Naturally weave 2 to 3 candidate Qloo entities into the sentence as concrete examples.
 - CRITICAL TONE & CONTENT RULES:
+  * NO verbosity, NO essay padding, NO multi-paragraph bloat.
   * NO fake fiction, purple prose, or melodramatic creative writing (do NOT write storytelling fanfiction like "Deep in the humid night, Fortune reaches for...").
   * NO sing-songy melodrama or meta-AI commentary ("The research begins with...", "As an AI curator...").
-  * NO raw percentages or technical Qloo parameters in the text prose (keep the text dignified and literary; technical parameters belong in the evidence inspector drawer).
+  * NO raw percentages or technical Qloo parameters in the text prose (keep the text clean; technical parameters belong in the evidence inspector drawer).
   * Direct, dignified, intelligent cultural curation only.
 - For each selected entity (3-5 entities per inquiry), provide a concise 1-sentence curatorial note explaining why it fits ${characterName}'s life.
 - Return highlightedEntities: array of string names for all entities woven into the text.
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
-- tasteThesis: 2-3 substantive, literary sentences articulating who ${characterName} is through their cultural choices. Explain what they are defending against, why their taste hangs together, and name at least 2 real discovered entities naturally. (STRICTLY THIRD-PERSON: "${characterName}...", never first-person).
-- psychologicalWound: 1-2 sentences identifying their underlying vulnerability, loneliness, or internal friction (e.g. claiming high taste to distance from their environment, or hiding obsession behind minimalism).
-- tactileArmor: 1-2 sentences explaining how their material belongings, tools, or music act as protective armor or ritual against external noise.
+- tasteThesis: Exactly 1 to 2 crisp, substantive sentences articulating who ${characterName} is through their cultural choices. (Strictly under 45 words. Third-person: "${characterName}...", never first-person).
+- psychologicalWound: 1 sentence identifying their underlying vulnerability, loneliness, or internal friction.
+- tactileArmor: 1 sentence explaining how their material belongings or sounds act as protective armor against external noise.
 - observedClusters: 3-4 concise, authentic subcultural phrases describing their real taste patterns.
 - unconsideredAngles: 1 genuine surprise, friction, or unexpected contradiction that emerged from the cultural graph:
-  { "title": string, "description": string (1-2 sentences), "groundedEntity": string }
+  { "title": string, "description": string (1 concise sentence), "groundedEntity": string }
 - highlightedNodes: Array of 3-5 real entity names for quick interactive inspection.
 
 Respond ONLY with valid JSON:
@@ -712,27 +709,19 @@ function buildDynamicFallbackSynthesis(
     const primary = topCandidates[0]?.name || inq.seedName || "Tactile Anchor";
     const secondary = topCandidates[1]?.name || "Field Recordings";
 
-    let para1 = "";
-    let para2 = "";
+    let sceneAnswer = "";
 
     if (inq.domain === "MUSIC") {
-      para1 = `Curating the late-night soundscape for ${characterName} in ${loc} requires music that functions as acoustic shielding rather than ambient decoration. ${primary} was chosen because its disciplined frequencies establish an intentional perimeter against outside commotion, allowing uninterrupted focus for ${occ}.`;
-      para2 = `Adding ${secondary} introduces a grounded, physical texture deduced from their solitary work habits. Together, these selections reflect a clear preference for unvarnished, structural compositions that accompany deep night focus in ${era} conditions.`;
+      sceneAnswer = `For late-night focus in ${loc}, ${characterName} relies on acoustic shielding rather than passive background noise. Disciplined, cyclical textures from ${primary} and ${secondary} establish a focused perimeter against urban commotion during solitary ${occ} hours.`;
     } else if (inq.domain === "OBJECTS") {
-      para1 = `For ${characterName}'s worktable in ${loc}, the everyday gear prioritizes unyielding mechanical reliability over trend. ${primary} was selected as a core tool, chosen because it withstands erratic local infrastructure and repeated daily use without pretense.`;
-      para2 = `Beside it, items like ${secondary} function as tactile armor against work disruptions. These choices were deduced directly from the demands of ${occ}, establishing an intentional kit built for longevity and endurance.`;
+      sceneAnswer = `On the worktable in ${loc}, everyday gear prioritizes mechanical endurance over trends. Items like ${primary} and ${secondary} function as tactile armor against work disruptions, chosen for reliability and zero decorative pretense.`;
     } else if (inq.domain === "BOOKS") {
-      para1 = `On ${characterName}'s desk, titles like ${primary} were chosen for their rigorous perspective on craft, space, and disciplined solitude. Reading here is not casual escapism, but a deliberate effort to anchor the mind amid the daily friction of ${loc}.`;
-      para2 = `Complementing this with ${secondary} introduces a shared vocabulary of craft and quiet endurance, providing an intellectual touchstone that directly informs their worldview.`;
+      sceneAnswer = `On ${characterName}'s desk, selections like ${primary} and ${secondary} reflect a deliberate appetite for craft, spatial structure, and disciplined solitude rather than casual entertainment.`;
     } else if (inq.domain === "PLACES") {
-      para1 = `When stepping away from the immediate pressure of ${loc}, ${characterName} is drawn to spots like ${primary}. It was selected because it affords unhurried anonymity and spatial clarity away from high-traffic commercial zones.`;
-      para2 = `Retreating past ${secondary} provides an informal buffer to recalibrate before returning to the desk, matching their habit of quiet observation over social performance.`;
+      sceneAnswer = `When stepping away from immediate pressures in ${loc}, ${characterName} retreats to unpretentious sanctuaries like ${primary} and ${secondary}, offering quiet anonymity and room to recalibrate.`;
     } else {
-      para1 = `Against the disciplined pattern of ${characterName}'s daily routine, an affinity for ${primary} provides an unexpected touchpoint. It was selected because it reveals an instinctive private loyalty that defies neat categorization.`;
-      para2 = `Paired with ${secondary}, it exposes the human friction between functional restraint and personal obsession, grounding their character profile in authentic contradiction.`;
+      sceneAnswer = `Breaking the clean discipline of their daily routine, an affinity for ${primary} and ${secondary} reveals the human friction between functional restraint and instinctive private loyalty.`;
     }
-
-    const sceneAnswer = `${para1}\n\n${para2}`;
 
     return {
       id: inq.id,
@@ -750,8 +739,8 @@ function buildDynamicFallbackSynthesis(
   return {
     inquiries: synthInquiries,
     dossier: {
-      tasteThesis: `${characterName}'s cultural world is defined by intentional, unadorned utility in ${loc}. Moving between ${allTopNames.slice(0, 2).join(" and ") || "disciplined anchors"}, their daily rituals reject decorative hype in favor of durable, tactile anchors that insulate their craft.`,
-      psychologicalWound: `An underlying struggle to balance solitary creative focus against the unpredictable noise and demands of their immediate environment in ${loc}.`,
+      tasteThesis: `${characterName}'s cultural world is defined by intentional utility in ${loc}. Moving between ${allTopNames.slice(0, 2).join(" and ") || "disciplined anchors"}, their daily rituals prioritize durable, unadorned anchors that insulate their craft.`,
+      psychologicalWound: `An underlying struggle to balance solitary creative focus against the unpredictable noise and demands of ${loc}.`,
       tactileArmor: `Relies on trusted tools, physical objects, and specific acoustic atmospheres to erect a quiet boundary against outside interference.`,
       observedClusters: [
         `${loc} Subcultural Focus`,
@@ -783,7 +772,7 @@ async function generateCuratorialAnswer(
   const secondary = topNames[1] || "Deliberate Ritual";
   const loc = constraints.locality || "their city";
 
-  const fallbackText = `Addressing "${question}" for ${characterName} reveals a taste architecture anchored by intentional utility in ${loc}. Items like ${primary} were chosen because they fulfill physical demands without aesthetic pretense.\n\nCombined with ${secondary}, these selections reflect what was deduced from their daily routine and environment, forming a coherent ensemble that prioritizes durability and focus over decorative noise.`;
+  const fallbackText = `For ${characterName} in ${loc}, addressing "${question}" centers on deliberate utility. Selections like ${primary} and ${secondary} fulfill practical physical demands while reinforcing the focused habits of their craft.`;
 
   if (!ai) {
     return { text: fallbackText, highlightedEntities: topNames.slice(0, 2) };
@@ -800,16 +789,16 @@ Discovered Qloo Entities:
 ${candidates.slice(0, 6).map((c, i) => `${i + 1}. "${c.name}" - ${c.description}`).join("\n")}
 
 YOUR TASK:
-Write a direct, authoritative curatorial explanation (~100-140 words in 2 paragraphs separated by \\n\\n) directly answering the question asked about ${characterName}.
+Write a tight, direct curatorial explanation (exactly 1 focused paragraph, ~40-65 words maximum) directly answering the question asked about ${characterName}.
 
 Rules:
-1. Explain why these picks were chosen for ${characterName} based on what they like, their craft/habits, their environment (${loc}), and what was deduced from their prompt seeds.
-2. Synthesize cross-taste inferences (how their broader tastes and craft inform these specific choices).
-3. Weave 2 to 3 candidate entity names naturally into the prose.
+1. Explain why these picks were chosen based on what ${characterName} likes, their habits/craft, and physical environment (${loc}).
+2. State the deduction clearly and name 2 to 3 candidate entities naturally as concrete examples.
+3. CRITICAL: NO verbosity, NO essay fluff, NO multi-paragraph bloat. Keep it sharp, punchy, and under 65 words.
 4. STRICT CONTENT & STYLE CONSTRAINTS:
    - NO fake fiction, purple prose, or dramatic storytelling vignettes (do NOT write creative fanfiction).
    - NO sing-songy melodrama or meta AI commentary ("The research begins with...", "As an AI...").
-   - NO raw percentages or technical Qloo parameters in the text prose (keep the text dignified and clean).
+   - NO raw percentages or technical Qloo parameters in the text prose (keep the text clean; technical parameters belong in the drawer).
    - Direct, intelligent curatorial analysis only.
 
 Respond ONLY with valid JSON:
