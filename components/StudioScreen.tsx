@@ -14,6 +14,8 @@ import {
   Clock,
   Briefcase,
   ArrowRight,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 import HeaderControls from "@/components/HeaderControls";
@@ -229,6 +231,9 @@ export default function StudioScreen({
   const characterSummary =
     initialData?.character?.summary || "Restoring overlooked stone and woodwork in Marseille.";
   const constraints = initialData?.character?.constraints || {};
+  const userPrompt: string =
+    initialData?.userPrompt ||
+    (typeof initialData?.character?.userPrompt === "string" ? initialData.character.userPrompt : "");
 
   const culturalDossier: CulturalDossierBrief =
     initialData?.culturalDossier || DEFAULT_DOSSIER;
@@ -706,17 +711,163 @@ export default function StudioScreen({
 
           {/* Main Card */}
           <main id="tour-center-pane" className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
-            {/* VIEW A: CULTURAL DOSSIER (Clean, quiet, zero marketing clutter) */}
+            {/* VIEW A: CULTURAL DOSSIER (Expanded Character Brief Grounded in Creator Input) */}
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6 custom-scrollbar-red">
-                {/* Cultural Dossier Thesis Card */}
-                <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-4">
+                {/* 1. Cultural Dossier Thesis Card */}
+                <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-serif italic font-bold text-xs uppercase tracking-wider text-[#E06B55]">
+                      Auteur Cultural Thesis
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {constraints.locality && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] font-sans text-[11px] text-[#F7F7D9]/80">
+                          {constraints.locality}
+                        </span>
+                      )}
+                      {constraints.occupation && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.1] font-sans text-[11px] text-[#F7F7D9]/80">
+                          {constraints.occupation}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <p className="font-serif text-[16px] sm:text-[18px] leading-[1.8] text-[#F7F7D9] font-light">
                     {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
                   </p>
                 </div>
 
-                {/* Two-Column: Psychological Wound & Tactile Armor */}
+                {/* 2. Creator Origin Brief & Questions Asked */}
+                <div className="rounded-[20px] bg-white/[0.03] border border-white/[0.08] p-5 sm:p-6 flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-serif italic font-bold text-sm text-[#F7F7D9] flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-[#E06B55]" />
+                      Creator Brief & Questions Asked
+                    </span>
+                    <span className="font-sans text-[11px] text-[#F7F7D9]/50">
+                      Input Grounding
+                    </span>
+                  </div>
+
+                  {userPrompt && (
+                    <blockquote className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/80 border-l-2 border-[#E06B55]/70 pl-3 py-1 leading-relaxed bg-white/[0.015] rounded-r-lg">
+                      "{userPrompt.slice(0, 360)}{userPrompt.length > 360 ? "…" : ""}"
+                    </blockquote>
+                  )}
+
+                  {/* Explicit Inquiries List */}
+                  <div className="flex flex-col gap-2 pt-1">
+                    <span className="font-sans text-[11px] font-medium uppercase tracking-wider text-[#F7F7D9]/50">
+                      Investigated Inquiries
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {inquiries.map((inq, iIdx) => (
+                        <div
+                          key={inq.id || iIdx}
+                          onClick={() => setActiveInquiryId(inq.id)}
+                          className="flex items-start gap-2.5 p-2.5 rounded-[14px] bg-white/[0.025] hover:bg-white/[0.06] border border-white/[0.06] transition-all cursor-pointer group"
+                        >
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#E06B55]/20 text-[#E06B55] flex items-center justify-center text-[10px] font-mono font-bold mt-0.5">
+                            {iIdx + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-serif italic text-xs text-[#F7F7D9] group-hover:text-white line-clamp-2 leading-snug">
+                              {inq.question}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-sans font-bold uppercase text-[#E06B55]">
+                                {inq.domain || "Ensemble"}
+                              </span>
+                              {inq.vignetteHighlightEntity && (
+                                <span className="text-[10px] font-sans text-[#F7F7D9]/60 truncate">
+                                  → {inq.vignetteHighlightEntity}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Discovered Cultural Connections & Direct Deductions */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-baseline justify-between px-1">
+                    <span className="font-serif italic font-bold text-sm sm:text-base text-[#F7F7D9] flex items-center gap-2">
+                      <Layers className="w-3.5 h-3.5 text-[#E06B55]" />
+                      Discovered Taste Connections & Direct Deductions
+                    </span>
+                    <span className="font-sans text-xs text-[#F7F7D9]/60">
+                      Qloo Empirical Graph
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    {inquiries.map((inq, idx) => (
+                      <div
+                        key={inq.id || idx}
+                        className="rounded-[18px] bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-3 hover:border-white/[0.14] transition-all"
+                      >
+                        {/* Header: Question + Domain */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#E06B55]">
+                              {inq.domain || "CULTURE"} · {inq.source === "agent" ? "Autonomous Extension" : "Creator Question"}
+                            </span>
+                            <h3 className="font-serif font-bold text-sm sm:text-[15px] text-[#F7F7D9]">
+                              {inq.question}
+                            </h3>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setActiveInquiryId(inq.id)}
+                            className="text-[11px] font-serif italic text-[#F7F7D9]/70 hover:text-[#F7F7D9] flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer pt-0.5"
+                          >
+                            <span>Explore</span>
+                            <ArrowRight className="w-3 h-3 text-[#E06B55]" />
+                          </button>
+                        </div>
+
+                        {/* Direct Deduction Answer */}
+                        {inq.vignette && (
+                          <p className="font-sans text-xs sm:text-[12.5px] leading-relaxed text-[#F7F7D9]/80 pl-2.5 border-l border-white/[0.12]">
+                            {renderTextWithEntityTags(inq.vignette, allTaggableEntities, handleEntityClick)}
+                          </p>
+                        )}
+
+                        {/* Top Grounded Entities Pills */}
+                        {inq.entities && inq.entities.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            <span className="text-[10px] font-sans uppercase font-medium text-[#F7F7D9]/50 mr-1">
+                              Anchors:
+                            </span>
+                            {inq.entities.slice(0, 4).map((ent, eIdx) => (
+                              <button
+                                key={ent.id || eIdx}
+                                type="button"
+                                onClick={() => handleEntityClick(ent)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] hover:border-[#E06B55]/50 transition-all cursor-pointer group"
+                              >
+                                <span className="font-serif italic text-xs text-[#F7F7D9] group-hover:text-white">
+                                  {ent.name}
+                                </span>
+                                {ent.affinityScore && (
+                                  <span className="text-[10px] font-mono text-[#E06B55] font-semibold">
+                                    {ent.affinityScore}%
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Two-Column: Psychological Wound & Tactile Armor */}
                 {(culturalDossier.psychologicalWound || culturalDossier.tactileArmor) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {culturalDossier.psychologicalWound && (
@@ -743,12 +894,12 @@ export default function StudioScreen({
                   </div>
                 )}
 
-                {/* Two-Column: Observed Patterns & Unconsidered Angle */}
+                {/* 5. Two-Column: Observed Patterns & Unconsidered Angle */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Observed Clusters */}
                   <div className="rounded-[18px] bg-white/[0.03] border border-white/[0.07] p-4 sm:p-5 flex flex-col gap-2.5">
                     <span className="font-serif italic font-medium text-xs text-[#F7F7D9]/60">
-                      Observed Clusters
+                      Observed Taste Clusters
                     </span>
                     <div className="flex flex-col gap-1.5">
                       {culturalDossier.observedClusters.map((cluster, idx) => (
@@ -792,6 +943,23 @@ export default function StudioScreen({
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* 6. Quick Action: Assemble & Export Full Dossier Modal */}
+                <div className="rounded-[18px] bg-white/[0.02] border border-white/[0.06] p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen className="w-4 h-4 text-[#E06B55]" />
+                    <span className="font-serif italic text-xs text-[#F7F7D9]/80">
+                      Export full character brief with verified cultural ensembles as Markdown
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDossierModalOpen(true)}
+                    className="px-4 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-[#F7F7D9] font-sans text-xs font-medium transition-all cursor-pointer flex-shrink-0"
+                  >
+                    Export Dossier
+                  </button>
                 </div>
               </div>
             ) : (
@@ -1246,6 +1414,7 @@ export default function StudioScreen({
         onClose={() => setIsDossierModalOpen(false)}
         characterName={characterName}
         characterSummary={characterSummary}
+        userPrompt={userPrompt}
         constraints={constraints}
         culturalDossier={culturalDossier}
         inquiries={inquiries}

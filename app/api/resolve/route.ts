@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       engine,
+      userPrompt: prompt,
       character: {
         name: dossier.characterName,
         summary: dossier.summary,

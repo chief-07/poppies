@@ -47,6 +47,7 @@ export interface CulturalDossierBrief {
 export interface AgentDossier {
   characterName: string;
   summary: string;
+  userPrompt?: string;
   constraints: {
     locality?: string;
     era?: string;
@@ -482,6 +483,7 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
   return {
     characterName: profiling.characterName,
     summary: profiling.summary,
+    userPrompt: prompt,
     constraints: profiling.constraints,
     explicitAnchors: profiling.explicitAnchors,
     resolvedSeeds: resolvedSeedRecords,
@@ -1394,6 +1396,7 @@ export async function runBaseLLMResearchCycle(prompt: string): Promise<AgentDoss
     return {
       characterName: profiling.characterName,
       summary: profiling.summary,
+      userPrompt: prompt,
       constraints: profiling.constraints,
       explicitAnchors: profiling.explicitAnchors,
       resolvedSeeds: [],
@@ -1481,6 +1484,7 @@ Respond ONLY in JSON:
     return {
       characterName: profiling.characterName,
       summary: profiling.summary,
+      userPrompt: prompt,
       constraints: profiling.constraints,
       explicitAnchors: profiling.explicitAnchors,
       resolvedSeeds: [],
@@ -1504,6 +1508,7 @@ Respond ONLY in JSON:
     return {
       characterName: profiling.characterName,
       summary: profiling.summary,
+      userPrompt: prompt,
       constraints: profiling.constraints,
       explicitAnchors: profiling.explicitAnchors,
       resolvedSeeds: [],

@@ -8,6 +8,42 @@ interface ResolvingScreenProps {
   onResolved: (data: any) => void;
 }
 
+function extractProvisionalAnchors(prompt: string): string[] {
+  const pLower = prompt.toLowerCase();
+  const anchors: string[] = [];
+
+  // 1. Locality
+  if (/nagoya/i.test(pLower)) anchors.push("Nagoya, Japan");
+  else if (/marseille/i.test(pLower)) anchors.push("Marseille, France");
+  else if (/detroit/i.test(pLower)) anchors.push("Detroit, Michigan");
+  else if (/berlin/i.test(pLower)) anchors.push("Berlin, Germany");
+  else if (/tokyo/i.test(pLower)) anchors.push("Tokyo, Japan");
+  else if (/osaka/i.test(pLower)) anchors.push("Osaka, Japan");
+  else anchors.push("Cultural Locality");
+
+  // 2. Craft / Occupation
+  if (/architect\b/i.test(pLower)) anchors.push("Train Station Design");
+  else if (/conservator\b/i.test(pLower)) anchors.push("Historic Facade Masonry");
+  else if (/audio|hardware|console/i.test(pLower)) anchors.push("Analog Tube Restoration");
+  else anchors.push("Artisan Craft");
+
+  // 3. Sensorial & Gear Inquiries
+  if (/music|sound|listen|record|spin/i.test(pLower)) {
+    anchors.push(/detroit/i.test(pLower) ? "Underground Soul Vinyl" : "Late-Night Ambient Tape");
+  }
+  if (/tool|desk|workbench|gear/i.test(pLower)) {
+    anchors.push(/audio/i.test(pLower) ? "Soldering & Gauges" : "Drafting Compasses & Lead");
+  } else if (/wear|cloth|wardrobe|jacket/i.test(pLower)) {
+    anchors.push("Utilitarian Heavy Canvas");
+  } else if (/vehicle|car|drive|truck/i.test(pLower)) {
+    anchors.push("Vintage Hauler Truck");
+  } else if (/walk|disappear|water|harbor|alley/i.test(pLower)) {
+    anchors.push(/marseille/i.test(pLower) ? "Secluded Harbor Inlets" : "Quiet Rail Perimeter Walks");
+  }
+
+  return anchors.slice(0, 4);
+}
+
 export default function ResolvingScreen({
   promptText,
   engine = "qloo",
@@ -15,8 +51,8 @@ export default function ResolvingScreen({
 }: ResolvingScreenProps) {
   const [stageIndex, setStageIndex] = useState(0);
   const [fadeState, setFadeState] = useState<"enter" | "exit">("enter");
-  // Start with ZERO pills - they only populate as the agent reasons
   const [visiblePills, setVisiblePills] = useState<string[]>([]);
+  const [isResolved, setIsResolved] = useState(false);
 
   // Narrative line tailored to selected engine
   const narrativeExplanations =
@@ -36,7 +72,19 @@ export default function ResolvingScreen({
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutIds: NodeJS.Timeout[] = [];
+    const timeoutIds: NodeJS.Timeout[] = [];
+
+    // Immediately extract provisional prompt anchors so user sees active progress on frame 0
+    const provisional = extractProvisionalAnchors(promptText);
+    provisional.forEach((p, idx) => {
+      timeoutIds.push(
+        setTimeout(() => {
+          if (isMounted) {
+            setVisiblePills((prev) => (prev.includes(p) ? prev : [...prev, p]));
+          }
+        }, 300 + idx * 600)
+      );
+    });
 
     async function runAgentAndQloo() {
       try {
@@ -47,10 +95,9 @@ export default function ResolvingScreen({
         });
 
         const data = await res.json();
-
         if (!isMounted) return;
 
-        // Collect real resolved entities
+        // Collect real resolved entities from taste graph
         const discoveredEntities: string[] = [];
         if (data.culturalDossier?.highlightedNodes) {
           data.culturalDossier.highlightedNodes.forEach((name: string) => {
@@ -72,78 +119,45 @@ export default function ResolvingScreen({
           });
         }
 
-        // Stagger pill appearance as agent works through stages
+        // Seamlessly transition provisional pills to verified Qloo entities
         if (discoveredEntities.length > 0) {
-          // Pill 1 appears at 1.8s
-          timeoutIds.push(
-            setTimeout(() => {
-              if (isMounted && discoveredEntities[0]) {
-                setVisiblePills((prev) => [...prev, discoveredEntities[0]]);
-              }
-            }, 1800)
-          );
-
-          // Pill 2 appears at 3.6s
-          timeoutIds.push(
-            setTimeout(() => {
-              if (isMounted && discoveredEntities[1]) {
-                setVisiblePills((prev) => [...prev, discoveredEntities[1]]);
-              }
-            }, 3600)
-          );
-
-          // Pill 3 appears at 5.2s
-          timeoutIds.push(
-            setTimeout(() => {
-              if (isMounted && discoveredEntities[2]) {
-                setVisiblePills((prev) => [...prev, discoveredEntities[2]]);
-              }
-            }, 5200)
-          );
-
-          // Pill 4 appears at 6.8s
-          timeoutIds.push(
-            setTimeout(() => {
-              if (isMounted && discoveredEntities[3]) {
-                setVisiblePills((prev) => [...prev, discoveredEntities[3]]);
-              }
-            }, 6800)
-          );
+          setVisiblePills(discoveredEntities.slice(0, 4));
         }
+        setIsResolved(true);
 
-        // Transition smoothly to Studio
+        // Immediate transition to Studio as soon as resolution completes
         timeoutIds.push(
           setTimeout(() => {
             if (isMounted) onResolved(data);
-          }, 7800)
+          }, 850)
         );
       } catch (err) {
         console.error("Resolution error:", err);
         timeoutIds.push(
           setTimeout(() => {
             if (isMounted) onResolved({ success: true, seeds: [] });
-          }, 12000)
+          }, 2000)
         );
       }
     }
 
     runAgentAndQloo();
 
-    // Stage transition timer with smooth fade out/in (3.6s per stage)
+    // Stage transition timer with smooth fade out/in (2.6s per stage)
     const stageInterval = setInterval(() => {
       setFadeState("exit");
       setTimeout(() => {
         setStageIndex((prev) => (prev < narrativeExplanations.length - 1 ? prev + 1 : prev));
         setFadeState("enter");
-      }, 450); // fade out duration
-    }, 3600);
+      }, 350);
+    }, 2600);
 
     return () => {
       isMounted = false;
       clearInterval(stageInterval);
       timeoutIds.forEach(clearTimeout);
     };
-  }, [promptText, onResolved]);
+  }, [promptText, engine, onResolved]);
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-[#28402a] px-6 select-none">
@@ -172,7 +186,9 @@ export default function ResolvingScreen({
         {/* Floating Poppy Blossom Emblem */}
         <div className="relative flex items-center justify-center">
           <div
-            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-white/20 bg-cover bg-no-repeat transition-transform duration-1000 animate-pulse"
+            className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-white/20 bg-cover bg-no-repeat transition-transform duration-700 ${
+              isResolved ? "scale-110 shadow-[0_0_30px_rgba(224,107,85,0.4)]" : "animate-pulse"
+            }`}
             style={{
               backgroundImage: "url('/poppies-bg.jpg')",
               backgroundPosition: "42% 49%",
@@ -184,24 +200,32 @@ export default function ResolvingScreen({
         {/* Single Explanation Text with Clean Fade Transition */}
         <div className="min-h-[50px] flex items-center justify-center px-4">
           <h2
-            className={`font-serif font-bold text-2xl sm:text-3xl md:text-[2.1rem] text-[#F7F7D9] tracking-tight leading-snug transition-all duration-500 transform ${
+            className={`font-serif font-bold text-2xl sm:text-3xl md:text-[2.1rem] text-[#F7F7D9] tracking-tight leading-snug transition-all duration-400 transform ${
               fadeState === "enter"
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 -translate-y-1"
             }`}
           >
-            {narrativeExplanations[stageIndex]}
+            {isResolved ? "Authentic cultural world grounded" : narrativeExplanations[stageIndex]}
           </h2>
         </div>
 
-        {/* Frosted Glass Pills (Populate dynamically one by one) */}
+        {/* Frosted Glass Pills (Populate dynamically with provisional then verified anchors) */}
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 min-h-[48px] max-w-2xl mt-1">
           {visiblePills.map((pill, idx) => (
             <div
-              key={idx}
-              className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-white/[0.06] border border-white/[0.15] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_16px_rgba(0,0,0,0.25)] transition-all duration-500 animate-fade-in"
+              key={`${pill}-${idx}`}
+              className={`px-5 sm:px-6 py-2 sm:py-2.5 rounded-full backdrop-blur-md transition-all duration-500 animate-fade-in ${
+                isResolved
+                  ? "bg-white/[0.12] border border-[#E06B55]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_20px_rgba(224,107,85,0.25)]"
+                  : "bg-white/[0.06] border border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_16px_rgba(0,0,0,0.25)] animate-pulse"
+              }`}
             >
-              <span className="text-[#F7F7D9] text-sm sm:text-base font-extrabold italic font-sans tracking-wide">
+              <span
+                className={`text-sm sm:text-base font-extrabold italic font-sans tracking-wide transition-colors ${
+                  isResolved ? "text-[#F7F7D9]" : "text-[#F7F7D9]/90"
+                }`}
+              >
                 {pill}
               </span>
             </div>

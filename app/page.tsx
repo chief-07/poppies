@@ -102,6 +102,7 @@ export default function Home() {
   const [characterText, setCharacterText] = useState("");
   const [resolvedData, setResolvedData] = useState<any>(null);
   const [currentLens, setCurrentLens] = useState<Lens | null>(null);
+  const [isLensLoading, setIsLensLoading] = useState(false);
   const [addedLensesCount, setAddedLensesCount] = useState(0);
   const [addedQueries, setAddedQueries] = useState<string[]>([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -206,6 +207,7 @@ export default function Home() {
     // Conservative 1200ms debounced refinement so fast typing does not drain Gemini 15 RPM
     debounceTimerRef.current = setTimeout(async () => {
       try {
+        setIsLensLoading(true);
         const res = await fetch("/api/suggest-lenses", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -220,6 +222,8 @@ export default function Home() {
         }
       } catch (err) {
         console.warn("Lens suggestion notice:", err);
+      } finally {
+        setIsLensLoading(false);
       }
     }, 1200);
 
@@ -486,7 +490,9 @@ export default function Home() {
                       top: `${markerPos.top}px`,
                       left: `${markerPos.left}px`,
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#28402a] hover:bg-[#1f3321] active:scale-95 text-[#F7F7D9] text-xs font-sans font-medium transition-all cursor-pointer shadow-sm border border-[#28402a]/30 whitespace-nowrap z-20"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#28402a] hover:bg-[#1f3321] active:scale-95 text-[#F7F7D9] text-xs font-sans font-medium transition-all cursor-pointer shadow-sm border border-[#28402a]/30 whitespace-nowrap z-20 ${
+                      isLensLoading ? "opacity-75 animate-pulse" : "opacity-100"
+                    }`}
                     title={currentLens.query}
                   >
                     <span>{currentLens.label}</span>
