@@ -588,7 +588,7 @@ export default function StudioScreen({
             </button>
 
             {/* Inquiries List (Clean and unadorned) */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-2 pt-1">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-2 pt-1 custom-scrollbar-red">
               {inquiries.map((inquiry) => {
                 const isActive = !isDossierSelected && inquiry.id === activeInquiry?.id;
                 const isCreator = inquiry.source === "creator";
@@ -699,7 +699,7 @@ export default function StudioScreen({
           <main id="tour-center-pane" className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
             {/* VIEW A: CULTURAL DOSSIER (Clean, quiet, zero marketing clutter) */}
             {isDossierSelected ? (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6 custom-scrollbar-red">
                 {/* Cultural Dossier Thesis Card */}
                 <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-sm flex flex-col gap-4">
                   <p className="font-serif text-[16px] sm:text-[18px] leading-[1.8] text-[#F7F7D9] font-light">
@@ -828,7 +828,7 @@ export default function StudioScreen({
 
                 {/* View 1: Curatorial Answer & Ensemble */}
                 {viewMode === "lookbook" && (
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5">
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5 custom-scrollbar-red">
                     {/* Curatorial Explanation Card */}
                     <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4">
                       {/* Audio Capsule (Only when music inquiry) */}
@@ -951,7 +951,7 @@ export default function StudioScreen({
 
                 {/* View 2: Scannable Index Mode */}
                 {viewMode === "index" && (
-                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col divide-y divide-white/[0.05]">
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col divide-y divide-white/[0.05] custom-scrollbar-red">
                     {activeEntities.map((entity) => {
                       const roleLabel =
                         entity.domain === "OBJECTS" ? "Tactile Armor" :
@@ -1046,7 +1046,7 @@ export default function StudioScreen({
       {/* Right Drawer: Entity Evidence Inspector */}
       {evidenceDrawerOpen && selectedEntity && (
         <div className="fixed inset-0 z-60 flex items-center justify-end bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="relative w-full max-w-lg h-full max-h-[85vh] rounded-[24px] bg-[#16271a] border border-white/20 p-5 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-2xl overflow-y-auto">
+          <div className="relative w-full max-w-lg h-full max-h-[85vh] rounded-[24px] bg-[#16271a] border border-white/20 p-5 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-2xl overflow-y-auto custom-scrollbar-red">
             <div className="flex flex-col gap-4">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3">

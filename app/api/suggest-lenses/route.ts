@@ -4,13 +4,14 @@ import { GoogleGenAI } from "@google/genai";
 const apiKey = process.env.GEMINI_API_KEY || "";
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-// Domain-resolvable fallback questions across 5 distinct Qloo categories
+// Domain-resolvable fallback questions across 6 distinct Qloo categories
 const DOMAIN_QUESTIONS = [
-  { domain: "music", label: "+ Late Night Music?", query: "What music do they listen to while working late?" },
-  { domain: "objects", label: "+ Worktable Tools?", query: "What everyday tools rest on their desk?" },
-  { domain: "places", label: "+ Quiet Spots?", query: "Where do they go when they want to be alone?" },
-  { domain: "books", label: "+ Bookshelf?", query: "What books rest on their shelf?" },
-  { domain: "contradiction", label: "+ Unexpected Habit?", query: "What unlikely habit breaks their usual routine?" },
+  { domain: "books", label: "+ What books are on their shelf?", query: "What books rest on their shelf?" },
+  { domain: "contradiction", label: "+ What unlikely habit breaks their routine?", query: "What unlikely habit breaks their quiet routine?" },
+  { domain: "wardrobe", label: "+ What clothes do they feel most comfortable in?", query: "What everyday clothes do they feel most comfortable in?" },
+  { domain: "music", label: "+ What music do they listen to while working late?", query: "What music do they listen to while working late?" },
+  { domain: "objects", label: "+ What everyday tools rest on their desk?", query: "What everyday tools and gear rest on their desk?" },
+  { domain: "places", label: "+ Where do they go when they want to be alone?", query: "Where do they go in the city when they want to be alone?" },
 ];
 
 export async function POST(req: NextRequest) {
@@ -28,11 +29,12 @@ export async function POST(req: NextRequest) {
     const lower = prompt.toLowerCase();
 
     // Identify which domains are already present in the character text
-    const hasMusic = lower.includes("playlist") || lower.includes("soundscape") || lower.includes("music") || lower.includes("sound");
-    const hasObjects = lower.includes("worktable") || lower.includes("tools") || lower.includes("objects") || lower.includes("jacket");
-    const hasPlaces = lower.includes("haunt") || lower.includes("disappear") || lower.includes("walk") || lower.includes("where");
-    const hasBooks = lower.includes("book") || lower.includes("shelf") || lower.includes("reading");
-    const hasContradiction = lower.includes("contradiction") || lower.includes("vice") || lower.includes("guilty pleasure");
+    const hasMusic = lower.includes("playlist") || lower.includes("soundscape") || lower.includes("music") || lower.includes("sound") || lower.includes("listen") || lower.includes("song");
+    const hasObjects = lower.includes("worktable") || lower.includes("tools") || lower.includes("objects") || lower.includes("gear") || lower.includes("desk") || lower.includes("drafting");
+    const hasPlaces = lower.includes("haunt") || lower.includes("disappear") || lower.includes("walk") || lower.includes("where") || lower.includes("alone") || lower.includes("spot");
+    const hasBooks = lower.includes("book") || lower.includes("shelf") || lower.includes("reading") || lower.includes("author") || lower.includes("novel");
+    const hasContradiction = lower.includes("contradiction") || lower.includes("vice") || lower.includes("guilty pleasure") || lower.includes("habit") || lower.includes("routine");
+    const hasWardrobe = lower.includes("clothes") || lower.includes("wardrobe") || lower.includes("jacket") || lower.includes("wear") || lower.includes("shoes") || lower.includes("pants");
 
     // Pick available domains that have NOT been covered yet
     const availableFallbacks = DOMAIN_QUESTIONS.filter((d) => {
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
       if (d.domain === "places" && hasPlaces) return false;
       if (d.domain === "books" && hasBooks) return false;
       if (d.domain === "contradiction" && hasContradiction) return false;
+      if (d.domain === "wardrobe" && hasWardrobe) return false;
       return true;
     });
 
@@ -59,20 +62,20 @@ export async function POST(req: NextRequest) {
 Look at this character draft:
 """${prompt.slice(0, 500)}"""
 
-Suggest ONE short, crisp scene inquiry question targeting the category: ${targetDomain.toUpperCase()}.
+Suggest ONE short, natural scene inquiry question targeting the category: ${targetDomain.toUpperCase()}.
 
 CRITICAL WRITING RULES:
-1. Keep the question SHORT, DIRECT, and RESTRAINED (under 12 words).
-2. NO wordy or sing-songy melodrama. No purple prose like "sub-zero quiet" or "dead centuries". Simple, dignified, writerly questions.
-3. It MUST be an unanswered question starting with "What" or "Where", ending with "?".
-4. Label must be 2-3 words starting with "+" and ending with "?" (e.g. "+ 2 AM Soundscape?", "+ Worktable Tools?", "+ Sunday Haunt?").
+1. Keep the question SHORT, DIRECT, and NATURAL (under 12 words).
+2. It MUST be an unanswered question starting with "What" or "Where", ending with "?".
+3. Label MUST be the same as the question, prefixed with "+ " (e.g. "+ What books are on their shelf?", "+ What unlikely habit breaks their routine?").
+4. Query MUST be the question itself without the "+ ".
 
-Examples of the exact tone:
-- "+ Late Night Music?" -> "What music do they listen to while working late?"
-- "+ Worktable Tools?" -> "What everyday tools rest on their desk?"
-- "+ Quiet Spots?" -> "Where do they go when they want to be alone?"
-- "+ Bookshelf?" -> "What books rest on their shelf?"
-- "+ Unexpected Habit?" -> "What unlikely habit breaks their usual routine?"
+Examples of exact phrasing:
+- "+ What books are on their shelf?" -> "What books rest on their shelf?"
+- "+ What unlikely habit breaks their routine?" -> "What unlikely habit breaks their quiet routine?"
+- "+ What music do they listen to while working late?" -> "What music do they listen to while working late?"
+- "+ What everyday tools rest on their desk?" -> "What everyday tools and gear rest on their desk?"
+- "+ Where do they go when they want to be alone?" -> "Where do they go in the city when they want to be alone?"
 
 Respond ONLY with valid JSON:
 {
@@ -98,8 +101,8 @@ Respond ONLY with valid JSON:
       if (!label.endsWith("?")) label = `${label}?`;
       if (!query.endsWith("?")) query = `${query}?`;
 
-      // Keep it concise: if more than 16 words, fallback to clean domain template
-      if (query.split(" ").length > 16) {
+      // If already asked or too verbose, fallback to clean domain template
+      if (lower.includes(query.toLowerCase()) || query.split(" ").length > 16) {
         query = fallbackLens.query;
         label = fallbackLens.label;
       }

@@ -15,11 +15,86 @@ interface Lens {
 }
 
 const DEFAULT_STARTER_LENSES: Lens[] = [
+  { label: "+ What books are on their shelf?", query: "What books rest on their shelf?" },
+  { label: "+ What unlikely habit breaks their routine?", query: "What unlikely habit breaks their quiet routine?" },
+  { label: "+ What clothes do they feel most comfortable in?", query: "What everyday clothes do they feel most comfortable in?" },
   { label: "+ What music do they listen to while working late?", query: "What music do they listen to while working late?" },
   { label: "+ What everyday tools rest on their desk?", query: "What everyday tools and gear rest on their desk?" },
   { label: "+ Where do they go when they want to be alone?", query: "Where do they go in the city when they want to be alone?" },
-  { label: "+ What books are on their shelf?", query: "What books rest on their shelf?" },
 ];
+
+// Deduplication engine: Detects domains already asked in prompt and yields completely unasked questions
+function getUnaskedLens(promptText: string, alreadyAdded: number = 0): Lens | null {
+  if (alreadyAdded >= 2) return null;
+  const lower = promptText.toLowerCase();
+
+  const candidates: { domain: string; lens: Lens; matchKeywords: string[] }[] = [
+    {
+      domain: "books",
+      lens: {
+        label: "+ What books are on their shelf?",
+        query: "What books rest on their shelf?",
+      },
+      matchKeywords: ["book", "bookshelf", "reading", "shelf", "novel", "author", "tanizaki"],
+    },
+    {
+      domain: "routine",
+      lens: {
+        label: "+ What unlikely habit breaks their routine?",
+        query: "What unlikely habit breaks their quiet routine?",
+      },
+      matchKeywords: ["habit", "routine", "contradiction", "vice", "guilty pleasure"],
+    },
+    {
+      domain: "wardrobe",
+      lens: {
+        label: "+ What clothes do they feel most comfortable in?",
+        query: "What everyday clothes do they feel most comfortable in?",
+      },
+      matchKeywords: ["clothes", "wardrobe", "jacket", "shoes", "wear", "pants", "coat", "denim"],
+    },
+    {
+      domain: "morning",
+      lens: {
+        label: "+ What does their first hour of the morning look like?",
+        query: "What does their first hour of the morning look like?",
+      },
+      matchKeywords: ["first hour", "wakes up", "breakfast", "morning routine"],
+    },
+    {
+      domain: "music",
+      lens: {
+        label: "+ What music do they listen to while working late?",
+        query: "What music do they listen to while working late?",
+      },
+      matchKeywords: ["music", "listen", "soundscape", "song", "playlist", "album", "headphones"],
+    },
+    {
+      domain: "tools",
+      lens: {
+        label: "+ What everyday tools rest on their desk?",
+        query: "What everyday tools and gear rest on their desk?",
+      },
+      matchKeywords: ["tool", "tools", "desk", "gear", "workbench", "drafting", "everyday items"],
+    },
+    {
+      domain: "places",
+      lens: {
+        label: "+ Where do they go when they want to be alone?",
+        query: "Where do they go in the city when they want to be alone?",
+      },
+      matchKeywords: ["where", "walk", "disappear", "alone", "harbor", "station", "haunt", "sanctuary"],
+    },
+  ];
+
+  const available = candidates.filter((item) => {
+    if (lower.includes(item.lens.query.toLowerCase())) return false;
+    return !item.matchKeywords.some((kw) => lower.includes(kw));
+  });
+
+  if (available.length === 0) return null;
+  return available[0].lens;
+}
 
 export default function Home() {
   const [screenState, setScreenState] = useState<ScreenState>("input");
@@ -111,11 +186,11 @@ export default function Home() {
       return;
     }
 
-    // Immediately provide an instant starter question on frame 0
-    if (!currentLens) {
-      const fallback = DEFAULT_STARTER_LENSES[addedLensesCount % DEFAULT_STARTER_LENSES.length];
-      if (!trimmed.toLowerCase().includes(fallback.query.toLowerCase())) {
-        setCurrentLens(fallback);
+    // Immediately provide an instant starter question on frame 0 using deduplicated unasked domain
+    const instantUnasked = getUnaskedLens(trimmed, addedLensesCount);
+    if (!currentLens || trimmed.toLowerCase().includes(currentLens.query.toLowerCase())) {
+      if (instantUnasked) {
+        setCurrentLens(instantUnasked);
       }
     }
 
@@ -198,18 +273,22 @@ export default function Home() {
     setCharacterText(presetText);
     setAddedLensesCount(0);
     setAddedQueries([]);
-    // Instant initial question for preset on frame 0
-    setCurrentLens(DEFAULT_STARTER_LENSES[0]);
+    // Instant unasked initial question for preset on frame 0 (never repeats what's already in the prompt)
+    const initialLens = getUnaskedLens(presetText, 0);
+    setCurrentLens(initialLens);
     setIsFocused(true);
     textareaRef.current?.focus();
   };
 
   const handleAddLens = (lens: Lens) => {
-    const queryToAppend = ` ${lens.query}`;
-    setCharacterText((prev) => `${prev.trim()}${queryToAppend}`);
+    const separator = characterText.includes("\n") ? "\n" : " ";
+    const newText = `${characterText.trim()}${separator}${lens.query}`;
+    setCharacterText(newText);
     setAddedQueries((prev) => [...prev, lens.query]);
-    setAddedLensesCount((c) => c + 1);
-    setCurrentLens(null); // Will trigger next question via useEffect
+    const nextCount = addedLensesCount + 1;
+    setAddedLensesCount(nextCount);
+    // Yield the next unasked lens immediately
+    setCurrentLens(getUnaskedLens(newText, nextCount));
     textareaRef.current?.focus();
   };
 
@@ -402,7 +481,7 @@ export default function Home() {
                       <span
                         ref={markerRef}
                         className="inline-block"
-                        style={{ width: 140, height: 26 }}
+                        style={{ width: Math.min(320, Math.max(160, currentLens.label.length * 7.5)), height: 26 }}
                       >
                         &nbsp;
                       </span>
