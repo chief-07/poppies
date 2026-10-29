@@ -1538,22 +1538,7 @@ export default function StudioScreen({
                 {viewMode === "lookbook" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5 custom-scrollbar-red">
                     {/* Curatorial Explanation Card */}
-                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4 relative overflow-hidden">
-                      {/* Editorial Eyebrow */}
-                      <div className="flex items-center justify-between pb-2 border-b border-white/[0.07]">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-[#E06B55]" />
-                          <span className="text-[11px] font-mono uppercase tracking-widest text-[#E06B55] font-bold">
-                            Curatorial Deduction · Physical Scene Resolution
-                          </span>
-                        </div>
-                        {activeInquiry.domain && (
-                          <span className="text-[10px] font-mono text-[#F7F7D9]/50 uppercase">
-                            Domain: {activeInquiry.domain}
-                          </span>
-                        )}
-                      </div>
-
+                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.08] p-5 sm:p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
                       {/* Active Refinement or Feedback Banner */}
                       {isRefiningVignette && (
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E06B55]/15 border border-[#E06B55]/30 self-start animate-pulse">
@@ -1574,43 +1559,43 @@ export default function StudioScreen({
 
                       {/* Audio Capsule (Only when music inquiry) */}
                       {activeInquiry.hasAudio && (
-                        <div className="flex items-center justify-between px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.12] backdrop-blur-md">
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+                          <div className="flex items-center gap-2.5">
                             <button
                               type="button"
                               onClick={toggleAmbientSoundscape}
-                              className="w-7 h-7 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                              className="w-6 h-6 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
                               title={isPlayingAudio ? "Pause soundscape" : "Play soundscape"}
                             >
                               {isPlayingAudio ? (
-                                <Pause className="w-3 h-3 fill-current stroke-[2]" />
+                                <Pause className="w-2.5 h-2.5 fill-current stroke-[2]" />
                               ) : (
-                                <Play className="w-3 h-3 fill-current translate-x-0.5 stroke-[2]" />
+                                <Play className="w-2.5 h-2.5 fill-current translate-x-0.5 stroke-[2]" />
                               )}
                             </button>
-                            <span className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/95">
+                            <span className="font-serif italic text-xs text-[#F7F7D9]/90">
                               {activeInquiry.audioTrackName || "Solitary Ambient Frequencies"}
                             </span>
                           </div>
 
                           {/* Sound wave activity */}
                           <div className="flex items-center gap-1.5 pr-1">
-                            <Volume2 className="w-3.5 h-3.5 text-[#F7F7D9]/50" />
-                            <div className="flex items-center gap-0.5 h-3 pl-0.5">
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-3 animate-pulse" : "h-1 opacity-30"}`} />
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse delay-100" : "h-1 opacity-30"}`} />
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-3.5 animate-pulse delay-200" : "h-1 opacity-30"}`} />
+                            <Volume2 className="w-3 h-3 text-[#F7F7D9]/40" />
+                            <div className="flex items-center gap-0.5 h-2.5 pl-0.5">
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse" : "h-1 opacity-30"}`} />
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2 animate-pulse delay-100" : "h-1 opacity-30"}`} />
+                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse delay-200" : "h-1 opacity-30"}`} />
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Multi-Paragraph Curatorial Writeup */}
-                      <div className="flex flex-col gap-4 pt-1">
+                      {/* Multi-Paragraph Curatorial Writeup (Straight to the description, zero redundant eyebrows) */}
+                      <div className="flex flex-col gap-3.5">
                         {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
                           <p
                             key={pIdx}
-                            className="font-serif text-[16px] sm:text-[17.5px] leading-[1.85] text-[#F7F7D9]/95 font-light"
+                            className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/95 font-light"
                           >
                             {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
                           </p>
