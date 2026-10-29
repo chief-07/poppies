@@ -498,6 +498,21 @@ export async function runAgenticResearchCycle(prompt: string): Promise<AgentDoss
  * Takes the user's prompt instruction, decides whether to query Qloo for a new domain/direction,
  * and synthesizes an updated or newly added inquiry.
  */
+export interface SteerOptions {
+  mode?: "new_inquiry" | "adapt" | "explain";
+  inquiryId?: string;
+  currentQuestion?: string;
+  currentVignette?: string;
+  domain?: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION";
+  engine?: "qloo" | "base_llm";
+}
+
+export interface SteerResult {
+  inquiry?: AgentInquiry;
+  updatedVignette?: string;
+  highlightedEntities?: string[];
+}
+
 export async function steerAgenticResearch(
   characterName: string,
   instruction: string,
@@ -507,17 +522,72 @@ export async function steerAgenticResearch(
     era?: string;
     occupation?: string;
     summary?: string;
+  },
+  options?: SteerOptions
+): Promise<SteerResult> {
+  // Mode A: Elaborate / explain deeper on current inquiry in-place
+  if (options?.mode === "explain") {
+    let elaboration = `For ${characterName}, these choices aren't aesthetic posturing—they act as daily shields against exhaustion, keeping their craft focused and their solitary hours intentional.`;
+    let highlighted: string[] = [];
+
+    if (ai) {
+      try {
+        const explainPrompt = `You are a Cultural Advisor for "Poppies", building authentic characters grounded in Qloo's taste graph.
+Character: "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+Inquiry Question: "${options.currentQuestion || instruction}"
+Current Curatorial Writeup:
+"${options.currentVignette || ""}"
+
+Creator Request: "${instruction}" (Creator wants more explanation of the connection and why it matters).
+
+TASK:
+Write exactly 1 additional short paragraph (2 sentences, ~35-50 words) elaborating on WHY these specific anchors fit this character's trade, psychology, or environment.
+Speak in plain, natural, direct English. NO curator buzzwords (no "tactile armor", "acoustic architecture", "generative textures").
+
+Respond ONLY in JSON:
+{
+  "elaboration": string,
+  "highlightedEntities": string[]
+}`;
+        const res = await ai.models.generateContent({
+          model: "gemini-3.5-flash-lite",
+          contents: explainPrompt,
+          config: { responseMimeType: "application/json", temperature: 0.3 },
+        });
+        const parsed = JSON.parse(res.text || "{}");
+        if (parsed.elaboration) {
+          elaboration = parsed.elaboration.trim();
+          highlighted = parsed.highlightedEntities || [];
+        }
+      } catch (e) {
+        console.warn("Explanation elaboration fallback:", e);
+      }
+    }
+
+    const currentText = options.currentVignette || "";
+    const updatedVignette = currentText ? `${currentText}\n\n${elaboration}` : elaboration;
+    return {
+      updatedVignette,
+      highlightedEntities: highlighted,
+    };
   }
-): Promise<AgentInquiry> {
+
+  // Mode B: Adapt existing inquiry OR Mode C: Brand new inquiry
+  const isAdapt = options?.mode === "adapt" && options?.inquiryId;
   let searchTerms = ["A24", "post-rock", "minimalism"];
-  let domain: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" = "MUSIC";
-  let extractedQuestion = instruction.endsWith("?") ? instruction : `Exploring: ${instruction}`;
+  let domain: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" = options?.domain || "MUSIC";
+  let extractedQuestion = options?.currentQuestion || (instruction.endsWith("?") ? instruction : `Exploring: ${instruction}`);
 
   if (ai) {
     try {
       const res = await ai.models.generateContent({
         model: "gemini-3.5-flash-lite",
-        contents: `Given creator direction / question: "${instruction}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+        contents: isAdapt
+          ? `Given creator adaptation / modifier: "${instruction}" for active inquiry "${options?.currentQuestion || ""}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+Current domain: ${domain}.
+Extract 2 specific real-world search terms for Qloo matching this adaptation (artists, places, brands, or books).
+Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "Updated concise inquiry question under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`
+          : `Given creator direction / question: "${instruction}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
 Accumulated character seeds so far: [${existingSeeds.slice(0, 5).join(", ")}].
 Extract 2 specific real-world search terms for Qloo (artists, places, brands, or books).
 Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inquiry question under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`,
@@ -526,7 +596,7 @@ Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inqu
       const parsed = JSON.parse(res.text || "{}");
       if (parsed.terms && parsed.terms.length > 0) searchTerms = parsed.terms;
       if (parsed.domain) domain = parsed.domain;
-      if (parsed.question) extractedQuestion = parsed.question;
+      if (parsed.question && !isAdapt) extractedQuestion = parsed.question;
     } catch (e) {
       console.warn("Steering parsing fallback:", e);
     }
@@ -570,16 +640,18 @@ Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inqu
   const highlight = curatorialResult.highlightedEntities[0] || entities[0]?.name || searchTerms[0];
 
   return {
-    id: `inquiry-${Date.now()}`,
-    question: extractedQuestion,
-    source: "creator",
-    domain,
-    vignette: curatorialResult.text,
-    vignetteHighlightEntity: highlight,
-    highlightedEntities: curatorialResult.highlightedEntities,
-    hasAudio: domain === "MUSIC",
-    audioTrackName: domain === "MUSIC" ? `${highlight} — Studio Session` : undefined,
-    entities,
+    inquiry: {
+      id: isAdapt ? options.inquiryId! : `inquiry-${Date.now()}`,
+      question: extractedQuestion,
+      source: "creator",
+      domain,
+      vignette: curatorialResult.text,
+      vignetteHighlightEntity: highlight,
+      highlightedEntities: curatorialResult.highlightedEntities,
+      hasAudio: domain === "MUSIC",
+      audioTrackName: domain === "MUSIC" ? `${highlight} — Studio Session` : undefined,
+      entities,
+    },
   };
 }
 
@@ -1133,7 +1205,7 @@ RULES FOR WRITING:
 - LENGTH: Exactly 1 tight, direct paragraph (2 to 3 sentences, ~45 to 65 words total).
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
-- tasteThesis: 1 to 2 clear, straightforward sentences describing the character's real cultural profile in plain English. No art-critic jargon. (Third-person: "${characterName}...", strictly under 35 words).
+- tasteThesis: Exactly 3 sentences connecting who this character is in relation to their craft, everyday tools, solitary rituals, and setting, based on the questions asked and the Qloo connections discovered (third-person: "${characterName}...", strictly 3 sentences, ~65-85 words). Speak in plain, direct English—no academic jargon. Weave in 2-3 top candidate entity names naturally.
 - psychologicalWound: 1 plain sentence identifying their core vulnerability or quiet friction.
 - tactileArmor: 1 plain sentence explaining what objects or routines they use to feel grounded against daily stress.
 - observedClusters: 3-4 simple, authentic subcultural phrases describing their real taste patterns.

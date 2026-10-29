@@ -14,6 +14,7 @@ import {
   Clock,
   Briefcase,
   ArrowRight,
+  Check,
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 import HeaderControls from "@/components/HeaderControls";
@@ -128,7 +129,7 @@ function renderTextWithEntityTags(
 
 const DEFAULT_DOSSIER: CulturalDossierBrief = {
   tasteThesis:
-    "Organized around intentional craft, structural restraint, and music designed for focus rather than performance. Their material world rejects decorative clutter in favor of objects and texts that bear the marks of daily, disciplined utility.",
+    "In Marseille, Elena's work as an architectural conservator shapes a life bound to physical durability and patient repair. On her worktable, a carbon-bladed knife from Opinel Knives and heavy canvas workwear defend against the damp stone dust of the port. When solitude calls, she turns to the spare piano phrases of Erik Satie and the limestone inlets of the harbor, seeking quiet spaces untouched by modern renovation.",
   observedClusters: [
     "French Impressionist Piano",
     "Heritage Woodwork & Cutlery",
@@ -247,6 +248,8 @@ export default function StudioScreen({
   const [steeringInput, setSteeringInput] = useState<string>("");
   const [isSteering, setIsSteering] = useState<boolean>(false);
   const [isFetchingMore, setIsFetchingMore] = useState<boolean>(false);
+  const [isRefiningVignette, setIsRefiningVignette] = useState<boolean>(false);
+  const [steeringToast, setSteeringToast] = useState<string | null>(null);
   const [isPromptFocused, setIsPromptFocused] = useState<boolean>(false);
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState<boolean>(false);
   const [isDossierModalOpen, setIsDossierModalOpen] = useState<boolean>(false);
@@ -450,20 +453,175 @@ export default function StudioScreen({
     }
   };
 
+  const showToast = (msg: string) => {
+    setSteeringToast(msg);
+    setTimeout(() => setSteeringToast(null), 3500);
+  };
+
   const handleSteer = async () => {
     if (!steeringInput.trim() || isSteering) return;
     const promptText = steeringInput.trim();
+    const lower = promptText.toLowerCase();
     setIsSteering(true);
+
+    // 1. Intent: Ask for more entities / alternatives for current inquiry
+    const isEntityRequest =
+      activeInquiry &&
+      !isDossierSelected &&
+      /more entities|more items|more books|more music|more tools|more objects|more places|fetch more|show more|give me more entities|more alternatives|expand list/i.test(lower);
+
+    if (isEntityRequest) {
+      setSteeringInput("");
+      setIsPromptFocused(false);
+      promptInputRef.current?.blur();
+      showToast("Querying Qloo Graph for 4 more verified entities...");
+      await handleFetchMore();
+      showToast("Added 4 verified Qloo entities to ensemble");
+      setIsSteering(false);
+      return;
+    }
+
+    // 2. Intent: Ask for more explanation / elaborate on current inquiry
+    const isExplanationRequest =
+      activeInquiry &&
+      !isDossierSelected &&
+      /more explanation|explain more|explain further|elaborate|tell me more|why this|why these|dive deeper|more context|more detail/i.test(lower);
+
+    if (isExplanationRequest) {
+      setIsRefiningVignette(true);
+      setSteeringInput("");
+      setIsPromptFocused(false);
+      promptInputRef.current?.blur();
+      showToast("Deepening curatorial reasoning across Qloo graph...");
+
+      try {
+        const res = await fetch("/api/steer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "explain",
+            inquiryId: activeInquiry.id,
+            currentQuestion: activeInquiry.question,
+            currentVignette: activeInquiry.vignette,
+            domain: activeInquiry.domain,
+            instruction: promptText,
+            characterName,
+            characterSummary,
+            constraints,
+            existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+            engine,
+          }),
+        });
+        const data = await res.json();
+        if (data.updatedVignette) {
+          setInquiries((prev) =>
+            prev.map((inq) =>
+              inq.id === activeInquiry.id
+                ? {
+                    ...inq,
+                    vignette: data.updatedVignette,
+                    highlightedEntities: Array.from(
+                      new Set([...(inq.highlightedEntities || []), ...(data.highlightedEntities || [])])
+                    ),
+                  }
+                : inq
+            )
+          );
+          showToast("Curatorial reasoning expanded");
+        }
+      } catch (e) {
+        console.error("Failed to elaborate explanation:", e);
+      } finally {
+        setIsRefiningVignette(false);
+        setIsSteering(false);
+      }
+      return;
+    }
+
+    // 3. Intent: Adapt current inquiry in-place (without creating a new thread)
+    const isExplicitNewQuestion =
+      isDossierSelected ||
+      lower.endsWith("?") ||
+      /^(what|where|who|when|why|how|explore|investigate|scene|show)\b/i.test(lower);
+
+    const isAdaptation =
+      activeInquiry &&
+      !isDossierSelected &&
+      (!isExplicitNewQuestion || /^(make|lean|shift|change|focus|more|less|replace|tune|modify|adjust)\b/i.test(lower));
+
+    if (isAdaptation) {
+      setIsRefiningVignette(true);
+      setSteeringInput("");
+      setIsPromptFocused(false);
+      promptInputRef.current?.blur();
+      showToast(`Adapting ${activeInquiry.question.slice(0, 25)}...`);
+
+      try {
+        const res = await fetch("/api/steer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "adapt",
+            inquiryId: activeInquiry.id,
+            currentQuestion: activeInquiry.question,
+            currentVignette: activeInquiry.vignette,
+            domain: activeInquiry.domain,
+            instruction: promptText,
+            characterName,
+            characterSummary,
+            constraints,
+            existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+            engine,
+          }),
+        });
+        const data = await res.json();
+        if (data.inquiry) {
+          setInquiries((prev) =>
+            prev.map((inq) =>
+              inq.id === activeInquiry.id ? { ...data.inquiry, id: inq.id } : inq
+            )
+          );
+          showToast("Inquiry adapted with fresh Qloo grounding");
+        }
+      } catch (e) {
+        console.error("Live adaptation error:", e);
+      } finally {
+        setIsRefiningVignette(false);
+        setIsSteering(false);
+      }
+      return;
+    }
+
+    // 4. Intent: Brand New Inquiry / Scene Question (Adds a new thread)
+    const tempId = `inquiry-${Date.now()}`;
+    const newQuestion = promptText.endsWith("?") ? promptText : `What about ${promptText}?`;
+    const provisionalInquiry: Inquiry = {
+      id: tempId,
+      question: newQuestion,
+      source: "creator",
+      domain: "OBJECTS",
+      vignette: `Investigating cultural anchors across Qloo's taste graph for "${promptText}"...`,
+      entities: [],
+    };
+
+    setInquiries((prev) => [provisionalInquiry, ...prev]);
+    setActiveInquiryId(tempId);
+    setSteeringInput("");
+    setIsPromptFocused(false);
+    promptInputRef.current?.blur();
+    setIsRefiningVignette(true);
+    showToast("Opened new inquiry thread...");
 
     try {
       const res = await fetch("/api/steer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode: "new_inquiry",
+          instruction: promptText,
           characterName,
           characterSummary,
           constraints,
-          instruction: promptText,
           existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
           engine,
         }),
@@ -471,26 +629,27 @@ export default function StudioScreen({
 
       const data = await res.json();
       if (data.inquiry) {
-        setInquiries((prev) => [data.inquiry, ...prev]);
-        setActiveInquiryId(data.inquiry.id);
+        setInquiries((prev) =>
+          prev.map((inq) => (inq.id === tempId ? { ...data.inquiry, id: tempId } : inq))
+        );
+        showToast("New inquiry grounded via Qloo");
       }
     } catch (err) {
       console.error("Live steering error:", err);
-      const newInq: Inquiry = {
-        id: `inquiry-${Date.now()}`,
-        question: promptText.endsWith("?") ? promptText : `Exploring: ${promptText}`,
-        source: "creator",
-        domain: "OBJECTS",
-        vignette: `Addressing "${promptText}" for ${characterName}: curated anchors establish deliberate utility suited to their craft.`,
-        entities: MOCK_ENTITIES_TOOLS,
-      };
-      setInquiries((prev) => [newInq, ...prev]);
-      setActiveInquiryId(newInq.id);
+      setInquiries((prev) =>
+        prev.map((inq) =>
+          inq.id === tempId
+            ? {
+                ...inq,
+                vignette: `Addressing "${promptText}" for ${characterName}: grounded anchors establish deliberate utility suited to their craft.`,
+                entities: MOCK_ENTITIES_TOOLS,
+              }
+            : inq
+        )
+      );
     } finally {
+      setIsRefiningVignette(false);
       setIsSteering(false);
-      setSteeringInput("");
-      setIsPromptFocused(false);
-      promptInputRef.current?.blur();
     }
   };
 
@@ -610,14 +769,19 @@ export default function StudioScreen({
                         : "bg-white/[0.05] hover:bg-white/[0.08] backdrop-blur-md border border-white/[0.1] text-[#F7F7D9]/80"
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-[10px] font-mono tracking-tight ${
-                          isCreator ? "text-[#F7F7D9]/60" : "text-[#E06B55]"
-                        }`}
-                      >
-                        {isCreator ? "[You]" : "[Agent]"}
-                      </span>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-[10px] font-mono tracking-tight ${
+                            isCreator ? "text-[#F7F7D9]/60" : "text-[#E06B55]"
+                          }`}
+                        >
+                          {isCreator ? "[You]" : "[Agent]"}
+                        </span>
+                        {isActive && isRefiningVignette && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E06B55] animate-ping" />
+                        )}
+                      </div>
                     </div>
 
                     <span
@@ -709,67 +873,102 @@ export default function StudioScreen({
 
           {/* Main Card */}
           <main id="tour-center-pane" className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
-            {/* VIEW A: CULTURAL DOSSIER (Unified, direct character overview) */}
+            {/* VIEW A: CULTURAL DOSSIER (Unified 3-sentence connection, zero redundant headers) */}
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6 custom-scrollbar-red">
-                <div className="rounded-[24px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-8 flex flex-col gap-5 shadow-sm">
-                  {/* Top Character Header */}
-                  <div className="flex flex-col gap-1.5 pb-4 border-b border-white/[0.08]">
-                    <h2 className="font-serif font-bold text-2xl sm:text-3xl text-[#F7F7D9] tracking-tight">
-                      {characterName}
-                    </h2>
-                    <p className="font-serif italic text-sm sm:text-base text-[#F7F7D9]/80 leading-relaxed">
-                      {characterSummary}
-                    </p>
+                <div className="rounded-[24px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
+                  {/* Clean Section Eyebrow (No redundant character name or duplicate description) */}
+                  <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#E06B55]" />
+                      <span className="text-[11px] font-mono uppercase tracking-widest text-[#E06B55] font-bold">
+                        Cultural Brief · Master Synthesis
+                      </span>
+                    </div>
+                    <span className="text-xs font-sans text-[#F7F7D9]/50">
+                      Grounded via Qloo Taste Graph
+                    </span>
                   </div>
 
-                  {/* Master Taste Profile */}
+                  {/* Master 3-Sentence Connection (No dropped question headers, pure unified connection) */}
                   <div className="flex flex-col gap-4">
-                    <p className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9] font-light">
+                    <p className="font-serif text-[16px] sm:text-[18px] leading-[1.85] text-[#F7F7D9] font-light">
                       {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
                     </p>
-
-                    {/* Direct detailing of the inquiries & connections found */}
-                    {inquiries.length > 0 && (
-                      <div className="flex flex-col gap-3.5 pt-2">
-                        {inquiries.map((inq) => (
-                          <div key={inq.id} className="text-xs sm:text-[13px] leading-relaxed text-[#F7F7D9]/85 font-sans pl-3 border-l border-white/[0.12]">
-                            <span className="font-serif italic font-bold text-[#F7F7D9] block mb-1">
-                              {inq.question}
-                            </span>
-                            <span className="text-[#F7F7D9]/80 leading-relaxed">
-                              {renderTextWithEntityTags(inq.vignette || "", allTaggableEntities, handleEntityClick)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Underlying friction & daily defense */}
-                    {(culturalDossier.psychologicalWound || culturalDossier.tactileArmor) && (
-                      <div className="font-serif italic text-xs sm:text-sm leading-relaxed text-[#F7F7D9]/75 pt-3 border-t border-white/[0.06] flex flex-col gap-1">
-                        {culturalDossier.psychologicalWound && <span>{culturalDossier.psychologicalWound}</span>}
-                        {culturalDossier.tactileArmor && <span>{culturalDossier.tactileArmor}</span>}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Clean unadorned footer: observed clusters + markdown export */}
-                  {culturalDossier.observedClusters && culturalDossier.observedClusters.length > 0 && (
-                    <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
-                      <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
-                        <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
-                        <span>{culturalDossier.observedClusters.join(" · ")}</span>
+                  {/* Discovered Cultural Anchors */}
+                  {allTaggableEntities.length > 0 && (
+                    <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
+                          Discovered Taste Anchors ({Math.min(allTaggableEntities.length, 6)})
+                        </span>
+                        <span className="text-[11px] font-sans text-[#F7F7D9]/40">
+                          Click to inspect Qloo evidence
+                        </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsDossierModalOpen(true)}
-                        className="text-xs font-serif italic text-[#F7F7D9]/70 hover:text-[#E06B55] transition-colors cursor-pointer"
-                      >
-                        Export full markdown →
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {allTaggableEntities.slice(0, 6).map((entity) => (
+                          <button
+                            key={entity.id}
+                            type="button"
+                            onClick={() => handleEntityClick(entity)}
+                            className="px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-[#E06B55]/50 text-xs font-sans text-[#F7F7D9] flex items-center gap-1.5 transition-all cursor-pointer group active:scale-95 shadow-sm"
+                            title={`Inspect Qloo taste graph evidence for ${entity.name}`}
+                          >
+                            <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
+                            <span className="font-medium">{entity.name}</span>
+                            <span className="text-[10px] text-[#E06B55] opacity-60 group-hover:opacity-100 transition-opacity">↗</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
+
+                  {/* Latent Tension / Graph Discovery */}
+                  {culturalDossier.unconsideredAngles?.[0] && (
+                    <div className="p-4 rounded-[18px] bg-white/[0.03] border border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#E06B55] font-semibold">
+                          Latent Tension · {culturalDossier.unconsideredAngles[0].title}
+                        </span>
+                        <p className="font-sans text-xs sm:text-[13px] text-[#F7F7D9]/80 leading-relaxed">
+                          {culturalDossier.unconsideredAngles[0].description}
+                        </p>
+                      </div>
+                      {culturalDossier.unconsideredAngles[0].groundedEntity && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const match = allTaggableEntities.find(
+                              (e) => e.name.toLowerCase() === culturalDossier.unconsideredAngles[0].groundedEntity?.toLowerCase()
+                            );
+                            if (match) handleEntityClick(match);
+                          }}
+                          className="flex-shrink-0 text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
+                        >
+                          Anchor: {culturalDossier.unconsideredAngles[0].groundedEntity} ↗
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Card Footer: Observed Clusters + Assemble Lookbook Action */}
+                  <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
+                      <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
+                      <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDossierModalOpen(true)}
+                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
+                    >
+                      <span>Assemble Lookbook</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -817,7 +1016,25 @@ export default function StudioScreen({
                 {viewMode === "lookbook" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5 custom-scrollbar-red">
                     {/* Curatorial Explanation Card */}
-                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4">
+                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4 relative overflow-hidden">
+                      {/* Active Refinement or Feedback Banner */}
+                      {isRefiningVignette && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E06B55]/15 border border-[#E06B55]/30 self-start animate-pulse">
+                          <div className="w-2 h-2 rounded-full bg-[#E06B55] animate-ping" />
+                          <span className="text-[11px] font-sans text-[#F7F7D9] font-medium">
+                            Poppies Agent is refining curatorial deductions across Qloo taste graph...
+                          </span>
+                        </div>
+                      )}
+                      {steeringToast && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 self-start animate-fade-in">
+                          <Check className="w-3 h-3 text-emerald-400" />
+                          <span className="text-[11px] font-sans text-emerald-300 font-medium">
+                            {steeringToast}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Audio Capsule (Only when music inquiry) */}
                       {activeInquiry.hasAudio && (
                         <div className="flex items-center justify-between px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.12] backdrop-blur-md">
@@ -1030,7 +1247,11 @@ export default function StudioScreen({
                 onChange={(e) => setSteeringInput(e.target.value)}
                 onFocus={() => setIsPromptFocused(true)}
                 onKeyDown={(e) => e.key === "Enter" && handleSteer()}
-                placeholder={`Ask a question or explore a scene for ${characterName}...`}
+                placeholder={
+                  isDossierSelected
+                    ? `Ask a question or explore a scene for ${characterName}...`
+                    : `Steer inquiry, ask for more explanation, or request more entities...`
+                }
                 className="w-full bg-transparent border-none outline-none font-serif text-sm sm:text-base text-[#1c2b1e] placeholder:text-[#1c2b1e]/50"
               />
 
