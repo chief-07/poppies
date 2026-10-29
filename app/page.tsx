@@ -311,7 +311,7 @@ export default function Home() {
   // State 2: Resolving Screen
   if (screenState === "resolving") {
     return (
-      <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
+      <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
         <ResolvingScreen
           promptText={characterText || samplePrompts[0].text}
           engine={engine}
@@ -324,7 +324,7 @@ export default function Home() {
   // State 3: Co-Development Studio Screen
   if (screenState === "studio") {
     return (
-      <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
+      <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
         <StudioScreen
           initialData={resolvedData}
           engine={engine}
@@ -339,7 +339,7 @@ export default function Home() {
 
   // State 1: Input Screen (Clean canvas, unencumbered by header)
   return (
-    <div className={engine === "base_llm" ? "filter grayscale-[85%] contrast-[95%] transition-all duration-700" : "transition-all duration-700"}>
+    <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
       <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-8 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
