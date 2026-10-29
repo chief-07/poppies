@@ -1289,7 +1289,7 @@ export default function StudioScreen({
           </div>
 
           {/* Main Card */}
-          <main id="tour-center-pane" className="w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+          <main id="tour-center-pane" className="relative w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
             {/* Swapping Engine Loading Indicator */}
             {isSwappingEngine && (
               <div className="mb-4 rounded-[18px] bg-white/[0.04] border border-white/10 p-3.5 flex items-center justify-center gap-3 text-xs font-sans text-[#F7F7D9]/80 animate-pulse flex-shrink-0">
@@ -1298,80 +1298,65 @@ export default function StudioScreen({
               </div>
             )}
 
-            {/* AI Monoculture Diagnostic Tour Card */}
+            {/* AI Monoculture Floating Spotlight Tour Card (Does not occupy center pane layout flow) */}
             {engine === "base_llm" && showDiagnosticCard && (
-              <div className="mb-4 rounded-[22px] bg-[#F7F7D9] border-[2.5px] border-[#182a1d] p-5 sm:p-6 text-[#142619] shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex flex-col gap-3.5 animate-in fade-in slide-in-from-top-2 duration-300 flex-shrink-0">
+              <div className="absolute top-4 right-4 z-40 max-w-md rounded-[22px] bg-[#F7F7D9] border-[2.5px] border-[#182a1d] p-5 sm:p-6 text-[#142619] shadow-[0_24px_60px_rgba(0,0,0,0.6)] flex flex-col gap-3 animate-in fade-in slide-in-from-top-3 duration-300">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#E06B55]" />
                     <span className="font-mono text-[11px] uppercase tracking-wider text-[#142619] font-bold">
-                      AI Monoculture Diagnostic · Qloo Grounding Disabled
+                      AI Monoculture Breakdown · Qloo Grounding Disabled
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowDiagnosticCard(false)}
-                    className="w-6 h-6 rounded-full bg-[#182a1d]/10 hover:bg-[#182a1d]/20 text-[#142619] flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-6 h-6 rounded-full bg-[#182a1d]/10 hover:bg-[#182a1d]/20 text-[#142619] flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
                     title="Dismiss Diagnostic"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs font-sans leading-relaxed text-[#142619]/85">
-                  <div className="p-3.5 rounded-[14px] bg-[#182a1d]/[0.06] border border-[#182a1d]/15 flex flex-col gap-1.5">
-                    <span className="font-serif italic font-bold text-sm text-[#142619]">
-                      1. The Curation Breakdown (Top 0.01% Clichés)
+                <div className="flex flex-col gap-2.5 text-xs font-sans leading-relaxed text-[#142619]/90">
+                  <div className="p-3 rounded-[12px] bg-[#182a1d]/[0.06] border border-[#182a1d]/15 flex flex-col gap-1">
+                    <span className="font-serif italic font-bold text-xs text-[#142619]">
+                      1. Statistical Tropes Collapse
                     </span>
-                    <p>
-                      Notice how the curatorial answers collapse into statistical internet mean tropes (e.g. Hasami porcelain, Erik Satie, In Praise of Shadows, generic French café). Without Qloo&apos;s taste graph, language models cannot explore authentic subcultural distance.
+                    <p className="text-[11px]">
+                      Notice how curatorial answers collapse into generic internet tropes (Hasami porcelain, Erik Satie, generic French café). Without Qloo, the LLM cannot traverse authentic subcultural relationships.
                     </p>
                   </div>
 
-                  <div className="p-3.5 rounded-[14px] bg-[#182a1d]/[0.06] border border-[#182a1d]/15 flex flex-col gap-1.5">
-                    <span className="font-serif italic font-bold text-sm text-[#142619]">
-                      2. The Index Breakdown (Flat 50% Probabilities)
+                  <div className="p-3 rounded-[12px] bg-[#182a1d]/[0.06] border border-[#182a1d]/15 flex flex-col gap-1">
+                    <span className="font-serif italic font-bold text-xs text-[#142619]">
+                      2. Flat 50% Guessing
                     </span>
-                    <p>
-                      Inspect the Index mode: all affinity scores flatline at an arbitrary 50%, with synthetic IDs (<code className="font-mono text-[10px] bg-black/10 px-1 rounded">urn:ai:probabilistic</code>). The LLM is guessing words, not navigating empirical cultural affinities.
+                    <p className="text-[11px]">
+                      In Index mode, scores flatline at 50% with synthetic IDs (<code className="font-mono text-[9px] bg-black/10 px-1 rounded">urn:ai:probabilistic</code>) because the LLM is predicting tokens, not cultural affinity.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
-                  <span className="text-[11px] font-sans text-[#142619]/60 italic">
-                    Visual desaturation (40% grayscale) reflects the cultural flattening of ungrounded generation.
-                  </span>
+                <div className="flex items-center justify-end pt-1">
                   <button
                     type="button"
                     onClick={() => handleToggleEngine("qloo")}
-                    className="px-4 py-1.5 rounded-full bg-[#182a1d] hover:bg-[#28402a] text-[#F7F7D9] text-xs font-sans font-medium transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-full bg-[#182a1d] hover:bg-[#28402a] text-[#F7F7D9] text-xs font-sans font-medium transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5"
                   >
                     <span>✦ Restore Qloo Grounding</span>
                   </button>
                 </div>
               </div>
             )}
-            {/* VIEW A: CULTURAL DOSSIER (Unified 3-sentence connection, zero redundant headers) */}
-            {isDossierSelected ? (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-6 custom-scrollbar-red">
-                <div className="rounded-[24px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
-                  {/* Clean Section Eyebrow (No redundant character name or duplicate description) */}
-                  <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#E06B55]" />
-                      <span className="text-[11px] font-mono uppercase tracking-widest text-[#E06B55] font-bold">
-                        Cultural Brief · Master Synthesis
-                      </span>
-                    </div>
-                    <span className="text-xs font-sans text-[#F7F7D9]/50">
-                      Grounded via Qloo Taste Graph
-                    </span>
-                  </div>
 
-                  {/* Master 3-Sentence Connection (No dropped question headers, pure unified connection) */}
+            {/* VIEW A: CULTURAL DOSSIER (Laid out directly in main card, zero redundant headers or nested cards) */}
+            {isDossierSelected ? (
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col justify-between gap-6 custom-scrollbar-red">
+                <div className="flex flex-col gap-6">
+                  {/* Master 3-Sentence Connection (Direct, unencumbered prose) */}
                   <div className="flex flex-col gap-4">
-                    <p className="font-serif text-[16px] sm:text-[18px] leading-[1.85] text-[#F7F7D9] font-light">
+                    <p className="font-serif text-[17px] sm:text-[19px] leading-[1.85] text-[#F7F7D9] font-light">
                       {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
                     </p>
                   </div>
@@ -1459,37 +1444,37 @@ export default function StudioScreen({
                       )}
                     </div>
                   )}
+                </div>
 
-                  {/* Card Footer: Observed Clusters + Navigation CTAs */}
-                  <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
-                      <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
-                      <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
-                    </div>
+                {/* Card Footer: Observed Clusters + Navigation CTAs */}
+                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
+                    <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
+                    <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
+                  </div>
 
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      {inquiries.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const firstInq = inquiries[0];
-                            if (firstInq) setActiveInquiryId(firstInq.id);
-                          }}
-                          className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
-                        >
-                          <span>Explore Inquiries ({inquiries.length})</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {inquiries.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setIsDossierModalOpen(true)}
-                        className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
+                        onClick={() => {
+                          const firstInq = inquiries[0];
+                          if (firstInq) setActiveInquiryId(firstInq.id);
+                        }}
+                        className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
                       >
-                        <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                        <span>Explore Inquiries ({inquiries.length})</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
-                    </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsDossierModalOpen(true)}
+                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
+                    >
+                      <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1497,12 +1482,12 @@ export default function StudioScreen({
               /* VIEW B: SCENE INQUIRY VIEW (Lookbook & Index) */
               <div className="flex flex-col h-full min-h-0">
                 {/* Header: Question + Mode Switcher */}
-                <div className="flex-shrink-0 pb-3 border-b border-white/[0.08] mb-3.5 flex items-center justify-between gap-4">
+                <div className="flex-shrink-0 pb-3 border-b border-white/[0.08] mb-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-mono text-[#F7F7D9]/50 flex-shrink-0">
                       {activeInquiry.source === "creator" ? "[You]" : "[Agent]"}
                     </span>
-                    <h2 className="font-serif font-medium text-base sm:text-lg text-[#F7F7D9] tracking-tight truncate">
+                    <h2 className="font-serif font-medium text-base sm:text-lg lg:text-xl text-[#F7F7D9] tracking-tight">
                       {activeInquiry.question}
                     </h2>
                   </div>
@@ -1534,83 +1519,84 @@ export default function StudioScreen({
                   </div>
                 </div>
 
-                {/* View 1: Curatorial Answer & Ensemble */}
+                {/* View 1: Curatorial Answer & Ensemble (Uncompressed full-width layout, no nested inner card) */}
                 {viewMode === "lookbook" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5 custom-scrollbar-red">
-                    {/* Curatorial Explanation Card */}
-                    <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.08] p-5 sm:p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
-                      {/* Active Refinement or Feedback Banner */}
-                      {isRefiningVignette && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E06B55]/15 border border-[#E06B55]/30 self-start animate-pulse">
-                          <div className="w-2 h-2 rounded-full bg-[#E06B55] animate-ping" />
-                          <span className="text-[11px] font-sans text-[#F7F7D9] font-medium">
-                            Poppies Agent is refining curatorial deductions across Qloo taste graph...
-                          </span>
-                        </div>
-                      )}
-                      {steeringToast && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 self-start animate-fade-in">
-                          <Check className="w-3 h-3 text-emerald-400" />
-                          <span className="text-[11px] font-sans text-emerald-300 font-medium">
-                            {steeringToast}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Audio Capsule (Only when music inquiry) */}
-                      {activeInquiry.hasAudio && (
-                        <div className="flex items-center justify-between px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              type="button"
-                              onClick={toggleAmbientSoundscape}
-                              className="w-6 h-6 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
-                              title={isPlayingAudio ? "Pause soundscape" : "Play soundscape"}
-                            >
-                              {isPlayingAudio ? (
-                                <Pause className="w-2.5 h-2.5 fill-current stroke-[2]" />
-                              ) : (
-                                <Play className="w-2.5 h-2.5 fill-current translate-x-0.5 stroke-[2]" />
-                              )}
-                            </button>
-                            <span className="font-serif italic text-xs text-[#F7F7D9]/90">
-                              {activeInquiry.audioTrackName || "Solitary Ambient Frequencies"}
-                            </span>
-                          </div>
-
-                          {/* Sound wave activity */}
-                          <div className="flex items-center gap-1.5 pr-1">
-                            <Volume2 className="w-3 h-3 text-[#F7F7D9]/40" />
-                            <div className="flex items-center gap-0.5 h-2.5 pl-0.5">
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse" : "h-1 opacity-30"}`} />
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2 animate-pulse delay-100" : "h-1 opacity-30"}`} />
-                              <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse delay-200" : "h-1 opacity-30"}`} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Multi-Paragraph Curatorial Writeup (Straight to the description, zero redundant eyebrows) */}
-                      <div className="flex flex-col gap-3.5">
-                        {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
-                          <p
-                            key={pIdx}
-                            className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/95 font-light"
-                          >
-                            {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
-                          </p>
-                        ))}
+                    {/* Active Refinement or Feedback Banner */}
+                    {isRefiningVignette && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E06B55]/15 border border-[#E06B55]/30 self-start animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-[#E06B55] animate-ping" />
+                        <span className="text-[11px] font-sans text-[#F7F7D9] font-medium">
+                          Poppies Agent is refining curatorial deductions across Qloo taste graph...
+                        </span>
                       </div>
+                    )}
+                    {steeringToast && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 self-start animate-fade-in">
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[11px] font-sans text-emerald-300 font-medium">
+                          {steeringToast}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Audio Capsule (Only when music inquiry) */}
+                    {activeInquiry.hasAudio && (
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={toggleAmbientSoundscape}
+                            className="w-6 h-6 rounded-full bg-[#F7F7D9] hover:bg-white text-[#162a1c] flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                            title={isPlayingAudio ? "Pause soundscape" : "Play soundscape"}
+                          >
+                            {isPlayingAudio ? (
+                              <Pause className="w-2.5 h-2.5 fill-current stroke-[2]" />
+                            ) : (
+                              <Play className="w-2.5 h-2.5 fill-current translate-x-0.5 stroke-[2]" />
+                            )}
+                          </button>
+                          <span className="font-serif italic text-xs text-[#F7F7D9]/90">
+                            {activeInquiry.audioTrackName || "Solitary Ambient Frequencies"}
+                          </span>
+                        </div>
+
+                        {/* Sound wave activity */}
+                        <div className="flex items-center gap-1.5 pr-1">
+                          <Volume2 className="w-3 h-3 text-[#F7F7D9]/40" />
+                          <div className="flex items-center gap-0.5 h-2.5 pl-0.5">
+                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse" : "h-1 opacity-30"}`} />
+                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2 animate-pulse delay-100" : "h-1 opacity-30"}`} />
+                            <div className={`w-0.5 bg-[#F7F7D9] rounded-full transition-all duration-300 ${isPlayingAudio ? "h-2.5 animate-pulse delay-200" : "h-1 opacity-30"}`} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Multi-Paragraph Curatorial Writeup (Full width, full breathing room, elegant editorial prose) */}
+                    <div className="flex flex-col gap-4">
+                      {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
+                        <p
+                          key={pIdx}
+                          className="font-serif text-[16.5px] sm:text-[18px] leading-[1.85] text-[#F7F7D9]/95 font-light"
+                        >
+                          {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
+                        </p>
+                      ))}
                     </div>
 
                     {/* Curated Ensemble Tray */}
-                    <div id="tour-tappable-objects" className="flex flex-col gap-3 pt-1">
+                    <div id="tour-tappable-objects" className="flex flex-col gap-3 pt-3 border-t border-white/[0.08]">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/75 font-semibold">
-                          Curated Ensemble ({activeEntities.length} verified via Qloo)
+                          {engine === "qloo"
+                            ? `Curated Ensemble (${activeEntities.length} verified via Qloo)`
+                            : `Ungrounded Probabilistic Suggestions (${activeEntities.length} unverified)`}
                         </span>
                         <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                          Click card to inspect evidence · Click +/✓ to toggle canon
+                          {engine === "qloo"
+                            ? "Click card to inspect evidence · Click +/✓ to toggle canon"
+                            : "Click card to inspect probabilistic tokens"}
                         </span>
                       </div>
 
@@ -1677,7 +1663,7 @@ export default function StudioScreen({
                                   )}
                                 </button>
 
-                                {entity.affinityScore !== undefined && (
+                                {entity.affinityScore !== undefined && engine === "qloo" && (
                                   <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[10px] font-sans font-bold text-[#F7F7D9] shadow-sm">
                                     {entity.affinityScore}%
                                   </div>
@@ -1709,25 +1695,27 @@ export default function StudioScreen({
                         })}
                       </div>
 
-                      {/* Fetch More from Qloo Button */}
-                      <button
-                        type="button"
-                        onClick={handleFetchMore}
-                        disabled={isFetchingMore}
-                        className="w-full mt-2 py-3 px-4 rounded-[18px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
-                      >
-                        {isFetchingMore ? (
-                          <>
-                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
-                            <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
-                            <span>+ Fetch 4 More from Qloo</span>
-                          </>
-                        )}
-                      </button>
+                      {/* Fetch More from Qloo Button (Only in Qloo mode) */}
+                      {engine === "qloo" && (
+                        <button
+                          type="button"
+                          onClick={handleFetchMore}
+                          disabled={isFetchingMore}
+                          className="w-full mt-2 py-3 px-4 rounded-[18px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
+                        >
+                          {isFetchingMore ? (
+                            <>
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
+                              <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
+                              <span>+ Fetch 4 More from Qloo</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1761,7 +1749,7 @@ export default function StudioScreen({
                           </p>
 
                           <div className="flex items-center gap-2.5 flex-shrink-0">
-                            {entity.affinityScore !== undefined && (
+                            {entity.affinityScore !== undefined && engine === "qloo" && (
                               <div className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
                                 <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
                                   {entity.affinityScore}%
@@ -1799,27 +1787,29 @@ export default function StudioScreen({
                       );
                     })}
 
-                    {/* Fetch More from Qloo in Index Mode */}
-                    <div className="pt-3 pb-2 flex justify-center">
-                      <button
-                        type="button"
-                        onClick={handleFetchMore}
-                        disabled={isFetchingMore}
-                        className="w-full py-2.5 px-4 rounded-[16px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
-                      >
-                        {isFetchingMore ? (
-                          <>
-                            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
-                            <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
-                            <span>+ Fetch 4 More from Qloo</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    {/* Fetch More from Qloo in Index Mode (Only in Qloo mode) */}
+                    {engine === "qloo" && (
+                      <div className="pt-3 pb-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={handleFetchMore}
+                          disabled={isFetchingMore}
+                          className="w-full py-2.5 px-4 rounded-[16px] bg-white/[0.04] hover:bg-white/[0.08] border border-dashed border-white/20 text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center justify-center gap-2 transition-all cursor-pointer group shadow-sm disabled:opacity-50"
+                        >
+                          {isFetchingMore ? (
+                            <>
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-[#E06B55] animate-spin" />
+                              <span>Querying Qloo Graph for more {activeInquiry.domain?.toLowerCase() || "items"}...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5 text-[#E06B55] group-hover:scale-110 transition-transform" />
+                              <span>+ Fetch 4 More from Qloo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1859,7 +1849,7 @@ export default function StudioScreen({
                 className="w-8 h-8 rounded-full bg-[#1b2d20] hover:bg-[#283f2e] active:scale-95 text-[#F7F7D9] flex items-center justify-center transition-all shadow-md cursor-pointer flex-shrink-0"
                 title="Send instruction to Poppies"
               >
-                <Send className="w-3.5 h-3.5 text-[#F7F7D9] -translate-x-0.5 translate-y-0.5 stroke-[2]" />
+                <Send className="w-3.5 h-3.5 fill-[#F7F7D9] text-[#F7F7D9] stroke-[1.5]" />
               </button>
             </div>
           </div>
