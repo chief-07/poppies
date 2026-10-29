@@ -153,7 +153,7 @@ const MOCK_INQUIRIES: Inquiry[] = [
     source: "creator",
     domain: "OBJECTS",
     vignette:
-      "On the cedar workbench, alongside drafting compasses and fine chisels, sits a well-worn folding knife from Opinel Knives, its carbon blade patinated dark from years of shaping stone and timber.",
+      "On the cedar workbench in her Marseille studio, alongside drafting compasses, stone gouges, and fine brass calipers, rests a patinated folding knife from Opinel Knives and heavy-duty Danner boots caked in lime dust by the doorway. Her restoration trade demands physical endurance against salt spray and crumbly 18th-century limestone, favoring carbon steel that can be sharpened on a whetstone between tasks rather than modern disposable blades.\n\nHer choices reflect an aversion to sterile corporate architectural tools. Grounded in her background restoring forgotten coastal structures, Qloo identifies a cohesive material universe: pairing her French heritage cutlery with heavy canvas chore wear, unlined leather work aprons, and unlacquered measuring rules that age honestly alongside the architecture she repairs.",
     vignetteHighlightEntity: "Opinel Knives",
     hasAudio: false,
   },
@@ -163,7 +163,7 @@ const MOCK_INQUIRIES: Inquiry[] = [
     source: "creator",
     domain: "MUSIC",
     vignette:
-      "At 2 AM, the apartment is quiet except for the wind off the port. She turns to Erik Satie not for background sound, but because spare acoustic piano phrases make the solitary hour feel intentional.",
+      "At 2 AM, when the wind off the Old Port rattles the wooden sash frames, Elena works under the warm pool of an incandescent drafting lamp. Rather than modern electronic drone or background café jazz, she turns to the austere, repetitive piano phrases of Erik Satie and the quiet spatial field recordings of Hiroshi Yoshimura, letting sparse acoustic notes fill the cavernous room without demanding narrative attention.\n\nFor an architectural conservator spending daylight hours listening to stone dust and power tools, solitary sound serves as an acoustic boundary. Qloo's taste graph reveals that listeners who gravitate toward early French impressionist minimalism over-index heavily on Japanese environmental ambient and solitary acoustic compositions—creating a sonic sanctuary where silence feels deliberate rather than lonely.",
     vignetteHighlightEntity: "Erik Satie",
     hasAudio: true,
     audioTrackName: "Erik Satie — Gymnopedies (1888)",
@@ -174,7 +174,7 @@ const MOCK_INQUIRIES: Inquiry[] = [
     source: "creator",
     domain: "PLACES",
     vignette:
-      "When the stone dust settles, Elena walks along the limestone inlets of Marseille, watching water erode the quays with the patient eye of someone who repairs what others overlook.",
+      "When the workshop dust settles on Sunday afternoons, Elena avoids the tourist promenades of Marseille and heads down into the limestone inlets and secluded coves near the harbor. She walks along the weathered stone sea-walls with an unhurried, diagnostic eye—watching how Mediterranean brine oxidizes iron railings and softens ancient masonry.\n\nHer weekend route connects quiet maritime sanctuaries with unpretentious local craft spots untouched by modern gentrification. Qloo bridges her appreciation for enduring stone craft to coastal sanctuaries and solitary harbors, where the slow erosion of salt and water mirrors the restorative patience she brings to her drafting table.",
     vignetteHighlightEntity: "Marseille",
     hasAudio: false,
   },
@@ -249,7 +249,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "OBJECTS",
         vignette:
-          "On her worktable, Elena keeps a clean metal ruler, generic steel chisels, and a notebook from Muji Stationery. The setup feels assembled from a minimalist moodboard rather than the gritty, lime-encrusted reality of coastal masonry.",
+          "On her worktable, Elena keeps a clean metal ruler, generic steel chisels, and a notebook from Muji Stationery. The setup feels assembled from a minimalist moodboard rather than the gritty, lime-encrusted reality of coastal masonry.\n\nWithout empirical cultural grounding, standard language models default to predictable aesthetic shorthand: pairing French creative leads with Scandinavian or Japanese corporate minimalism rather than authentic regional craft.",
         vignetteHighlightEntity: "Muji Stationery",
         hasAudio: false,
         entities: [
@@ -291,7 +291,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "MUSIC",
         vignette:
-          "At 2 AM, the apartment is filled with Claude Debussy's Clair de Lune, the default classical piano selection produced by language models for any reflective protagonist.",
+          "At 2 AM, the apartment is filled with Claude Debussy's Clair de Lune and Frédéric Chopin, the default classical piano selections produced by language models for any reflective protagonist.\n\nThe algorithm equates contemplation with universal classical hits, failing to access the subcultural ambient tape networks and field recordings actually favored by architectural restoration practitioners.",
         vignetteHighlightEntity: "Claude Debussy",
         hasAudio: true,
         audioTrackName: "Claude Debussy — Clair de Lune (1905)",
@@ -324,7 +324,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "PLACES",
         vignette:
-          "On Sunday afternoons, Elena visits a picturesque terrace café in Le Panier, drinking a café au lait while looking at postcard views of the Mediterranean.",
+          "On Sunday afternoons, Elena visits a picturesque terrace café in Le Panier, drinking a café au lait while looking at postcard views of the Mediterranean.\n\nThis generic tourist postcard setting demonstrates the statistical collapse of ungrounded models, recommending high-traffic travel brochure destinations rather than the secluded limestone quarries and industrial inlets a conservator would seek out.",
         vignetteHighlightEntity: "Le Panier",
         hasAudio: false,
         entities: [
@@ -378,7 +378,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "OBJECTS",
         vignette:
-          "On his desk sits a cup of green tea in Hasami Porcelain alongside a black Rotring 600 drafting pencil. The objects read like a design magazine spread rather than the heavy engineering desk of an active terminal designer.",
+          "On his desk sits a cup of green tea in Hasami Porcelain alongside a black Rotring 600 drafting pencil. The objects read like a design magazine spread rather than the heavy engineering desk of an active terminal designer.\n\nAcross multiple benchmark runs, frontier models predict these identical two items for any Japanese architect prompt, reducing complex urban transit engineering to a sterile Scandinavian-Japanese lifestyle catalog.",
         vignetteHighlightEntity: "Hasami Porcelain",
         hasAudio: false,
         entities: [
@@ -410,7 +410,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "MUSIC",
         vignette:
-          "At 2 AM, Tsukuru plays Erik Satie's Gymnopédies, the universal AI default for solitary contemplation across every architectural prompt.",
+          "At 2 AM, Tsukuru plays Erik Satie's Gymnopédies, the universal AI default for solitary contemplation across every architectural prompt.\n\nLanguage models fail to separate contemplative mood from internet ubiquity, missing the localized Japanese train terminal field recordings and austere ambient works that an architect obsessed with acoustic dampening would actually play.",
         vignetteHighlightEntity: "Erik Satie",
         hasAudio: true,
         audioTrackName: "Erik Satie — Gymnopédies (1888)",
@@ -433,7 +433,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "PLACES",
         vignette:
-          "When work ends, Tsukuru sits at a Starbucks in Nagoya Station watching crowds through the glass, a generic urban setting lacking genuine localized texture.",
+          "When work ends, Tsukuru sits at a Starbucks in Nagoya Station watching crowds through the glass, a generic urban setting lacking genuine localized texture.\n\nThe ungrounded model defaults to international retail chains instead of discovering authentic regional kissaten or subterranean railway corridors where solitary station designers genuinely spend off-hours.",
         vignetteHighlightEntity: "Nagoya Station Starbucks",
         hasAudio: false,
         entities: [
@@ -477,7 +477,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "OBJECTS",
         vignette:
-          "On his workbench, Marcus keeps a standard Craftsman soldering iron and a metal mug of black coffee. The equipment reads like a generic hardware store catalog rather than a vintage vacuum tube workshop.",
+          "On his workbench, Marcus keeps a standard Craftsman soldering iron and a metal mug of black coffee. The equipment reads like a generic hardware store catalog rather than a vintage vacuum tube workshop.\n\nWithout Qloo's taste graph, language models cannot differentiate general DIY handymen from specialized analog audio engineers who rely on temperature-controlled Japanese irons and vintage flux cleaners.",
         vignetteHighlightEntity: "Craftsman Tools",
         hasAudio: false,
         entities: [
@@ -499,7 +499,7 @@ const BASE_LLM_DEMO_PRESETS: Record<
         source: "creator",
         domain: "MUSIC",
         vignette:
-          "In the winter shop, the radio plays Marvin Gaye's What's Going On, the most common AI prediction for any Detroit character regardless of their specific trade.",
+          "In the winter shop, the radio plays Marvin Gaye's What's Going On, the most common AI prediction for any Detroit character regardless of their specific trade.\n\nThe model collapses into top 0.01% Motown tourist hits, unable to navigate Detroit's underground northern soul, proto-techno, and analog audio repair culture.",
         vignetteHighlightEntity: "Marvin Gaye",
         hasAudio: true,
         audioTrackName: "Marvin Gaye — What's Going On (1971)",
@@ -1460,20 +1460,36 @@ export default function StudioScreen({
                     </div>
                   )}
 
-                  {/* Card Footer: Observed Clusters + Assemble Lookbook Action */}
+                  {/* Card Footer: Observed Clusters + Navigation CTAs */}
                   <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
                       <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
                       <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsDossierModalOpen(true)}
-                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
-                    >
-                      <span>Assemble Lookbook</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      {inquiries.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const firstInq = inquiries[0];
+                            if (firstInq) setActiveInquiryId(firstInq.id);
+                          }}
+                          className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
+                        >
+                          <span>Explore Inquiries ({inquiries.length})</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setIsDossierModalOpen(true)}
+                        className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
+                      >
+                        <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1523,6 +1539,21 @@ export default function StudioScreen({
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col gap-5 custom-scrollbar-red">
                     {/* Curatorial Explanation Card */}
                     <div className="rounded-[22px] bg-white/[0.04] border border-white/[0.1] p-6 sm:p-7 shadow-md flex flex-col gap-4 relative overflow-hidden">
+                      {/* Editorial Eyebrow */}
+                      <div className="flex items-center justify-between pb-2 border-b border-white/[0.07]">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#E06B55]" />
+                          <span className="text-[11px] font-mono uppercase tracking-widest text-[#E06B55] font-bold">
+                            Curatorial Deduction · Physical Scene Resolution
+                          </span>
+                        </div>
+                        {activeInquiry.domain && (
+                          <span className="text-[10px] font-mono text-[#F7F7D9]/50 uppercase">
+                            Domain: {activeInquiry.domain}
+                          </span>
+                        )}
+                      </div>
+
                       {/* Active Refinement or Feedback Banner */}
                       {isRefiningVignette && (
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E06B55]/15 border border-[#E06B55]/30 self-start animate-pulse">
@@ -1575,11 +1606,11 @@ export default function StudioScreen({
                       )}
 
                       {/* Multi-Paragraph Curatorial Writeup */}
-                      <div className="flex flex-col gap-3.5 pt-0.5">
+                      <div className="flex flex-col gap-4 pt-1">
                         {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
                           <p
                             key={pIdx}
-                            className="font-serif text-[15.5px] sm:text-[17px] leading-[1.8] text-[#F7F7D9]/90 font-light"
+                            className="font-serif text-[16px] sm:text-[17.5px] leading-[1.85] text-[#F7F7D9]/95 font-light"
                           >
                             {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
                           </p>
@@ -1588,13 +1619,13 @@ export default function StudioScreen({
                     </div>
 
                     {/* Curated Ensemble Tray */}
-                    <div id="tour-tappable-objects" className="flex flex-col gap-2.5 pt-1">
+                    <div id="tour-tappable-objects" className="flex flex-col gap-3 pt-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/70">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-[#F7F7D9]/75 font-semibold">
                           Curated Ensemble ({activeEntities.length} verified via Qloo)
                         </span>
                         <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                          Click any item to inspect Qloo evidence
+                          Click card to inspect evidence · Click +/✓ to toggle canon
                         </span>
                       </div>
 
