@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, Printer, BookOpen, Layers, ExternalLink } from "lucide-react";
+import { X, Copy, Check, Printer } from "lucide-react";
 
 interface AssembledDossierModalProps {
   isOpen: boolean;
@@ -66,56 +66,53 @@ export default function AssembledDossierModal({
     0
   );
 
+  // Only show inquiries that have accepted entities or a vignette
+  const relevantInquiries = filteredInquiries.filter(
+    (inq) => (inq.entities && inq.entities.length > 0) || inq.vignette
+  );
+
+  const constraintParts = [
+    constraints.locality,
+    constraints.era,
+    constraints.occupation,
+  ].filter(Boolean);
+
   const generateMarkdown = () => {
-    let md = `# Cultural Dossier: ${characterName}\n\n`;
-    md += `**Summary:** ${characterSummary}\n`;
-    md += `**Setting & Constraints:** Locality: ${constraints.locality || "Unspecified"} | Era: ${constraints.era || "Contemporary"} | Occupation: ${constraints.occupation || "Unspecified"}\n\n`;
+    let md = `# ${characterName}\n\n`;
+    md += `*${characterSummary}*\n`;
+    if (constraintParts.length > 0) {
+      md += `${constraintParts.join(" · ")}\n`;
+    }
+    md += `\n---\n\n`;
+    md += `${culturalDossier.tasteThesis}\n\n`;
 
-    md += `## Master Cultural Thesis\n${culturalDossier.tasteThesis}\n\n`;
-
-    if (culturalDossier.psychologicalWound || culturalDossier.tactileArmor) {
-      md += `## Internal Friction & Tactile Armor\n`;
-      if (culturalDossier.psychologicalWound) {
-        md += `- **Internal Tension:** ${culturalDossier.psychologicalWound}\n`;
-      }
-      if (culturalDossier.tactileArmor) {
-        md += `- **Tactile Armor:** ${culturalDossier.tactileArmor}\n`;
-      }
-      md += `\n`;
+    if (culturalDossier.psychologicalWound) {
+      md += `**Internal Tension:** ${culturalDossier.psychologicalWound}\n\n`;
+    }
+    if (culturalDossier.tactileArmor) {
+      md += `**Tactile Armor:** ${culturalDossier.tactileArmor}\n\n`;
     }
 
-    if (culturalDossier.observedClusters && culturalDossier.observedClusters.length > 0) {
-      md += `## Observed Taste Clusters\n`;
-      culturalDossier.observedClusters.forEach((c) => {
-        md += `- ${c}\n`;
-      });
-      md += `\n`;
-    }
-
-    if (culturalDossier.unconsideredAngles && culturalDossier.unconsideredAngles.length > 0) {
-      md += `## Latent Graph Discoveries\n`;
-      culturalDossier.unconsideredAngles.forEach((a) => {
-        md += `- **${a.title}** (${a.groundedEntity}): ${a.description}\n`;
-      });
-      md += `\n`;
-    }
-
-    md += `## Curated World Inquiries & Ensembles\n\n`;
-    filteredInquiries.forEach((inq) => {
-      md += `### ${inq.question} [${inq.domain || "Ensemble"}]\n`;
+    relevantInquiries.forEach((inq) => {
+      md += `---\n\n`;
+      md += `## ${inq.question}\n\n`;
       if (inq.vignette) {
         md += `${inq.vignette}\n\n`;
       }
       if (inq.entities && inq.entities.length > 0) {
-        md += `**Verified Qloo Cultural Ensemble:**\n`;
         inq.entities.forEach((e) => {
-          md += `- **${e.name}** (${e.domain}${e.affinityScore ? `, ${e.affinityScore}% affinity` : ""}): ${e.description}\n`;
+          md += `- **${e.name}** [${e.domain}]${e.affinityScore ? ` — ${e.affinityScore}%` : ""}: ${e.description}\n`;
         });
         md += `\n`;
       }
     });
 
-    md += `\n---\n*Grounded via Poppies & Qloo Cultural Taste Graph*\n`;
+    if (culturalDossier.unconsideredAngles?.[0]) {
+      md += `---\n\n`;
+      md += `**${culturalDossier.unconsideredAngles[0].title}:** ${culturalDossier.unconsideredAngles[0].description}\n\n`;
+    }
+
+    md += `---\n*Assembled via Poppies · Grounded by Qloo Cultural Taste Graph*\n`;
     return md;
   };
 
@@ -134,43 +131,36 @@ export default function AssembledDossierModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md"
+      onClick={onClose}
+    >
       <div
-        className="relative w-full max-w-[920px] max-h-[90vh] rounded-[30px] bg-[#142619] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-[#F7F7D9]"
+        className="relative w-full max-w-[860px] max-h-[92vh] rounded-[24px] bg-[#0f1f14] border border-white/[0.12] shadow-[0_40px_100px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Top Bar */}
-        <div className="flex-shrink-0 px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4 bg-white/[0.02]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/15 flex items-center justify-center flex-shrink-0">
-              <BookOpen className="w-4 h-4 text-[#E06B55]" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <h2 className="font-serif font-bold text-lg sm:text-xl text-[#F7F7D9] truncate">
-                Character Cultural Dossier — {characterName}
-              </h2>
-              <span className="text-xs font-sans text-[#F7F7D9]/60 truncate">
-                Grounded via Qloo Cultural Taste Graph
-              </span>
-            </div>
-          </div>
+        {/* Compact top bar: just actions, no redundant title */}
+        <div className="flex-shrink-0 px-6 py-3 flex items-center justify-between bg-white/[0.02] border-b border-white/[0.06]">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/40">
+            Character Dossier · {totalAcceptedCount} accepted node{totalAcceptedCount !== 1 ? "s" : ""}
+          </span>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Copy entire dossier as formatted Markdown"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-[11px] font-sans text-[#F7F7D9]/80 hover:text-[#F7F7D9] transition-all cursor-pointer active:scale-95"
+              title="Copy as Markdown"
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 font-medium">Copied</span>
+                  <Check className="w-3 h-3 text-emerald-400" />
+                  <span className="text-emerald-400">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-[#F7F7D9]/80" />
-                  <span>Copy Markdown</span>
+                  <Copy className="w-3 h-3" />
+                  <span>Markdown</span>
                 </>
               )}
             </button>
@@ -178,178 +168,106 @@ export default function AssembledDossierModal({
             <button
               type="button"
               onClick={handlePrint}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer shadow-sm active:scale-95"
-              title="Print lookbook dossier"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-[11px] font-sans text-[#F7F7D9]/80 hover:text-[#F7F7D9] transition-all cursor-pointer active:scale-95"
+              title="Print"
             >
-              <Printer className="w-3.5 h-3.5 text-[#F7F7D9]/80" />
+              <Printer className="w-3 h-3" />
               <span>Print</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/[0.08] hover:bg-white/[0.18] text-[#F7F7D9] flex items-center justify-center transition-all cursor-pointer ml-1"
-              title="Close Dossier"
+              className="w-6 h-6 rounded-full bg-white/[0.06] hover:bg-white/[0.15] text-[#F7F7D9]/60 hover:text-[#F7F7D9] flex items-center justify-center transition-all cursor-pointer ml-1"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 flex flex-col gap-7 print:p-0">
-          {/* Header Overview Card */}
-          <div className="rounded-[22px] bg-white/[0.04] border border-white/10 p-5 sm:p-6 flex flex-col gap-3">
-            <div className="flex items-baseline justify-between gap-4 flex-wrap">
-              <h1 className="font-serif font-bold text-2xl sm:text-3xl text-[#F7F7D9]">
-                {characterName}
-              </h1>
-              <div className="flex items-center gap-2 flex-wrap">
-                {constraints.locality && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-sans text-[#F7F7D9]/80">
-                    {constraints.locality}
-                  </span>
-                )}
-                {constraints.era && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-sans text-[#F7F7D9]/80">
-                    {constraints.era}
-                  </span>
-                )}
-                {constraints.occupation && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-sans text-[#F7F7D9]/80">
-                    {constraints.occupation}
-                  </span>
-                )}
-              </div>
-            </div>
-            <p className="font-serif italic text-sm sm:text-base text-[#F7F7D9]/80 leading-relaxed">
+        {/* Scrollable editorial body */}
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar-red">
+          <div className="max-w-[680px] mx-auto px-6 sm:px-8 py-8 sm:py-12 flex flex-col gap-0">
+
+            {/* Character name — the anchor of the whole document */}
+            <h1 className="font-serif font-bold text-3xl sm:text-4xl text-[#F7F7D9] leading-tight tracking-tight">
+              {characterName}
+            </h1>
+
+            {/* Summary as a quiet italic line beneath */}
+            <p className="font-serif italic text-sm sm:text-base text-[#F7F7D9]/60 mt-2 leading-relaxed">
               {characterSummary}
             </p>
-          </div>
 
-          {/* Master Cultural Thesis */}
-          <div className="flex flex-col gap-2.5">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#E06B55] font-bold">
-              Master Cultural Thesis
-            </span>
-            <div className="rounded-[20px] bg-white/[0.03] border border-white/10 p-5 sm:p-6">
-              <p className="font-serif text-base sm:text-lg leading-[1.8] text-[#F7F7D9] font-light">
-                {culturalDossier.tasteThesis}
-              </p>
-            </div>
-          </div>
-
-          {/* Psychological Wound & Tactile Armor */}
-          {(culturalDossier.psychologicalWound || culturalDossier.tactileArmor) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {culturalDossier.psychologicalWound && (
-                <div className="rounded-[18px] bg-white/[0.03] border border-white/10 p-5 flex flex-col gap-2">
-                  <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
-                    Internal Tension & Vulnerability
+            {/* Constraint tags inline */}
+            {constraintParts.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {constraintParts.map((c, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] font-mono uppercase tracking-wider text-[#E06B55]/80"
+                  >
+                    {c}{i < constraintParts.length - 1 ? " ·" : ""}
                   </span>
-                  <p className="font-sans text-xs sm:text-sm text-[#F7F7D9]/80 leading-relaxed">
-                    {culturalDossier.psychologicalWound}
-                  </p>
-                </div>
-              )}
-              {culturalDossier.tactileArmor && (
-                <div className="rounded-[18px] bg-white/[0.03] border border-white/10 p-5 flex flex-col gap-2">
-                  <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
-                    Tactile Armor & Material Defense
-                  </span>
-                  <p className="font-sans text-xs sm:text-sm text-[#F7F7D9]/80 leading-relaxed">
-                    {culturalDossier.tactileArmor}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Observed Clusters & Latent Discovery */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {culturalDossier.observedClusters && culturalDossier.observedClusters.length > 0 && (
-              <div className="rounded-[18px] bg-white/[0.03] border border-white/10 p-5 flex flex-col gap-2.5">
-                <span className="font-serif italic font-medium text-xs text-[#F7F7D9]/60">
-                  Observed Taste Clusters
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {culturalDossier.observedClusters.map((cluster, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-1.5 rounded-[12px] bg-white/[0.03] border border-white/[0.05] font-sans text-xs text-[#F7F7D9]/85"
-                    >
-                      {cluster}
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             )}
 
-            {culturalDossier.unconsideredAngles && culturalDossier.unconsideredAngles[0] && (
-              <div className="rounded-[18px] bg-white/[0.03] border border-white/10 p-5 flex flex-col justify-between gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
-                    Latent Graph Discovery: {culturalDossier.unconsideredAngles[0].title}
-                  </span>
-                  <p className="font-sans text-xs sm:text-sm text-[#F7F7D9]/75 leading-relaxed">
-                    {culturalDossier.unconsideredAngles[0].description}
+            {/* Thin rule */}
+            <div className="w-full h-px bg-white/[0.08] mt-6 mb-8" />
+
+            {/* Taste thesis — the opening editorial paragraph, no label needed */}
+            <p className="font-serif text-[15px] sm:text-[17px] leading-[1.9] text-[#F7F7D9]/90 font-light">
+              {culturalDossier.tasteThesis}
+            </p>
+
+            {/* Internal tension and tactile armor as quiet prose continuations */}
+            {(culturalDossier.psychologicalWound || culturalDossier.tactileArmor) && (
+              <div className="flex flex-col gap-4 mt-6">
+                {culturalDossier.psychologicalWound && (
+                  <p className="font-serif text-[14px] sm:text-[15px] leading-[1.85] text-[#F7F7D9]/75 font-light">
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-[#E06B55]/70 font-semibold mr-2">
+                      Internal Tension
+                    </span>
+                    {culturalDossier.psychologicalWound}
                   </p>
-                </div>
-                {culturalDossier.unconsideredAngles[0].groundedEntity && (
-                  <span className="text-xs font-mono text-[#E06B55]">
-                    Anchor: {culturalDossier.unconsideredAngles[0].groundedEntity}
-                  </span>
+                )}
+                {culturalDossier.tactileArmor && (
+                  <p className="font-serif text-[14px] sm:text-[15px] leading-[1.85] text-[#F7F7D9]/75 font-light">
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-[#E06B55]/70 font-semibold mr-2">
+                      Tactile Armor
+                    </span>
+                    {culturalDossier.tactileArmor}
+                  </p>
                 )}
               </div>
             )}
-          </div>
 
-          {/* Curated Inquiries & Cultural Ensembles */}
-          <div className="flex flex-col gap-5 pt-2">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[#E06B55] font-bold">
-                Curated Inquiries & Accepted Canon ({totalAcceptedCount} nodes)
-              </span>
-              <span className="text-[11px] font-sans text-[#F7F7D9]/50">
-                Director&apos;s Assembled Lookbook
-              </span>
-            </div>
+            {/* Inquiries — each reads like a short magazine column */}
+            {relevantInquiries.length > 0 ? (
+              relevantInquiries.map((inq, idx) => (
+                <div key={inq.id || idx} className="mt-10 flex flex-col gap-0">
+                  {/* Thin rule before each inquiry */}
+                  <div className="w-full h-px bg-white/[0.06] mb-6" />
 
-            {totalAcceptedCount === 0 ? (
-              <div className="rounded-[22px] bg-white/[0.03] border border-dashed border-white/20 p-8 flex flex-col items-center justify-center text-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-[#E06B55]">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <h3 className="font-serif text-lg text-[#F7F7D9] font-medium">
-                  No cultural anchors accepted into canon yet
-                </h3>
-                <p className="font-sans text-xs sm:text-sm text-[#F7F7D9]/60 max-w-md leading-relaxed">
-                  Review your inquiries in the studio and click <strong>&quot;+ Accept&quot;</strong> on verified Qloo anchors to assemble this character&apos;s definitive lookbook.
-                </p>
-              </div>
-            ) : (
-              filteredInquiries.map((inq, idx) => (
-                <div
-                  key={inq.id || idx}
-                  className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5 sm:p-6 flex flex-col gap-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-serif font-bold text-base sm:text-lg text-[#F7F7D9]">
-                      {inq.question}
-                    </h3>
-                    {inq.domain && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] text-[10px] font-mono uppercase text-[#E06B55] border border-white/10 flex-shrink-0">
-                        {inq.domain}
-                      </span>
-                    )}
-                  </div>
+                  {/* The question as a section heading */}
+                  <h2 className="font-serif font-bold text-lg sm:text-xl text-[#F7F7D9] leading-snug">
+                    {inq.question}
+                  </h2>
 
+                  {inq.domain && (
+                    <span className="text-[9px] font-mono uppercase tracking-widest text-[#E06B55]/70 mt-1.5">
+                      {inq.domain}
+                    </span>
+                  )}
+
+                  {/* Vignette prose */}
                   {inq.vignette && (
-                    <div className="flex flex-col gap-2.5">
+                    <div className="mt-4 flex flex-col gap-3">
                       {inq.vignette.split("\n\n").map((p, pIdx) => (
                         <p
                           key={pIdx}
-                          className="font-serif text-sm sm:text-base leading-relaxed text-[#F7F7D9]/85 font-light"
+                          className="font-serif text-[14px] sm:text-[15px] leading-[1.85] text-[#F7F7D9]/80 font-light"
                         >
                           {p}
                         </p>
@@ -357,52 +275,90 @@ export default function AssembledDossierModal({
                     </div>
                   )}
 
-                  {inq.entities && inq.entities.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-white/[0.08]">
+                  {/* Accepted entities — a clean, scannable list (not a grid of cards) */}
+                  {inq.entities && inq.entities.length > 0 && (
+                    <div className="mt-5 flex flex-col gap-0 border-l-2 border-[#E06B55]/30 pl-4">
                       {inq.entities.map((e) => (
                         <div
                           key={e.id}
-                          className="p-3 rounded-[16px] bg-white/[0.03] border border-white/[0.07] flex flex-col justify-between gap-1.5"
+                          className="py-2.5 flex flex-col gap-0.5 border-b border-white/[0.04] last:border-b-0"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-serif italic font-bold text-xs sm:text-sm text-[#F7F7D9] truncate">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="font-serif italic font-bold text-sm text-[#F7F7D9]">
                               {e.name}
                             </span>
+                            <span className="text-[9px] font-mono text-[#E06B55]/70 uppercase">
+                              {e.domain}
+                            </span>
                             {e.affinityScore !== undefined && (
-                              <span className="text-[10px] font-sans font-bold text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                              <span className="text-[10px] font-mono text-[#F7F7D9]/40">
                                 {e.affinityScore}%
                               </span>
                             )}
                           </div>
-                          <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
+                          <p className="font-sans text-xs text-[#F7F7D9]/55 leading-relaxed">
                             {e.description}
                           </p>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="font-sans italic text-xs text-[#F7F7D9]/40 pt-1 border-t border-white/[0.06]">
+                  )}
+
+                  {/* Empty state for inquiry with vignette but no accepted entities */}
+                  {(!inq.entities || inq.entities.length === 0) && (
+                    <p className="mt-3 font-sans italic text-xs text-[#F7F7D9]/30">
                       No anchors accepted for this inquiry yet.
                     </p>
                   )}
                 </div>
               ))
+            ) : (
+              /* Global empty state when nothing is accepted anywhere */
+              <div className="mt-10 py-12 flex flex-col items-center text-center gap-3">
+                <p className="font-serif text-lg text-[#F7F7D9]/70">
+                  No cultural anchors accepted into canon yet.
+                </p>
+                <p className="font-sans text-xs text-[#F7F7D9]/40 max-w-sm leading-relaxed">
+                  Review your inquiries in the studio and accept verified Qloo
+                  anchors to assemble the character lookbook.
+                </p>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* Modal Bottom Footer */}
-        <div className="flex-shrink-0 px-6 py-3.5 border-t border-white/10 flex items-center justify-between bg-white/[0.02]">
-          <span className="text-[11px] font-sans text-[#F7F7D9]/50">
-            Exported from Poppies Cultural Intelligence Studio
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-1.5 rounded-full bg-[#F7F7D9] hover:bg-white text-[#142619] font-sans font-medium text-xs transition-all cursor-pointer shadow-md"
-          >
-            Done
-          </button>
+            {/* Latent discovery — only if present, as a quiet closing note */}
+            {culturalDossier.unconsideredAngles?.[0] && (
+              <div className="mt-10 flex flex-col gap-0">
+                <div className="w-full h-px bg-white/[0.06] mb-6" />
+                <p className="font-serif text-[14px] sm:text-[15px] leading-[1.85] text-[#F7F7D9]/70 font-light">
+                  <span className="font-sans text-[10px] uppercase tracking-widest text-[#E06B55]/70 font-semibold mr-2">
+                    {culturalDossier.unconsideredAngles[0].title}
+                  </span>
+                  {culturalDossier.unconsideredAngles[0].description}
+                  {culturalDossier.unconsideredAngles[0].groundedEntity && (
+                    <span className="font-mono text-xs text-[#E06B55]/60 ml-1.5">
+                      → {culturalDossier.unconsideredAngles[0].groundedEntity}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Observed taste clusters as a quiet footer line */}
+            {culturalDossier.observedClusters && culturalDossier.observedClusters.length > 0 && (
+              <div className="mt-8 pt-4 border-t border-white/[0.06]">
+                <span className="font-sans text-[10px] text-[#F7F7D9]/30 uppercase tracking-wider">
+                  Observed taste: {culturalDossier.observedClusters.join(" · ")}
+                </span>
+              </div>
+            )}
+
+            {/* Colophon */}
+            <div className="mt-6 pb-4">
+              <span className="font-sans text-[10px] text-[#F7F7D9]/20">
+                Assembled via Poppies · Grounded by Qloo Cultural Taste Graph
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
