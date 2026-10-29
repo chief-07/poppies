@@ -560,6 +560,34 @@ export default function StudioScreen({
   const [activeDossier, setActiveDossier] = useState<CulturalDossierBrief>(initialDossier);
   const culturalDossier = activeDossier;
 
+  // Director's Curation Workflow: Pre-accept primary anchors, rest remain proposed
+  const [acceptedEntityIds, setAcceptedEntityIds] = useState<string[]>(() => {
+    const initial: string[] = [];
+    liveInquiries.forEach((inq) => {
+      if (inq.entities && inq.entities.length > 0) {
+        initial.push(inq.entities[0].id);
+      }
+    });
+    if (!initial.includes("t1")) initial.push("t1");
+    return initial;
+  });
+
+  const toggleAcceptEntity = (entityId: string, entityName?: string) => {
+    setAcceptedEntityIds((prev) => {
+      const isAccepted = prev.includes(entityId);
+      const updated = isAccepted
+        ? prev.filter((id) => id !== entityId)
+        : [...prev, entityId];
+      const name = entityName ? `"${entityName}"` : "Anchor";
+      showToast(
+        isAccepted
+          ? `Removed ${name} from canon`
+          : `Accepted ${name} into character canon`
+      );
+      return updated;
+    });
+  };
+
   const [inquiries, setInquiries] = useState<Inquiry[]>(liveInquiries);
   const [showDiagnosticCard, setShowDiagnosticCard] = useState<boolean>(false);
   const [isSwappingEngine, setIsSwappingEngine] = useState<boolean>(false);
@@ -1195,19 +1223,23 @@ export default function StudioScreen({
           </div>
 
           {/* Bottom Action: Assemble Dossier */}
-          <div className="pt-2 flex-shrink-0">
+          <div className="pt-2 flex-shrink-0 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between px-3 text-[10px] font-sans text-[#F7F7D9]/50">
+              <span>Director&apos;s Canon:</span>
+              <span className="font-mono text-[#E06B55] font-semibold">{acceptedEntityIds.length} accepted</span>
+            </div>
             <button
               type="button"
               onClick={() => {
                 setIsDossierModalOpen(true);
                 onAssembleDossier?.();
               }}
-              className="w-full flex items-center justify-between p-3 rounded-[18px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.12] backdrop-blur-lg text-[#F7F7D9] transition-all group cursor-pointer"
+              className="w-full flex items-center justify-between p-3 rounded-[18px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.12] backdrop-blur-lg text-[#F7F7D9] transition-all group cursor-pointer active:scale-95 shadow-sm"
             >
               <div className="flex items-center gap-2">
                 <BookOpen className="w-3.5 h-3.5 text-[#F7F7D9]/80" />
                 <span className="font-serif italic font-medium text-xs sm:text-sm">
-                  Assemble dossier
+                  Assemble dossier ({acceptedEntityIds.length})
                 </span>
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-white/40 group-hover:translate-x-0.5 transition-transform" />
@@ -1344,31 +1376,58 @@ export default function StudioScreen({
                     </p>
                   </div>
 
-                  {/* Discovered Cultural Anchors */}
+                  {/* Discovered Cultural Anchors (Director's Canon Selection) */}
                   {allTaggableEntities.length > 0 && (
                     <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
-                          Discovered Taste Anchors ({Math.min(allTaggableEntities.length, 6)})
+                          Character Canon ({acceptedEntityIds.length} accepted · {Math.max(0, allTaggableEntities.length - acceptedEntityIds.length)} proposed)
                         </span>
                         <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                          Click to inspect Qloo evidence
+                          Click pill to inspect evidence · Click +/✓ to toggle canon
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {allTaggableEntities.slice(0, 6).map((entity) => (
-                          <button
-                            key={entity.id}
-                            type="button"
-                            onClick={() => handleEntityClick(entity)}
-                            className="px-3 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.09] border border-white/10 hover:border-[#E06B55]/50 text-xs font-sans text-[#F7F7D9] flex items-center gap-1.5 transition-all cursor-pointer group active:scale-95 shadow-sm"
-                            title={`Inspect Qloo taste graph evidence for ${entity.name}`}
-                          >
-                            <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
-                            <span className="font-medium">{entity.name}</span>
-                            <span className="text-[10px] text-[#E06B55] opacity-60 group-hover:opacity-100 transition-opacity">↗</span>
-                          </button>
-                        ))}
+                        {allTaggableEntities.slice(0, 8).map((entity) => {
+                          const isAccepted = acceptedEntityIds.includes(entity.id);
+                          return (
+                            <div
+                              key={entity.id}
+                              className={`px-3 py-1.5 rounded-full border text-xs font-sans flex items-center gap-2 transition-all shadow-sm ${
+                                isAccepted
+                                  ? "bg-white/[0.08] border-white/20 text-[#F7F7D9]"
+                                  : "bg-white/[0.03] border-white/10 text-[#F7F7D9]/70 opacity-80 hover:opacity-100"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleEntityClick(entity)}
+                                className="flex items-center gap-1.5 hover:text-white cursor-pointer"
+                                title={`Inspect Qloo evidence for ${entity.name}`}
+                              >
+                                <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
+                                <span className="font-medium">{entity.name}</span>
+                                <span className="text-[10px] text-[#E06B55] opacity-60">↗</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAcceptEntity(entity.id, entity.name);
+                                }}
+                                className={`w-4 h-4 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                                  isAccepted
+                                    ? "bg-emerald-500/30 text-emerald-300 hover:bg-red-500/30 hover:text-red-200"
+                                    : "bg-white/10 text-[#F7F7D9]/60 hover:bg-[#E06B55]/30 hover:text-[#F7F7D9]"
+                                }`}
+                                title={isAccepted ? "Accepted in canon (click to remove)" : "Click to accept into canon"}
+                              >
+                                {isAccepted ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1551,12 +1610,17 @@ export default function StudioScreen({
                               : "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80";
 
                           const photoSrc = entity.imageUrl || domainPhoto;
+                          const isAccepted = acceptedEntityIds.includes(entity.id);
 
                           return (
-                            <button
+                            <div
                               key={entity.id}
                               onClick={() => handleEntityClick(entity)}
-                              className="group rounded-[20px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-[#E06B55]/40 transition-all duration-200 text-left cursor-pointer flex flex-col overflow-hidden shadow-sm hover:shadow-md"
+                              className={`group rounded-[20px] transition-all duration-200 text-left cursor-pointer flex flex-col overflow-hidden shadow-sm hover:shadow-md border ${
+                                isAccepted
+                                  ? "bg-white/[0.07] border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.08)]"
+                                  : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.1] hover:border-[#E06B55]/40"
+                              }`}
                             >
                               {/* Entity Photography Banner */}
                               <div className="relative w-full h-24 sm:h-28 bg-black/40 overflow-hidden">
@@ -1569,6 +1633,34 @@ export default function StudioScreen({
                                   }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#162a1c] via-transparent to-transparent opacity-90" />
+
+                                {/* Top-left: Canon toggle button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleAcceptEntity(entity.id, entity.name);
+                                  }}
+                                  className={`absolute top-2 left-2 px-2.5 py-0.5 rounded-full backdrop-blur-md border text-[10px] font-sans font-medium flex items-center gap-1 transition-all cursor-pointer shadow-sm z-10 ${
+                                    isAccepted
+                                      ? "bg-emerald-950/85 border-emerald-400/60 text-emerald-300 hover:bg-red-950/85 hover:border-red-400/60 hover:text-red-200"
+                                      : "bg-black/60 hover:bg-white/20 border-white/20 text-[#F7F7D9]/80 hover:text-white"
+                                  }`}
+                                  title={isAccepted ? "Accepted in Canon (click to remove)" : "Click to accept into Canon"}
+                                >
+                                  {isAccepted ? (
+                                    <>
+                                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                      <span>In Canon</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                      <span>Accept</span>
+                                    </>
+                                  )}
+                                </button>
+
                                 {entity.affinityScore !== undefined && (
                                   <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[10px] font-sans font-bold text-[#F7F7D9] shadow-sm">
                                     {entity.affinityScore}%
@@ -1582,14 +1674,21 @@ export default function StudioScreen({
                               </div>
 
                               <div className="p-3.5 flex flex-col gap-1">
-                                <span className="font-serif italic font-bold text-sm text-[#F7F7D9] group-hover:text-[#E06B55] transition-colors truncate">
-                                  {entity.name}
-                                </span>
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-serif italic font-bold text-sm text-[#F7F7D9] group-hover:text-[#E06B55] transition-colors truncate">
+                                    {entity.name}
+                                  </span>
+                                  {isAccepted && (
+                                    <span className="text-[9px] font-mono text-emerald-400/80 uppercase font-semibold">
+                                      Canon
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="font-sans text-[11px] text-[#F7F7D9]/75 line-clamp-2 leading-relaxed">
                                   {entity.description}
                                 </p>
                               </div>
-                            </button>
+                            </div>
                           );
                         })}
                       </div>
@@ -1620,34 +1719,69 @@ export default function StudioScreen({
                 {/* View 2: Scannable Index Mode */}
                 {viewMode === "index" && (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col divide-y divide-white/[0.05] custom-scrollbar-red">
-                    {activeEntities.map((entity) => (
-                      <button
-                        key={entity.id}
-                        onClick={() => handleEntityClick(entity)}
-                        className="group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer hover:bg-white/[0.05] rounded-xl flex-shrink-0"
-                      >
-                        <div className="min-w-[150px] max-w-[200px] flex-shrink-0 flex items-center gap-2">
-                          <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold flex-shrink-0">
-                            [{entity.domain}]
-                          </span>
-                          <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
-                            {entity.name}
-                          </span>
-                        </div>
-
-                        <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
-                          {entity.description}
-                        </p>
-
-                        {entity.affinityScore !== undefined && (
-                          <div className="flex-shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
-                            <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
-                              {entity.affinityScore}%
+                    {activeEntities.map((entity) => {
+                      const isAccepted = acceptedEntityIds.includes(entity.id);
+                      return (
+                        <div
+                          key={entity.id}
+                          onClick={() => handleEntityClick(entity)}
+                          className={`group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer rounded-xl flex-shrink-0 ${
+                            isAccepted
+                              ? "bg-white/[0.06] hover:bg-white/[0.09]"
+                              : "hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          <div className="min-w-[150px] max-w-[200px] flex-shrink-0 flex items-center gap-2">
+                            <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold flex-shrink-0">
+                              [{entity.domain}]
+                            </span>
+                            <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
+                              {entity.name}
                             </span>
                           </div>
-                        )}
-                      </button>
-                    ))}
+
+                          <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
+                            {entity.description}
+                          </p>
+
+                          <div className="flex items-center gap-2.5 flex-shrink-0">
+                            {entity.affinityScore !== undefined && (
+                              <div className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
+                                <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
+                                  {entity.affinityScore}%
+                                </span>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAcceptEntity(entity.id, entity.name);
+                              }}
+                              className={`px-2.5 py-1 rounded-full border text-[10px] font-sans font-medium flex items-center gap-1 transition-all cursor-pointer ${
+                                isAccepted
+                                  ? "bg-emerald-950/70 border-emerald-400/50 text-emerald-300 hover:bg-red-950/70 hover:border-red-400/50 hover:text-red-200"
+                                  : "bg-white/[0.05] hover:bg-white/[0.12] border-white/15 text-[#F7F7D9]/70 hover:text-white"
+                              }`}
+                              title={isAccepted ? "Accepted in Canon (click to remove)" : "Click to accept into Canon"}
+                            >
+                              {isAccepted ? (
+                                <>
+                                  <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                                  <span>Canon</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                  <span>Accept</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
 
                     {/* Fetch More from Qloo in Index Mode */}
                     <div className="pt-3 pb-2 flex justify-center">
@@ -1757,6 +1891,44 @@ export default function StudioScreen({
               <p className="font-serif text-sm leading-relaxed text-[#F7F7D9]/85">
                 {selectedEntity.description}
               </p>
+
+              {/* Director's Canon Curation Action */}
+              {(() => {
+                const isSelectedAccepted = acceptedEntityIds.includes(selectedEntity.id);
+                return (
+                  <div className="p-3.5 rounded-[16px] bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#F7F7D9]/50">
+                        Curation Status
+                      </span>
+                      <span className="text-xs font-sans text-[#F7F7D9] font-medium">
+                        {isSelectedAccepted ? "Included in Character Canon" : "Proposed Discovery (Experimental)"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleAcceptEntity(selectedEntity.id, selectedEntity.name)}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-sans font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                        isSelectedAccepted
+                          ? "bg-emerald-950/80 border-emerald-400/50 text-emerald-300 hover:bg-red-950/70 hover:border-red-400/40 hover:text-red-200"
+                          : "bg-[#F7F7D9] hover:bg-white text-[#16271a] border-transparent"
+                      }`}
+                    >
+                      {isSelectedAccepted ? (
+                        <>
+                          <Check className="w-3 h-3 stroke-[2.5]" />
+                          <span>In Canon (Remove)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3 h-3 stroke-[2.5]" />
+                          <span>Accept into Canon</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })()}
 
               {/* Qloo Provenance Card */}
               <div className="rounded-[16px] bg-white/[0.04] border border-white/10 p-3.5 flex flex-col gap-2.5">
@@ -1896,6 +2068,7 @@ export default function StudioScreen({
         constraints={constraints}
         culturalDossier={culturalDossier}
         inquiries={inquiries}
+        acceptedEntityIds={acceptedEntityIds}
       />
     </div>
   );

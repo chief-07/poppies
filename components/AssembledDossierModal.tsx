@@ -36,6 +36,7 @@ interface AssembledDossierModalProps {
       entityId?: string;
     }[];
   }[];
+  acceptedEntityIds?: string[];
 }
 
 export default function AssembledDossierModal({
@@ -47,10 +48,23 @@ export default function AssembledDossierModal({
   constraints,
   culturalDossier,
   inquiries,
+  acceptedEntityIds,
 }: AssembledDossierModalProps) {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const filteredInquiries = inquiries.map((inq) => ({
+    ...inq,
+    entities: (inq.entities || []).filter((e) =>
+      acceptedEntityIds ? acceptedEntityIds.includes(e.id) : true
+    ),
+  }));
+
+  const totalAcceptedCount = filteredInquiries.reduce(
+    (acc, inq) => acc + (inq.entities?.length || 0),
+    0
+  );
 
   const generateMarkdown = () => {
     let md = `# Cultural Dossier: ${characterName}\n\n`;
@@ -87,7 +101,7 @@ export default function AssembledDossierModal({
     }
 
     md += `## Curated World Inquiries & Ensembles\n\n`;
-    inquiries.forEach((inq) => {
+    filteredInquiries.forEach((inq) => {
       md += `### ${inq.question} [${inq.domain || "Ensemble"}]\n`;
       if (inq.vignette) {
         md += `${inq.vignette}\n\n`;
@@ -294,68 +308,86 @@ export default function AssembledDossierModal({
           <div className="flex flex-col gap-5 pt-2">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-[11px] font-mono uppercase tracking-wider text-[#E06B55] font-bold">
-                Curated Inquiries & Verified Ensembles ({inquiries.length})
+                Curated Inquiries & Accepted Canon ({totalAcceptedCount} nodes)
               </span>
               <span className="text-[11px] font-sans text-[#F7F7D9]/50">
-                Full Production Lookbook
+                Director&apos;s Assembled Lookbook
               </span>
             </div>
 
-            {inquiries.map((inq, idx) => (
-              <div
-                key={inq.id || idx}
-                className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5 sm:p-6 flex flex-col gap-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="font-serif font-bold text-base sm:text-lg text-[#F7F7D9]">
-                    {inq.question}
-                  </h3>
-                  {inq.domain && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] text-[10px] font-mono uppercase text-[#E06B55] border border-white/10 flex-shrink-0">
-                      {inq.domain}
-                    </span>
+            {totalAcceptedCount === 0 ? (
+              <div className="rounded-[22px] bg-white/[0.03] border border-dashed border-white/20 p-8 flex flex-col items-center justify-center text-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-[#E06B55]">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="font-serif text-lg text-[#F7F7D9] font-medium">
+                  No cultural anchors accepted into canon yet
+                </h3>
+                <p className="font-sans text-xs sm:text-sm text-[#F7F7D9]/60 max-w-md leading-relaxed">
+                  Review your inquiries in the studio and click <strong>&quot;+ Accept&quot;</strong> on verified Qloo anchors to assemble this character&apos;s definitive lookbook.
+                </p>
+              </div>
+            ) : (
+              filteredInquiries.map((inq, idx) => (
+                <div
+                  key={inq.id || idx}
+                  className="rounded-[22px] bg-white/[0.03] border border-white/10 p-5 sm:p-6 flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-serif font-bold text-base sm:text-lg text-[#F7F7D9]">
+                      {inq.question}
+                    </h3>
+                    {inq.domain && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] text-[10px] font-mono uppercase text-[#E06B55] border border-white/10 flex-shrink-0">
+                        {inq.domain}
+                      </span>
+                    )}
+                  </div>
+
+                  {inq.vignette && (
+                    <div className="flex flex-col gap-2.5">
+                      {inq.vignette.split("\n\n").map((p, pIdx) => (
+                        <p
+                          key={pIdx}
+                          className="font-serif text-sm sm:text-base leading-relaxed text-[#F7F7D9]/85 font-light"
+                        >
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {inq.entities && inq.entities.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-white/[0.08]">
+                      {inq.entities.map((e) => (
+                        <div
+                          key={e.id}
+                          className="p-3 rounded-[16px] bg-white/[0.03] border border-white/[0.07] flex flex-col justify-between gap-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-serif italic font-bold text-xs sm:text-sm text-[#F7F7D9] truncate">
+                              {e.name}
+                            </span>
+                            {e.affinityScore !== undefined && (
+                              <span className="text-[10px] font-sans font-bold text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
+                                {e.affinityScore}%
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
+                            {e.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="font-sans italic text-xs text-[#F7F7D9]/40 pt-1 border-t border-white/[0.06]">
+                      No anchors accepted for this inquiry yet.
+                    </p>
                   )}
                 </div>
-
-                {inq.vignette && (
-                  <div className="flex flex-col gap-2.5">
-                    {inq.vignette.split("\n\n").map((p, pIdx) => (
-                      <p
-                        key={pIdx}
-                        className="font-serif text-sm sm:text-base leading-relaxed text-[#F7F7D9]/85 font-light"
-                      >
-                        {p}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                {inq.entities && inq.entities.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-white/[0.08]">
-                    {inq.entities.map((e) => (
-                      <div
-                        key={e.id}
-                        className="p-3 rounded-[16px] bg-white/[0.03] border border-white/[0.07] flex flex-col justify-between gap-1.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-serif italic font-bold text-xs sm:text-sm text-[#F7F7D9] truncate">
-                            {e.name}
-                          </span>
-                          {e.affinityScore !== undefined && (
-                            <span className="text-[10px] font-sans font-bold text-emerald-400 bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-800/40">
-                              {e.affinityScore}%
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-2 leading-relaxed">
-                          {e.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
