@@ -1,18 +1,18 @@
 # Poppies
 
-**A culturally grounded character and world-building studio powered by Qloo.**
+**A culturally grounded character and world-building agent powered by Qloo.**
 
-Poppies helps screenwriters, novelists, and game narrative designers build fictional characters and worlds that feel authentic, specific, and lived-in—using real-world cultural taste data rather than internet clichés.
+Poppies helps creators, writers, and brand designers build characters, personas, and worlds that feel authentic, specific, and lived-in—using real-world cultural taste data rather than internet clichés.
 
 ---
 
 ## The Problem
 
-When writers build characters, believable details make or break the world. The books on a nightstand, the tools on a workbench, the music playing in a kitchen at 2 AM, the neighborhood diner someone actually goes to—these specific choices signal who a person is.
+Whether writing a screenplay, designing a game world, dressing a film set, or crafting a brand persona or mascot: believable details make or break the illusion. The books on a nightstand, the tools on a workbench, the music playing in a kitchen at 2 AM, the neighborhood diner someone actually visits—these specific choices signal who someone is.
 
-Today, creators face a frustrating bottleneck:
-1. **Manual research takes weeks**, often leading writers to lean on familiar tropes for subcultures they haven't personally lived in.
-2. **Standard AI models make it worse.** Ask ChatGPT, Claude, or Gemini to flesh out a character, and you get the statistical middle of internet clichés.
+When these choices are generic, characters feel flat and fail to connect with an audience. Creators either guess, lean on surface-level tropes, or spend weeks researching subcultures they haven't personally lived in.
+
+Standard AI models make the problem worse. Ask ChatGPT, Claude, or Gemini to flesh out a character, and you get the statistical middle of internet clichés.
 
 Ask a base LLM to detail a **36-year-old train station architect in Nagoya**, and every single run gives you the same cardboard cutout:
 - They drink from *Hasami porcelain*.
@@ -32,41 +32,39 @@ Prompting harder or adding more instructions does not fix the issue—it simply 
 
 ---
 
-## Why Qloo Matters
+## The Grounding Difference
 
-Qloo is not a language model. It is an empirical Taste Graph mapping over **10 billion cross-domain affinities across 250+ million entities** (music, literature, fashion, cinema, dining, everyday objects, and places).
-
-Instead of guessing what sounds plausible, Qloo reflects how human preferences actually cluster:
+Instead of guessing what sounds plausible based on internet word associations, Poppies taps into how human taste and preferences actually cluster in the real world:
 - A person drawn to minimalist Japanese ambient music (*Roberto Musci*, *Meitei*) doesn't necessarily buy commercial designer stationery; they might carry an *Opinel No. 8 carbon knife* or read Gaston Bachelard's *The Poetics of Space*.
 - A stone conservator in Marseille doesn't frequent tourist bistros along the Old Port; their habits cluster around working-class harbor haunts and rugged, repair-focused gear (*Knipex*, *Danner*).
 
-Poppies combines Qloo's empirical taste graph with Gemini's reasoning to discover authentic cultural anchors and synthesize them into usable creative dossiers.
+By querying real cross-domain affinities (music, literature, fashion, objects, dining, and places), the agent discovers authentic cultural anchors that no language model could deduce from text statistics alone.
 
 ---
 
 ## Who It's For
 
-- **Screenwriters & Showrunners:** Build character bibles and dialogue texture that feel earned and grounded rather than googled.
-- **Game Narrative Designers:** Populate open worlds with NPCs, factions, and local haunts that have genuine regional and subcultural depth.
-- **Novelists:** Research unfamiliar subcultures, trades, and environments with confidence, avoiding shallow caricatures.
-- **Production & Wardrobe Designers:** Identify specific, period- and budget-accurate props, everyday gear, and clothing.
+- **Screenwriters & Narrative Designers:** Build character bibles and dialogue texture that feel earned and grounded rather than googled.
+- **Production Designers & Art Departments:** Select wardrobe, set dressing, everyday gear, and props that reflect true socioeconomic and regional reality.
+- **Brand Strategists & Creative Directors:** Develop brand personas, brand mascots, and campaign archetypes with real subcultural resonance that genuinely connect with audiences instead of feeling manufactured.
+- **Novelists & Storytellers:** Ground unfamiliar subcultures, trades, and environments with confidence, avoiding shallow caricatures.
 
 ---
 
 ## How Poppies Works
 
-Poppies is a creative studio, not a generic chatbot or a raw list generator. Every piece of the interface serves a specific part of the writing process:
+Poppies is a **collaborative creative agent**, not a generic chatbot or a raw list generator. It acts as an artistic partner—proposing grounded directions while leaving the creator firmly in the director's chair. Every component is designed to keep human direction and cultural data in sync:
 
 ### 1. The Character Canvas & Inquiry Lenses
-Start with a short brief—a character's profession, a setting, or an emotional premise. As you type, dynamic inquiry lenses suggest specific angles to explore (their workspace, night routines, literary influences, or unexpected habits).
+Start with a short brief—a character's profession, a setting, a brand premise, or an emotional idea. As you type, dynamic inquiry lenses suggest specific angles to explore (their workspace, night routines, literary influences, or unexpected habits).
 
 ### 2. Dual Inquiries (`[You]` vs `[Agent]`)
 Investigations are organized into two clear tracks:
 - **`[You]` (Creator-Directed):** Inquiries directly answering questions from your prompt (e.g., *What drafting tools rest on his desk?*).
-- **`[Agent]` (Autonomous Discoveries):** Questions opened independently by the agent when it uncovers an unexpected or interesting affinity in Qloo's graph.
+- **`[Agent]` (Autonomous Discoveries):** Questions opened independently by the agent when it uncovers an unexpected or interesting affinity in the taste graph.
 
 ### 3. Curated Cultural Trays
-Rather than overwhelming you with raw data feeds, Poppies curates 3–4 grounded recommendations per inquiry. Each item is accompanied by a concise rationale explaining why it fits this character's background, era, and environment.
+Rather than overwhelming you with raw data feeds, the agent curates 3–4 grounded recommendations per inquiry. Each item is accompanied by a concise rationale explaining why it fits this character's background, era, and environment.
 
 ### 4. Inspectable Evidence
 Click any cultural entity in the text to open the **Qloo Evidence Drawer**. You can view canonical Qloo entity IDs, source seeds, URN types, and latent affinity scores to verify where the recommendation came from.
@@ -75,7 +73,7 @@ Click any cultural entity in the text to open the **Qloo Evidence Drawer**. You 
 You retain final say over every detail. Recommendations start as proposals that you can accept into canon or discard. Need more options? Click `+ Fetch 4 More from Qloo` to expand the tray on demand.
 
 ### 6. Live Base LLM Comparison Switch
-A toggle in the studio header lets you switch the backend pipeline between **Qloo Taste Graph** and **Vanilla Base LLM**. You can run the exact same character brief through both engines side-by-side to see the difference between empirical cultural data and generic model consensus.
+A toggle in the header lets you switch the backend pipeline between **Qloo Taste Graph** and **Vanilla Base LLM**. You can run the exact same character brief through both engines side-by-side to see the difference between empirical cultural data and generic model consensus.
 
 ### 7. Assembled Character Lookbook
 Compile your accepted canon into a formatted reference lookbook. Ready to copy into a writer's room document, export to Markdown, or print.
