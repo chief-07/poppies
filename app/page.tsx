@@ -108,6 +108,26 @@ export default function Home() {
   const [isFocused, setIsFocused] = useState(false);
   const [markerPos, setMarkerPos] = useState<{ top: number; left: number } | null>(null);
 
+  // Initial Entrance Splash Screen with soft fade out
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
+
+  useEffect(() => {
+    // Hold splash screen for ~1.5s, then trigger soft fade
+    const fadeTimer = setTimeout(() => {
+      setSplashFading(true);
+    }, 1500);
+
+    const removeTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2300); // 1.5s hold + 800ms soft fade
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
+
   const promptCardRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -340,16 +360,32 @@ export default function Home() {
   // State 1: Input Screen (Clean canvas, unencumbered by header)
   return (
     <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
-      <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-8 sm:py-12 px-4 sm:px-6">
+      {/* Initial Entrance Splash Screen */}
+      {showSplash && (
+        <div
+          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none transition-opacity duration-800 ease-in-out ${
+            splashFading ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
+        >
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out"
+            style={{
+              backgroundImage: "url('/poppies-splash.jpg')",
+            }}
+          />
+        </div>
+      )}
+
+      <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-transparent py-8 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
-          className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none"
+          className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
           style={{
             backgroundImage: "url('/poppies-bg.jpg')",
           }}
         />
 
-        {/* 2. Solid Green (#28402A) Center Band (Top-to-bottom fade on mobile, left-to-right on desktop) */}
+        {/* 2. Solid Green (#28402A) Center Band (Top-and-bottom fade across mobile & desktop) */}
         <div
           className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px] input-stage-mask"
           style={{

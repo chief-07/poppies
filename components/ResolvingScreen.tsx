@@ -101,7 +101,7 @@ export default function ResolvingScreen({
   const [isResolved, setIsResolved] = useState(false);
 
   const resolvedDataRef = useRef<any>(null);
-  const minTimeReachedRef = useRef(false);
+  const sequenceFinishedRef = useRef(false);
 
   const lines = engine === "base_llm" ? BASE_LLM_LINES : QLOO_LINES;
 
@@ -110,76 +110,83 @@ export default function ResolvingScreen({
     const timeoutIds: NodeJS.Timeout[] = [];
     const promptSeeds = extractPromptSeeds(promptText);
 
-    // Phase 1 -> Phase 2 (at 2100ms)
-    timeoutIds.push(
-      setTimeout(() => {
-        if (!isMounted) return;
-        setFadeState("exit");
-        setTimeout(() => {
-          if (!isMounted) return;
-          setPhaseIndex(1);
-          setFadeState("enter");
-        }, 250);
-      }, 2100)
-    );
-
-    // Phase 2 -> Phase 3: "Reading the anchors..." (at 4300ms)
-    timeoutIds.push(
-      setTimeout(() => {
-        if (!isMounted) return;
-        setFadeState("exit");
-        setTimeout(() => {
-          if (!isMounted) return;
-          setPhaseIndex(2);
-          setFadeState("enter");
-
-          // In this phase, pills appear ONE BY ONE with staggered timing
-          promptSeeds.forEach((seed, idx) => {
-            timeoutIds.push(
-              setTimeout(() => {
-                if (isMounted) {
-                  setVisiblePills((prev) => (prev.includes(seed) ? prev : [...prev, seed]));
-                }
-              }, 300 + idx * 350)
-            );
-          });
-        }, 250);
-      }, 4300)
-    );
-
-    // Phase 3 -> Phase 4: Traversing Qloo's taste graph (at 6800ms)
-    timeoutIds.push(
-      setTimeout(() => {
-        if (!isMounted) return;
-        setFadeState("exit");
-        setTimeout(() => {
-          if (!isMounted) return;
-          setPhaseIndex(3);
-          setFadeState("enter");
-        }, 250);
-      }, 6800)
-    );
-
-    // Minimum reading time reached at 8.4s
-    timeoutIds.push(
-      setTimeout(() => {
-        if (!isMounted) return;
-        minTimeReachedRef.current = true;
-        if (resolvedDataRef.current) {
-          triggerCompletion(resolvedDataRef.current);
-        }
-      }, 8400)
-    );
-
     function triggerCompletion(data: any) {
       if (!isMounted) return;
       setIsResolved(true);
       timeoutIds.push(
         setTimeout(() => {
           if (isMounted) onResolved(data);
-        }, 600)
+        }, 450)
       );
     }
+
+    // Phase 0 -> Phase 1 ("Because characters feel fake when built from generic AI tropes.")
+    timeoutIds.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setFadeState("exit");
+        timeoutIds.push(
+          setTimeout(() => {
+            if (!isMounted) return;
+            setPhaseIndex(1);
+            setFadeState("enter");
+          }, 240)
+        );
+      }, 1800)
+    );
+
+    // Phase 1 -> Phase 2 ("Reading the anchors, craft, and setting from your brief.")
+    // Staggered pills appear during this phase with calm, deliberate pacing
+    timeoutIds.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setFadeState("exit");
+        timeoutIds.push(
+          setTimeout(() => {
+            if (!isMounted) return;
+            setPhaseIndex(2);
+            setFadeState("enter");
+
+            // Staggered pills reveal cleanly while reading brief
+            promptSeeds.forEach((seed, idx) => {
+              timeoutIds.push(
+                setTimeout(() => {
+                  if (isMounted) {
+                    setVisiblePills((prev) => (prev.includes(seed) ? prev : [...prev, seed]));
+                  }
+                }, 300 + idx * 340)
+              );
+            });
+          }, 240)
+        );
+      }, 3900)
+    );
+
+    // Phase 2 -> Phase 3 ("Traversing Qloo's taste graph to uncover authentic cultural relationships.")
+    timeoutIds.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        setFadeState("exit");
+        timeoutIds.push(
+          setTimeout(() => {
+            if (!isMounted) return;
+            setPhaseIndex(3);
+            setFadeState("enter");
+          }, 240)
+        );
+      }, 6400)
+    );
+
+    // Sequence pacing complete at 7800ms
+    timeoutIds.push(
+      setTimeout(() => {
+        if (!isMounted) return;
+        sequenceFinishedRef.current = true;
+        if (resolvedDataRef.current) {
+          triggerCompletion(resolvedDataRef.current);
+        }
+      }, 7800)
+    );
 
     // Run resolution in parallel
     async function runResolution() {
@@ -194,14 +201,14 @@ export default function ResolvingScreen({
         if (!isMounted) return;
 
         resolvedDataRef.current = data;
-        if (minTimeReachedRef.current) {
+        if (sequenceFinishedRef.current) {
           triggerCompletion(data);
         }
       } catch (err) {
         console.error("Resolution error:", err);
         const fallbackData = { success: true, seeds: [] };
         resolvedDataRef.current = fallbackData;
-        if (minTimeReachedRef.current) {
+        if (sequenceFinishedRef.current) {
           triggerCompletion(fallbackData);
         }
       }
@@ -218,10 +225,10 @@ export default function ResolvingScreen({
   const currentLine = lines[phaseIndex] || lines[0];
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-[#28402a] px-6 select-none">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-transparent px-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none"
+        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
@@ -237,22 +244,19 @@ export default function ResolvingScreen({
 
       {/* 3. Central Content: Single Line of Text + Clean Staggered Pills */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center max-w-4xl mx-auto gap-6 sm:gap-7 px-4">
-        {/* Emblem / Logo Container (Ready for provided official logo asset) */}
+        {/* Emblem / Logo Container */}
         <div className="relative flex items-center justify-center">
-          <div
-            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-white/20 bg-cover bg-no-repeat transition-transform duration-700 ${
-              isResolved ? "scale-105 shadow-[0_0_30px_rgba(224,107,85,0.4)]" : "animate-pulse"
+          <img
+            src="/poppy-logo.png"
+            alt="Poppies"
+            className={`w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_8px_30px_rgba(224,107,85,0.4)] transition-transform duration-700 ${
+              isResolved ? "scale-110 drop-shadow-[0_0_35px_rgba(224,107,85,0.6)]" : "animate-pulse"
             }`}
-            style={{
-              backgroundImage: "url('/poppies-bg.jpg')",
-              backgroundPosition: "42% 49%",
-              backgroundSize: "650%",
-            }}
           />
         </div>
 
-        {/* Exactly One Single Line of Text (Header-sized, no text spill) */}
-        <div className="min-h-[44px] flex items-center justify-center w-full">
+        {/* Exactly One Single Line of Text (Header-sized, stable min-h) */}
+        <div className="min-h-[48px] flex items-center justify-center w-full">
           <h2
             className={`font-serif font-normal text-lg sm:text-xl md:text-2xl text-[#F7F7D9] tracking-tight text-center transition-all duration-300 transform sm:whitespace-nowrap ${
               fadeState === "enter"
@@ -264,7 +268,7 @@ export default function ResolvingScreen({
           </h2>
         </div>
 
-        {/* Clean Extracted Pills (Appear ONLY starting in Phase 3, one at a time, NO prefix labels) */}
+        {/* Clean Extracted Pills (Appear staggered during Phase 2) */}
         <div className="min-h-[42px] flex items-center justify-center">
           {visiblePills.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 max-w-2xl">

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 import HeaderControls from "@/components/HeaderControls";
+import { renderTextWithEntityTags, getEntityPhoto } from "@/lib/entity-tagger";
 
 interface StudioScreenProps {
   initialData: any;
@@ -70,83 +71,13 @@ interface CulturalDossierBrief {
   highlightedNodes: string[];
 }
 
-/**
- * Renders narrative text with real Qloo entities styled as clickable interactive terracotta tags.
- * Clicking any tag immediately opens the Qloo Evidence Inspector drawer.
- */
-function renderTextWithEntityTags(
-  text: string,
-  entities: CulturalEntity[],
-  onEntityClick: (entity: CulturalEntity) => void
-) {
-  if (!text || entities.length === 0) return <span>{text}</span>;
-
-  const seen = new Set<string>();
-  const validEntities = entities
-    .filter((e) => {
-      if (!e || !e.name || e.name.trim().length <= 1) return false;
-      const lower = e.name.toLowerCase().trim();
-      if (seen.has(lower)) return false;
-      seen.add(lower);
-      return true;
-    })
-    .sort((a, b) => b.name.length - a.name.length);
-
-  if (validEntities.length === 0) return <span>{text}</span>;
-
-  const patterns = validEntities.map((e) => {
-    const esc = e.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const sb = /^\w/.test(e.name.trim()) ? "\\b" : "";
-    const eb = /\w$/.test(e.name.trim()) ? "\\b" : "";
-    return `${sb}${esc}${eb}`;
-  });
-
-  const regex = new RegExp(`(${patterns.join("|")})`, "gi");
-  const parts = text.split(regex);
-
-  return (
-    <>
-      {parts.map((part, index) => {
-        const matched = validEntities.find(
-          (e) => e.name.toLowerCase() === part.toLowerCase()
-        );
-        if (matched) {
-          return (
-            <button
-              key={index}
-              type="button"
-              onClick={() => onEntityClick(matched)}
-              className="inline-flex items-center gap-1 mx-1 px-2.5 py-0.5 rounded-full bg-[#E06B55]/18 hover:bg-[#E06B55]/32 border border-[#E06B55]/40 hover:border-[#E06B55]/70 text-[#F7F7D9] font-sans font-medium text-xs sm:text-[13px] transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 group align-baseline"
-              title={`Inspect Qloo taste graph evidence for ${matched.name}`}
-            >
-              <span>{part}</span>
-              <span className="text-[10px] text-[#E06B55] opacity-80 group-hover:opacity-100 transition-opacity">↗</span>
-            </button>
-          );
-        }
-        return <span key={index}>{part}</span>;
-      })}
-    </>
-  );
-}
-
-function getEntityPhoto(entity: { domain?: string; imageUrl?: string }): string {
-  if (entity.imageUrl) return entity.imageUrl;
-  switch (entity.domain) {
-    case "MUSIC":
-      return "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80";
-    case "BOOKS":
-      return "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80";
-    case "PLACES":
-      return "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=800&q=80";
-    default:
-      return "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=800&q=80";
-  }
-}
-
 const DEFAULT_DOSSIER: CulturalDossierBrief = {
   tasteThesis:
-    "In Marseille, Elena's work as an architectural conservator shapes a life bound to physical durability and patient repair. On her worktable, a carbon-bladed knife from Opinel Knives and heavy canvas workwear defend against the damp stone dust of the port. When solitude calls, she turns to the spare piano phrases of Erik Satie and the limestone inlets of the harbor, seeking quiet spaces untouched by modern renovation.",
+    "In Marseille, Elena's work as an architectural conservator shapes a life bound to physical durability and patient repair. On her worktable, a carbon-bladed knife from Opinel Knives and rugged boots from Danner defend against the damp stone dust of the port. When solitude calls, she turns to the spare piano phrases of Erik Satie and the limestone inlets of the harbor, seeking quiet spaces untouched by modern renovation.",
+  psychologicalWound:
+    "An obsession with preventing structural decay that borders on emotional self-isolation; she treats personal intimacy with the same cautious, non-invasive delicacy she applies to friable 18th-century coastal masonry.",
+  tactileArmor:
+    "Heavy indigo chore jackets, wax-dipped cotton aprons, and worn Opinel Knives that carry physical scars of lime mortar and whetstone work rather than showroom polish.",
   observedClusters: [
     "French Impressionist Piano",
     "Heritage Woodwork & Cutlery",
@@ -156,46 +87,12 @@ const DEFAULT_DOSSIER: CulturalDossierBrief = {
     {
       title: "Submerged Tension",
       description:
-        "Listeners anchored in minimalist acoustic music cross-index into heavier ambient and drone, suggesting emotional weight concealed under clean surfaces.",
+        "Listeners anchored in minimalist acoustic piano cross-index heavily into solitary Japanese ambient like Hiroshi Yoshimura, revealing a need for deliberate acoustic silence over narrative noise.",
       groundedEntity: "Erik Satie",
     },
   ],
-  highlightedNodes: ["Opinel Knives", "Erik Satie", "Marseille"],
+  highlightedNodes: ["Opinel Knives", "Danner", "Erik Satie", "Hiroshi Yoshimura", "Marseille"],
 };
-
-const MOCK_INQUIRIES: Inquiry[] = [
-  {
-    id: "tools",
-    question: "What tools and everyday objects rest on her worktable?",
-    source: "creator",
-    domain: "OBJECTS",
-    vignette:
-      "On the cedar workbench in her Marseille studio, alongside drafting compasses, stone gouges, and fine brass calipers, rests a patinated folding knife from Opinel Knives and heavy-duty Danner boots caked in lime dust by the doorway. Her restoration trade demands physical endurance against salt spray and crumbly 18th-century limestone, favoring carbon steel that can be sharpened on a whetstone between tasks rather than modern disposable blades.\n\nHer choices reflect an aversion to sterile corporate architectural tools. Grounded in her background restoring forgotten coastal structures, Qloo identifies a cohesive material universe: pairing her French heritage cutlery with heavy canvas chore wear, unlined leather work aprons, and unlacquered measuring rules that age honestly alongside the architecture she repairs.",
-    vignetteHighlightEntity: "Opinel Knives",
-    hasAudio: false,
-  },
-  {
-    id: "soundscape",
-    question: "What does her 2 AM solitary soundscape sound like?",
-    source: "creator",
-    domain: "MUSIC",
-    vignette:
-      "At 2 AM, when the wind off the Old Port rattles the wooden sash frames, Elena works under the warm pool of an incandescent drafting lamp. Rather than modern electronic drone or background café jazz, she turns to the austere, repetitive piano phrases of Erik Satie and the quiet spatial field recordings of Hiroshi Yoshimura, letting sparse acoustic notes fill the cavernous room without demanding narrative attention.\n\nFor an architectural conservator spending daylight hours listening to stone dust and power tools, solitary sound serves as an acoustic boundary. Qloo's taste graph reveals that listeners who gravitate toward early French impressionist minimalism over-index heavily on Japanese environmental ambient and solitary acoustic compositions—creating a sonic sanctuary where silence feels deliberate rather than lonely.",
-    vignetteHighlightEntity: "Erik Satie",
-    hasAudio: true,
-    audioTrackName: "Erik Satie — Gymnopedies (1888)",
-  },
-  {
-    id: "haunts",
-    question: "Where does she disappear on Sunday afternoons?",
-    source: "creator",
-    domain: "PLACES",
-    vignette:
-      "When the workshop dust settles on Sunday afternoons, Elena avoids the tourist promenades of Marseille and heads down into the limestone inlets and secluded coves near the harbor. She walks along the weathered stone sea-walls with an unhurried, diagnostic eye—watching how Mediterranean brine oxidizes iron railings and softens ancient masonry.\n\nHer weekend route connects quiet maritime sanctuaries with unpretentious local craft spots untouched by modern gentrification. Qloo bridges her appreciation for enduring stone craft to coastal sanctuaries and solitary harbors, where the slow erosion of salt and water mirrors the restorative patience she brings to her drafting table.",
-    vignetteHighlightEntity: "Marseille",
-    hasAudio: false,
-  },
-];
 
 const MOCK_ENTITIES_TOOLS: CulturalEntity[] = [
   {
@@ -233,6 +130,109 @@ const MOCK_ENTITIES_TOOLS: CulturalEntity[] = [
     imageUrl: "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80",
     seedEntities: ["Opinel Knives"],
     qlooReasoning: "Utilitarian mechanical tool brand indexing high among restoration professionals.",
+  },
+];
+
+const MOCK_ENTITIES_MUSIC: CulturalEntity[] = [
+  {
+    id: "m1",
+    name: "Erik Satie",
+    domain: "MUSIC",
+    description: "French composer whose austere piano Gymnopédies provide solitary acoustic boundary.",
+    entityId: "urn:qloo:entity:erik_satie_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 95,
+    imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Elena", "Marseille"],
+    qlooReasoning: "French impressionist minimalism with direct affinity to solitary studio practitioners.",
+  },
+  {
+    id: "m2",
+    name: "Hiroshi Yoshimura",
+    domain: "MUSIC",
+    description: "Japanese environmental ambient pioneer known for crystalline spatial sound discipline.",
+    entityId: "urn:qloo:entity:hiroshi_yoshimura_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 91,
+    imageUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Erik Satie"],
+    qlooReasoning: "Second-order traversal: listeners of Satie over-index heavily on Japanese acoustic ambient.",
+  },
+  {
+    id: "m3",
+    name: "Midori Takada",
+    domain: "MUSIC",
+    description: "Percussionist and composer whose meditative marimba patterns mirror architectural precision.",
+    entityId: "urn:qloo:entity:midori_takada_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 88,
+    imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Hiroshi Yoshimura"],
+    qlooReasoning: "Co-occurrence cluster among architectural and tactile designers.",
+  },
+];
+
+const MOCK_ENTITIES_PLACES: CulturalEntity[] = [
+  {
+    id: "p1",
+    name: "Vallon des Auffes",
+    domain: "PLACES",
+    description: "Traditional fishing haven tucked under stone archways, shielded from tourist traffic.",
+    entityId: "urn:qloo:entity:vallon_des_auffes_001",
+    entityType: "urn:entity:place",
+    affinityScore: 94,
+    imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Elena", "Marseille"],
+    qlooReasoning: "Hyper-local coastal sanctuary with authentic stonework and low commercial presence.",
+  },
+  {
+    id: "p2",
+    name: "Malmousque",
+    domain: "PLACES",
+    description: "Labyrinthine coastal cove of sun-bleached rocks and quiet saltwater swimming ledges.",
+    entityId: "urn:qloo:entity:malmousque_001",
+    entityType: "urn:entity:place",
+    affinityScore: 90,
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Vallon des Auffes"],
+    qlooReasoning: "Adjacent geographic cluster favored by local craftspeople over urban public beaches.",
+  },
+];
+
+const MOCK_INQUIRIES: Inquiry[] = [
+  {
+    id: "tools",
+    question: "What tools and everyday objects rest on her worktable?",
+    source: "creator",
+    domain: "OBJECTS",
+    vignette:
+      "On the cedar workbench in her Marseille studio, alongside drafting compasses, stone gouges, and fine brass calipers, rests a patinated folding knife from Opinel Knives and heavy-duty Danner boots caked in lime dust by the doorway. Her restoration trade demands physical endurance against salt spray and crumbly 18th-century limestone, favoring carbon steel that can be sharpened on a whetstone between tasks rather than modern disposable blades.\n\nHer choices reflect an aversion to sterile corporate architectural tools. Grounded in her background restoring forgotten coastal structures, Qloo identifies a cohesive material universe: pairing her French heritage cutlery with heavy canvas chore wear, unlined leather work aprons, and unlacquered measuring rules that age honestly alongside the architecture she repairs.",
+    vignetteHighlightEntity: "Opinel Knives",
+    hasAudio: false,
+    entities: MOCK_ENTITIES_TOOLS,
+  },
+  {
+    id: "soundscape",
+    question: "What does her 2 AM solitary soundscape sound like?",
+    source: "creator",
+    domain: "MUSIC",
+    vignette:
+      "At 2 AM, when the wind off the Old Port rattles the wooden sash frames, Elena works under the warm pool of an incandescent drafting lamp. Rather than modern electronic drone or background café jazz, she turns to the austere, repetitive piano phrases of Erik Satie and the quiet spatial field recordings of Hiroshi Yoshimura, letting sparse acoustic notes fill the cavernous room without demanding narrative attention.\n\nFor an architectural conservator spending daylight hours listening to stone dust and power tools, solitary sound serves as an acoustic boundary. Qloo's taste graph reveals that listeners who gravitate toward early French impressionist minimalism over-index heavily on Japanese environmental ambient and solitary acoustic compositions—creating a sonic sanctuary where silence feels deliberate rather than lonely.",
+    vignetteHighlightEntity: "Erik Satie",
+    hasAudio: true,
+    audioTrackName: "Erik Satie — Gymnopedies (1888)",
+    entities: MOCK_ENTITIES_MUSIC,
+  },
+  {
+    id: "haunts",
+    question: "Where does she disappear on Sunday afternoons?",
+    source: "creator",
+    domain: "PLACES",
+    vignette:
+      "When the workshop dust settles on Sunday afternoons, Elena avoids the tourist promenades of Marseille and heads down into the limestone inlets and secluded coves near the harbor. She walks along the weathered stone sea-walls of Vallon des Auffes and the rocky outcrops of Malmousque with an unhurried, diagnostic eye—watching how Mediterranean brine oxidizes iron railings and softens ancient masonry.\n\nHer weekend route connects quiet maritime sanctuaries with unpretentious local craft spots untouched by modern gentrification. Qloo bridges her appreciation for enduring stone craft to coastal sanctuaries and solitary harbors, where the slow erosion of salt and water mirrors the restorative patience she brings to her drafting table.",
+    vignetteHighlightEntity: "Marseille",
+    hasAudio: false,
+    entities: MOCK_ENTITIES_PLACES,
   },
 ];
 
@@ -1128,16 +1128,16 @@ export default function StudioScreen({
   };
 
   return (
-    <div className="relative h-[100dvh] min-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-[#101b13] p-2 sm:p-4 lg:p-6 select-none">
+    <div className="relative h-[100dvh] min-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none opacity-90 scale-[1.01]"
+        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
       />
 
-      {/* 2. Solid Green Clearing Extending to Right Edge (Top-to-bottom fade on mobile, left-to-right on desktop) */}
+      {/* 2. Solid Green Clearing Extending to Right Edge (Top-and-bottom fade across mobile & desktop) */}
       <div
         className="pointer-events-none fixed inset-y-0 right-0 left-0 w-full green-stage-mask"
         style={{
@@ -1173,13 +1173,10 @@ export default function StudioScreen({
             <div className="relative z-10 flex flex-col gap-3 min-h-0 flex-1">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2 pl-1">
-                  <div
-                    className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
-                    style={{
-                      backgroundImage: "url('/poppies-bg.jpg')",
-                      backgroundPosition: "42% 49%",
-                      backgroundSize: "650%",
-                    }}
+                  <img
+                    src="/poppy-logo.png"
+                    alt="Poppies"
+                    className="w-5 h-5 sm:w-5.5 sm:h-5.5 object-contain drop-shadow"
                   />
                   <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
                     Poppies
@@ -1322,13 +1319,10 @@ export default function StudioScreen({
           <div className="flex flex-col gap-3 min-h-0 flex-1">
             {/* Logo */}
             <div className="flex items-center gap-2.5 pl-1 flex-shrink-0">
-              <div
-                className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
-                style={{
-                  backgroundImage: "url('/poppies-bg.jpg')",
-                  backgroundPosition: "42% 49%",
-                  backgroundSize: "650%",
-                }}
+              <img
+                src="/poppy-logo.png"
+                alt="Poppies"
+                className="w-5 h-5 sm:w-5.5 sm:h-5.5 object-contain drop-shadow"
               />
               <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
                 Poppies
@@ -1491,22 +1485,6 @@ export default function StudioScreen({
                 <span className="font-mono text-[11px] font-semibold text-[#F7F7D9]">{acceptedEntityIds.length}</span>
               </button>
 
-              {constraints.locality && (
-                <span className="hidden lg:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.locality}
-                </span>
-              )}
-              {constraints.era && (
-                <span className="hidden xl:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.era}
-                </span>
-              )}
-              {constraints.occupation && (
-                <span className="hidden xl:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
-                  {constraints.occupation}
-                </span>
-              )}
-
               {onToggleEngine && onOpenTour && (
                 <HeaderControls
                   engine={engine}
@@ -1518,7 +1496,7 @@ export default function StudioScreen({
           </div>
 
           {/* Main Card */}
-          <main id="tour-center-pane" className="relative w-full flex-1 min-h-0 rounded-[20px] sm:rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-4 sm:p-6 lg:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+          <main id="tour-center-pane" className="relative w-full flex-1 min-h-0 rounded-[20px] sm:rounded-[26px] bg-[#162a1c]/72 sm:bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-4 sm:p-6 lg:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
             {/* Swapping Engine Loading Indicator */}
             {isSwappingEngine && (
               <div className="mb-4 rounded-[18px] bg-white/[0.04] border border-white/10 p-3.5 flex items-center justify-center gap-3 text-xs font-sans text-[#F7F7D9]/80 animate-pulse flex-shrink-0">
@@ -1579,649 +1557,133 @@ export default function StudioScreen({
               </div>
             )}
 
-            {/* VIEW A: CULTURAL DOSSIER (Bento Grid Lookbook & Archive Sourcing Catalog) */}
+            {/* VIEW A: CULTURAL DOSSIER (Laid out directly in main card, zero redundant headers or nested cards) */}
             {isDossierSelected ? (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 sm:pr-1.5 flex flex-col gap-4 sm:gap-5 custom-scrollbar-red">
-                {/* 1. Masthead & View Controls */}
-                <div className="flex-shrink-0 flex items-center justify-between gap-3 pb-3 border-b border-white/[0.08] flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-[#E06B55] uppercase tracking-wider font-bold">
-                      [Director&apos;s Dossier]
-                    </span>
-                    <span className="text-xs font-mono text-[#F7F7D9]/50">
-                      {[constraints.locality, constraints.era, constraints.occupation].filter(Boolean).join(" · ") || "Cultural Graph Grounding"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* View Switcher: Lookbook Bento vs Archive List */}
-                    <div className="flex items-center gap-1 p-0.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-md">
-                      <button
-                        type="button"
-                        onClick={() => setDossierViewMode("bento")}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
-                          dossierViewMode === "bento"
-                            ? "bg-[#E06B55] text-white shadow-sm font-medium"
-                            : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
-                        }`}
-                        title="Editorial Lookbook Bento Grid"
-                      >
-                        <LayoutGrid className="w-3.5 h-3.5" />
-                        <span>Lookbook</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDossierViewMode("catalog")}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
-                          dossierViewMode === "catalog"
-                            ? "bg-[#E06B55] text-white shadow-sm font-medium"
-                            : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
-                        }`}
-                        title="Archive Sourcing Catalog List"
-                      >
-                        <List className="w-3.5 h-3.5" />
-                        <span>Archive List</span>
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsDossierModalOpen(true)}
-                      className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer active:scale-95"
-                    >
-                      <BookOpen className="w-3.5 h-3.5 text-[#E06B55]" />
-                      <span>Pitch Bible ({acceptedEntityIds.length})</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Opening Master Taste Thesis Quote */}
-                <div className="relative pl-4 border-l-2 border-[#E06B55]/70 py-0.5">
-                  <p className="font-serif italic text-base sm:text-[18px] leading-[1.8] text-[#F7F7D9]/95 font-light">
-                    {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
-                  </p>
-                </div>
-
-                {dossierViewMode === "bento" ? (
-                  /* VIEW A.1: EDITORIAL BENTO GRID (Asymmetrical magazine layout with tactile spectacle) */
-                  (() => {
-                    const objectEntities = allTaggableEntities.filter(
-                      (e) => e.domain === "OBJECTS" || e.domain === "BRANDS & OBJECTS"
-                    );
-                    const musicEntities = allTaggableEntities.filter((e) => e.domain === "MUSIC");
-                    const bookEntities = allTaggableEntities.filter((e) => e.domain === "BOOKS");
-                    const placeEntities = allTaggableEntities.filter((e) => e.domain === "PLACES");
-
-                    const heroObject =
-                      objectEntities.find((e) => acceptedEntityIds.includes(e.id)) ||
-                      objectEntities[0] ||
-                      allTaggableEntities[0];
-
-                    const heroMusic =
-                      musicEntities.find((e) => acceptedEntityIds.includes(e.id)) ||
-                      musicEntities[0] ||
-                      allTaggableEntities[1];
-
-                    const heroBook =
-                      bookEntities.find((e) => acceptedEntityIds.includes(e.id)) ||
-                      bookEntities[0] ||
-                      allTaggableEntities[2];
-
-                    const heroPlace =
-                      placeEntities.find((e) => acceptedEntityIds.includes(e.id)) ||
-                      placeEntities[0] ||
-                      allTaggableEntities[3];
-
-                    const latentAngle = culturalDossier.unconsideredAngles?.[0];
-
-                    return (
-                      <div className="flex flex-col gap-4 sm:gap-5">
-                        {/* Asymmetric Bento Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
-                          {/* Tile 1: Hero Tactile Armor (Spans 2 cols, 2 rows on XL) */}
-                          {heroObject && (
-                            <div className="col-span-1 md:col-span-2 row-span-1 xl:row-span-2 min-h-[300px] xl:min-h-[380px] rounded-[22px] bg-white/[0.04] border border-white/15 overflow-hidden relative flex flex-col justify-between group shadow-lg">
-                              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                <img
-                                  src={getEntityPhoto(heroObject)}
-                                  alt={heroObject.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#0e1911] via-[#0e1911]/60 to-transparent" />
-                              </div>
-
-                              <div className="relative z-10 p-4 flex items-center justify-between">
-                                <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
-                                  [TACTILE PHYSICAL ARMOR]
-                                </span>
-                                {heroObject.affinityScore !== undefined && (
-                                  <span className="text-[11px] font-mono text-[#F7F7D9] px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
-                                    {heroObject.affinityScore}% Latent Affinity
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="relative z-10 p-5 flex flex-col gap-2">
-                                <h3 className="font-serif italic font-bold text-2xl sm:text-3xl text-[#F7F7D9] tracking-tight drop-shadow-sm">
-                                  {heroObject.name}
-                                </h3>
-                                <p className="font-sans text-xs sm:text-[13px] text-[#F7F7D9]/85 leading-relaxed line-clamp-3 max-w-lg">
-                                  {heroObject.description}
-                                </p>
-
-                                <div className="flex items-center justify-between pt-3 border-t border-white/15 mt-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEntityClick(heroObject)}
-                                    className="text-xs font-mono text-[#E06B55] hover:underline cursor-pointer flex items-center gap-1"
-                                  >
-                                    <span>Inspect Qloo provenance</span>
-                                    <span>↗</span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleAcceptEntity(heroObject.id, heroObject.name)}
-                                    className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 ${
-                                      acceptedEntityIds.includes(heroObject.id)
-                                        ? "bg-emerald-500/25 border border-emerald-400/50 text-emerald-300 hover:bg-red-500/20 hover:text-red-200 hover:border-red-400/40"
-                                        : "bg-white/15 hover:bg-white/25 border border-white/20 text-[#F7F7D9]"
-                                    }`}
-                                  >
-                                    {acceptedEntityIds.includes(heroObject.id) ? (
-                                      <>
-                                        <Check className="w-3.5 h-3.5" />
-                                        <span>In Canon</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Plus className="w-3.5 h-3.5" />
-                                        <span>Lock to Canon</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tile 2: Solitary Acoustic Shield (Wide horizontal tile) */}
-                          {heroMusic && (
-                            <div className="col-span-1 md:col-span-2 min-h-[175px] rounded-[22px] bg-[#122316]/90 border border-white/15 overflow-hidden relative p-5 flex flex-col justify-between group shadow-md">
-                              <div className="absolute right-0 top-0 bottom-0 w-1/2 overflow-hidden pointer-events-none opacity-40">
-                                <img
-                                  src={getEntityPhoto(heroMusic)}
-                                  alt={heroMusic.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-r from-[#122316] via-[#122316]/80 to-transparent" />
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between">
-                                <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                                  [SOLITARY ACOUSTIC FREQUENCY]
-                                </span>
-
-                                <button
-                                  type="button"
-                                  onClick={toggleAmbientSoundscape}
-                                  className={`px-3 py-1 rounded-full text-xs font-sans transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
-                                    isPlayingAudio
-                                      ? "bg-[#E06B55] text-white shadow-md animate-pulse"
-                                      : "bg-white/10 hover:bg-white/20 text-[#F7F7D9] border border-white/15"
-                                  }`}
-                                >
-                                  {isPlayingAudio ? (
-                                    <>
-                                      <Volume2 className="w-3.5 h-3.5" />
-                                      <span>Playing 2 AM Tape</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="w-3 h-3 fill-current" />
-                                      <span>Play Soundscape</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-
-                              <div className="relative z-10 flex flex-col gap-1 my-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-serif italic font-bold text-xl sm:text-2xl text-[#F7F7D9]">
-                                    {heroMusic.name}
-                                  </h4>
-                                  {heroMusic.affinityScore !== undefined && (
-                                    <span className="text-[10px] font-mono text-[#F7F7D9]/60">
-                                      ({heroMusic.affinityScore}%)
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="font-sans text-xs text-[#F7F7D9]/80 leading-relaxed max-w-md line-clamp-2">
-                                  {heroMusic.description}
-                                </p>
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEntityClick(heroMusic)}
-                                  className="text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
-                                >
-                                  Inspect music cluster ↗
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAcceptEntity(heroMusic.id, heroMusic.name)}
-                                  className={`px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1 ${
-                                    acceptedEntityIds.includes(heroMusic.id)
-                                      ? "bg-emerald-500/25 border border-emerald-400/50 text-emerald-300"
-                                      : "bg-white/10 hover:bg-white/20 text-[#F7F7D9]/80 border border-white/10"
-                                  }`}
-                                >
-                                  {acceptedEntityIds.includes(heroMusic.id) ? (
-                                    <>
-                                      <Check className="w-3 h-3" />
-                                      <span>In Canon</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Plus className="w-3 h-3" />
-                                      <span>Add</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tile 3: The Latent Friction (Editorial Pull-Quote Card) */}
-                          {latentAngle && (
-                            <div className="col-span-1 md:col-span-1 xl:col-span-2 min-h-[175px] rounded-[22px] bg-[#162719]/90 border border-white/15 p-5 flex flex-col justify-between relative overflow-hidden shadow-md">
-                              <div className="absolute right-3 top-0 text-7xl font-serif text-[#E06B55]/15 pointer-events-none select-none font-bold leading-none">
-                                &ldquo;
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between">
-                                <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                                  [LATENT FRICTION · SUBTEXT]
-                                </span>
-                                <span className="text-[11px] font-serif italic text-[#F7F7D9]/50">
-                                  {latentAngle.title}
-                                </span>
-                              </div>
-
-                              <p className="relative z-10 font-sans text-xs sm:text-[13px] text-[#F7F7D9]/90 leading-relaxed my-2 pr-6">
-                                {latentAngle.description}
-                              </p>
-
-                              <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10">
-                                {latentAngle.groundedEntity ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const match = allTaggableEntities.find(
-                                        (e) => e.name.toLowerCase() === latentAngle.groundedEntity?.toLowerCase()
-                                      );
-                                      if (match) handleEntityClick(match);
-                                    }}
-                                    className="text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
-                                  >
-                                    Anchor: {latentAngle.groundedEntity} ↗
-                                  </button>
-                                ) : (
-                                  <span className="text-[11px] font-mono text-[#F7F7D9]/40">Qloo Latent Graph Traversal</span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tile 4: Intellectual Lineage (Books / Essays) */}
-                          {heroBook && (
-                            <div className="col-span-1 min-h-[220px] rounded-[22px] bg-[#132417] border border-white/15 overflow-hidden relative p-4 flex flex-col justify-between group shadow-sm">
-                              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                <img
-                                  src={getEntityPhoto(heroBook)}
-                                  alt={heroBook.name}
-                                  className="w-full h-full object-cover opacity-35 group-hover:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#132417] via-[#132417]/85 to-transparent" />
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between">
-                                <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                                  [BOOKS · LINEAGE]
-                                </span>
-                                {heroBook.affinityScore !== undefined && (
-                                  <span className="text-[10px] font-mono text-[#F7F7D9]/60">
-                                    {heroBook.affinityScore}%
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="relative z-10 flex flex-col gap-1 my-1">
-                                <h4 className="font-serif italic font-bold text-lg text-[#F7F7D9] leading-snug">
-                                  {heroBook.name}
-                                </h4>
-                                <p className="font-sans text-[11.5px] text-[#F7F7D9]/75 leading-relaxed line-clamp-3">
-                                  {heroBook.description}
-                                </p>
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEntityClick(heroBook)}
-                                  className="text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
-                                >
-                                  Inspect ↗
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAcceptEntity(heroBook.id, heroBook.name)}
-                                  className={`px-2.5 py-0.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1 ${
-                                    acceptedEntityIds.includes(heroBook.id)
-                                      ? "bg-emerald-500/25 border border-emerald-400/50 text-emerald-300"
-                                      : "bg-white/10 hover:bg-white/20 text-[#F7F7D9]/80 border border-white/10"
-                                  }`}
-                                >
-                                  {acceptedEntityIds.includes(heroBook.id) ? (
-                                    <>
-                                      <Check className="w-3 h-3" />
-                                      <span>Canon</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Plus className="w-3 h-3" />
-                                      <span>Add</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tile 5: Sanctuary Haunt (Venues / Places) */}
-                          {heroPlace && (
-                            <div className="col-span-1 min-h-[220px] rounded-[22px] bg-[#132417] border border-white/15 overflow-hidden relative p-4 flex flex-col justify-between group shadow-sm">
-                              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                <img
-                                  src={getEntityPhoto(heroPlace)}
-                                  alt={heroPlace.name}
-                                  className="w-full h-full object-cover opacity-35 group-hover:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#132417] via-[#132417]/85 to-transparent" />
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between">
-                                <span className="text-[10px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
-                                  [PLACES · SANCTUARY]
-                                </span>
-                                {heroPlace.affinityScore !== undefined && (
-                                  <span className="text-[10px] font-mono text-[#F7F7D9]/60">
-                                    {heroPlace.affinityScore}%
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="relative z-10 flex flex-col gap-1 my-1">
-                                <h4 className="font-serif italic font-bold text-lg text-[#F7F7D9] leading-snug">
-                                  {heroPlace.name}
-                                </h4>
-                                <p className="font-sans text-[11.5px] text-[#F7F7D9]/75 leading-relaxed line-clamp-3">
-                                  {heroPlace.description}
-                                </p>
-                              </div>
-
-                              <div className="relative z-10 flex items-center justify-between pt-2 border-t border-white/10">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEntityClick(heroPlace)}
-                                  className="text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
-                                >
-                                  Inspect ↗
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAcceptEntity(heroPlace.id, heroPlace.name)}
-                                  className={`px-2.5 py-0.5 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1 ${
-                                    acceptedEntityIds.includes(heroPlace.id)
-                                      ? "bg-emerald-500/25 border border-emerald-400/50 text-emerald-300"
-                                      : "bg-white/10 hover:bg-white/20 text-[#F7F7D9]/80 border border-white/10"
-                                  }`}
-                                >
-                                  {acceptedEntityIds.includes(heroPlace.id) ? (
-                                    <>
-                                      <Check className="w-3 h-3" />
-                                      <span>Canon</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Plus className="w-3 h-3" />
-                                      <span>Add</span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Tile 6: Character Canon Filmstrip & Pitch Lookbook CTA */}
-                        <div className="p-4 sm:p-5 rounded-[22px] bg-white/[0.03] border border-white/10 flex flex-col gap-3.5">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/60 font-semibold">
-                                Character Canon ({acceptedEntityIds.length} Accepted · {allTaggableEntities.length} Discovered)
-                              </span>
-                            </div>
-                            <span className="text-[11px] font-sans text-[#F7F7D9]/40">
-                              Tap card to inspect Qloo evidence · Tap +/✓ to curate into Pitch Bible
-                            </span>
-                          </div>
-
-                          {/* Filmstrip Horizontal Scroll */}
-                          <div className="flex items-center gap-2.5 overflow-x-auto pb-2 custom-scrollbar-red">
-                            {allTaggableEntities.map((ent) => {
-                              const isAccepted = acceptedEntityIds.includes(ent.id);
-                              return (
-                                <div
-                                  key={ent.id}
-                                  className={`flex-shrink-0 w-[180px] sm:w-[210px] rounded-[16px] p-3 border flex flex-col justify-between gap-2 transition-all ${
-                                    isAccepted
-                                      ? "bg-emerald-950/20 border-emerald-400/40 shadow-sm"
-                                      : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06]"
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[9px] font-mono uppercase text-[#E06B55] font-bold">
-                                      [{ent.domain}]
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleAcceptEntity(ent.id, ent.name)}
-                                      className={`w-5 h-5 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                                        isAccepted
-                                          ? "bg-emerald-500/30 text-emerald-300 hover:bg-red-500/30 hover:text-red-200"
-                                          : "bg-white/10 text-[#F7F7D9]/60 hover:bg-[#E06B55]/30 hover:text-[#F7F7D9]"
-                                      }`}
-                                      title={isAccepted ? "Remove from canon" : "Accept into canon"}
-                                    >
-                                      {isAccepted ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                    </button>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEntityClick(ent)}
-                                    className="text-left font-serif italic font-medium text-sm text-[#F7F7D9] hover:text-white truncate cursor-pointer"
-                                    title={`Inspect ${ent.name}`}
-                                  >
-                                    {ent.name}
-                                  </button>
-
-                                  <p className="text-[11px] font-sans text-[#F7F7D9]/65 line-clamp-2 leading-tight">
-                                    {ent.description}
-                                  </p>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Taste Clusters & Assemble Lookbook CTA */}
-                          <div className="pt-3 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                            <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
-                              <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
-                              <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                              {inquiries.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const firstInq = inquiries[0];
-                                    if (firstInq) setActiveInquiryId(firstInq.id);
-                                  }}
-                                  className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
-                                >
-                                  <span>Explore Inquiries ({inquiries.length})</span>
-                                  <ArrowRight className="w-3.5 h-3.5 text-[#E06B55]" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setIsDossierModalOpen(true)}
-                                className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
-                              >
-                                <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
-                                <ChevronRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  /* VIEW A.2: ARCHIVE SOURCING CATALOG (High-density structured list view) */
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col justify-between gap-6 custom-scrollbar-red">
+                <div className="flex flex-col gap-6">
+                  {/* Master 3-Sentence Connection (Direct, unencumbered prose) */}
                   <div className="flex flex-col gap-4">
-                    {/* Domain Filter Pills */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar-red">
-                      {["ALL", "OBJECTS", "MUSIC", "BOOKS", "PLACES"].map((domain) => {
-                        const count =
-                          domain === "ALL"
-                            ? allTaggableEntities.length
-                            : allTaggableEntities.filter(
-                                (e) =>
-                                  e.domain === domain ||
-                                  (domain === "OBJECTS" && e.domain === "BRANDS & OBJECTS")
-                              ).length;
-                        const isActive = catalogDomainFilter === domain;
-                        return (
-                          <button
-                            key={domain}
-                            type="button"
-                            onClick={() => setCatalogDomainFilter(domain)}
-                            className={`px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
-                              isActive
-                                ? "bg-[#E06B55] text-white font-medium shadow-sm"
-                                : "bg-white/[0.04] hover:bg-white/[0.08] text-[#F7F7D9]/70 border border-white/10"
-                            }`}
-                          >
-                            <span>{domain === "ALL" ? "All Anchors" : domain}</span>
-                            <span className="font-mono text-[10px] opacity-70">({count})</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <p className="font-serif text-[17px] sm:text-[19px] leading-[1.85] text-[#F7F7D9] font-light">
+                      {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
+                    </p>
+                  </div>
 
-                    {/* Sourcing Rows */}
-                    <div className="flex flex-col gap-2">
-                      {allTaggableEntities
-                        .filter((e) => {
-                          if (catalogDomainFilter === "ALL") return true;
-                          if (catalogDomainFilter === "OBJECTS")
-                            return e.domain === "OBJECTS" || e.domain === "BRANDS & OBJECTS";
-                          return e.domain === catalogDomainFilter;
-                        })
-                        .map((ent) => {
-                          const isAccepted = acceptedEntityIds.includes(ent.id);
+                  {/* Discovered Cultural Anchors (Director's Canon Selection) */}
+                  {allTaggableEntities.length > 0 && (
+                    <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
+                          Character Canon ({acceptedEntityIds.length} accepted · {Math.max(0, allTaggableEntities.length - acceptedEntityIds.length)} proposed)
+                        </span>
+                        <span className="hidden sm:inline text-[11px] font-sans text-[#F7F7D9]/40">
+                          Click pill to inspect evidence · Click +/✓ to toggle canon
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {allTaggableEntities.slice(0, 8).map((entity) => {
+                          const isAccepted = acceptedEntityIds.includes(entity.id);
                           return (
                             <div
-                              key={ent.id}
-                              className={`p-3 sm:p-3.5 rounded-[16px] border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group ${
+                              key={entity.id}
+                              className={`px-3 py-1.5 rounded-full border text-xs font-sans flex items-center gap-2 transition-all shadow-sm ${
                                 isAccepted
-                                  ? "bg-emerald-950/20 border-emerald-400/40 shadow-sm"
-                                  : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10"
+                                  ? "bg-white/[0.08] border-white/20 text-[#F7F7D9]"
+                                  : "bg-white/[0.03] border-white/10 text-[#F7F7D9]/70 opacity-80 hover:opacity-100"
                               }`}
                             >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleAcceptEntity(ent.id, ent.name)}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer flex-shrink-0 ${
-                                    isAccepted
-                                      ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 hover:bg-red-500/20 hover:text-red-200"
-                                      : "bg-white/10 text-[#F7F7D9]/60 hover:bg-[#E06B55]/30 hover:text-white border border-white/10"
-                                  }`}
-                                  title={isAccepted ? "In Canon (click to remove)" : "Click to accept into Canon"}
-                                >
-                                  {isAccepted ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                                </button>
+                              <button
+                                type="button"
+                                onClick={() => handleEntityClick(entity)}
+                                className="flex items-center gap-1.5 hover:text-white cursor-pointer"
+                                title={`Inspect Qloo evidence for ${entity.name}`}
+                              >
+                                <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
+                                <span className="font-medium">{entity.name}</span>
+                                <span className="text-[10px] text-[#E06B55] opacity-60">↗</span>
+                              </button>
 
-                                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-[9px] font-mono uppercase text-[#E06B55] font-bold">
-                                      [{ent.domain}]
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEntityClick(ent)}
-                                      className="font-serif italic font-bold text-sm sm:text-base text-[#F7F7D9] hover:text-white truncate cursor-pointer text-left"
-                                    >
-                                      {ent.name}
-                                    </button>
-                                    {isAccepted && (
-                                      <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/60 px-2 py-0.2 rounded border border-emerald-800/40">
-                                        Canon ✓
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="font-sans text-xs text-[#F7F7D9]/75 line-clamp-1 sm:line-clamp-2 leading-relaxed">
-                                    {ent.description}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-3 flex-shrink-0 self-end sm:self-center">
-                                <code className="hidden md:inline font-mono text-[11px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30">
-                                  {ent.entityId ? ent.entityId.slice(0, 26) + "…" : "urn:qloo:resolved"}
-                                </code>
-
-                                {ent.affinityScore !== undefined && (
-                                  <span className="font-mono text-xs font-semibold text-[#F7F7D9]/90 px-2 py-0.5 rounded-full bg-white/10 border border-white/10">
-                                    {ent.affinityScore}%
-                                  </span>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleEntityClick(ent)}
-                                  className="px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1"
-                                >
-                                  <span>Inspect</span>
-                                  <span className="text-[#E06B55]">↗</span>
-                                </button>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAcceptEntity(entity.id, entity.name);
+                                }}
+                                className={`w-4 h-4 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                                  isAccepted
+                                    ? "bg-emerald-500/30 text-emerald-300 hover:bg-red-500/30 hover:text-red-200"
+                                    : "bg-white/10 text-[#F7F7D9]/60 hover:bg-[#E06B55]/30 hover:text-[#F7F7D9]"
+                                }`}
+                                title={isAccepted ? "Accepted in canon (click to remove)" : "Click to accept into canon"}
+                              >
+                                {isAccepted ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                              </button>
                             </div>
                           );
                         })}
+                      </div>
                     </div>
+                  )}
+
+                  {/* Latent Tension / Graph Discovery */}
+                  {culturalDossier.unconsideredAngles?.[0] && (
+                    <div className="p-4 rounded-[18px] bg-white/[0.03] border border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#E06B55] font-semibold">
+                          Latent Tension · {culturalDossier.unconsideredAngles[0].title}
+                        </span>
+                        <p className="font-sans text-xs sm:text-[13px] text-[#F7F7D9]/80 leading-relaxed">
+                          {culturalDossier.unconsideredAngles[0].description}
+                        </p>
+                      </div>
+                      {culturalDossier.unconsideredAngles[0].groundedEntity && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const match = allTaggableEntities.find(
+                              (e) => e.name.toLowerCase() === culturalDossier.unconsideredAngles[0].groundedEntity?.toLowerCase()
+                            );
+                            if (match) handleEntityClick(match);
+                          }}
+                          className="flex-shrink-0 text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
+                        >
+                          Anchor: {culturalDossier.unconsideredAngles[0].groundedEntity} ↗
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Footer: Observed Clusters + Navigation CTAs */}
+                <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
+                    <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
+                    <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
                   </div>
-                )}
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {inquiries.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const firstInq = inquiries[0];
+                          if (firstInq) setActiveInquiryId(firstInq.id);
+                        }}
+                        className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+                      >
+                        <span>Explore Inquiries ({inquiries.length})</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsDossierModalOpen(true)}
+                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm group"
+                    >
+                      <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               /* VIEW B: SCENE INQUIRY VIEW (Lookbook & Index) */
@@ -2665,10 +2127,16 @@ export default function StudioScreen({
         style={{ willChange: "opacity" }}
       />
 
-      {/* Right Drawer: Entity Evidence Inspector */}
+      {/* Right Drawer: Entity Evidence Inspector (Qloo Drawer atop everything) */}
       {evidenceDrawerOpen && selectedEntity && (
-        <div className="fixed inset-0 z-60 flex items-center justify-end bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-fade-in">
-          <div className="relative w-full max-w-lg h-full max-h-[94vh] sm:max-h-[85vh] rounded-[20px] sm:rounded-[24px] bg-[#16271a] border border-white/20 p-4 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-2xl overflow-y-auto custom-scrollbar-red">
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-end bg-black/70 backdrop-blur-md p-2 sm:p-4 animate-fade-in"
+          onClick={() => setEvidenceDrawerOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg h-full max-h-[96vh] sm:max-h-[90vh] rounded-[22px] sm:rounded-[26px] bg-[#142317] border border-white/20 p-4 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-[0_25px_70px_rgba(0,0,0,0.85)] overflow-y-auto custom-scrollbar-red animate-in slide-in-from-right duration-250"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex flex-col gap-4">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -2871,6 +2339,7 @@ export default function StudioScreen({
         culturalDossier={culturalDossier}
         inquiries={inquiries}
         acceptedEntityIds={acceptedEntityIds}
+        onSelectEntity={handleEntityClick}
       />
     </div>
   );

@@ -63,25 +63,93 @@ body {
 
 /* Responsive clearing masks for green stage over poppies artwork */
 .green-stage-mask {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 6%, black 18%, black 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 6%, black 18%, black 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 3%,
+    rgba(0, 0, 0, 0.25) 7%,
+    rgba(0, 0, 0, 0.6) 12%,
+    rgba(0, 0, 0, 0.9) 18%,
+    black 24%,
+    black 72%,
+    rgba(0, 0, 0, 0.9) 78%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0.25) 90%,
+    rgba(0, 0, 0, 0.05) 95%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 3%,
+    rgba(0, 0, 0, 0.25) 7%,
+    rgba(0, 0, 0, 0.6) 12%,
+    rgba(0, 0, 0, 0.9) 18%,
+    black 24%,
+    black 72%,
+    rgba(0, 0, 0, 0.9) 78%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0.25) 90%,
+    rgba(0, 0, 0, 0.05) 95%,
+    transparent 100%
+  );
 }
 
 @media (min-width: 1024px) {
   .green-stage-mask {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 12%, rgba(0, 0, 0, 0.75) 20%, black 28%, black 100%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 12%, rgba(0, 0, 0, 0.75) 20%, black 28%, black 100%);
+    -webkit-mask-image: 
+      linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.12) 3%, rgba(0, 0, 0, 0.45) 6%, rgba(0, 0, 0, 0.8) 10%, black 14%, black 100%),
+      linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 3%, black 10%, black 90%, rgba(0, 0, 0, 0.4) 97%, transparent 100%);
+    mask-image: 
+      linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.12) 3%, rgba(0, 0, 0, 0.45) 6%, rgba(0, 0, 0, 0.8) 10%, black 14%, black 100%),
+      linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 3%, black 10%, black 90%, rgba(0, 0, 0, 0.4) 97%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
   }
 }
 
 .input-stage-mask {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 5%, black 16%, black 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 5%, black 16%, black 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 3%,
+    rgba(0, 0, 0, 0.25) 7%,
+    rgba(0, 0, 0, 0.6) 12%,
+    rgba(0, 0, 0, 0.9) 18%,
+    black 24%,
+    black 72%,
+    rgba(0, 0, 0, 0.9) 78%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0.25) 90%,
+    rgba(0, 0, 0, 0.05) 95%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 3%,
+    rgba(0, 0, 0, 0.25) 7%,
+    rgba(0, 0, 0, 0.6) 12%,
+    rgba(0, 0, 0, 0.9) 18%,
+    black 24%,
+    black 72%,
+    rgba(0, 0, 0, 0.9) 78%,
+    rgba(0, 0, 0, 0.6) 84%,
+    rgba(0, 0, 0, 0.25) 90%,
+    rgba(0, 0, 0, 0.05) 95%,
+    transparent 100%
+  );
 }
 
 @media (min-width: 768px) {
   .input-stage-mask {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
+    -webkit-mask-image: 
+      linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 3%, black 10%, black 90%, rgba(0, 0, 0, 0.4) 97%, transparent 100%);
+    mask-image: 
+      linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 3%, black 10%, black 90%, rgba(0, 0, 0, 0.4) 97%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
   }
 }
