@@ -76,107 +76,164 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [cardPos, setCardPos] = useState<{ top: number; left: number } | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [arrowInfo, setArrowInfo] = useState<{
+    position: "top" | "bottom" | "left" | "right";
+    offset: number;
+  } | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const step = TOUR_STEPS[currentStepIndex];
   const isFirst = currentStepIndex === 0;
   const isLast = currentStepIndex === TOUR_STEPS.length - 1;
 
+  // Resolve target on mobile: step 3 points to mobile menu bar button
+  const resolvedTargetId =
+    step.targetId === "tour-left-pane" && isMobileViewport
+      ? "tour-mobile-menu-btn"
+      : step.targetId;
+
+  const displayTitle =
+    step.targetId === "tour-left-pane" && isMobileViewport
+      ? "Inquiries Menu"
+      : step.title;
+
+  const displayHeadline =
+    step.targetId === "tour-left-pane" && isMobileViewport
+      ? "Navigate inquiries & character brief."
+      : step.headline;
+
+  const displayBody =
+    step.targetId === "tour-left-pane" && isMobileViewport
+      ? "Tap this menu button in the top bar to open your inquiries drawer, investigate scenes, or assemble the complete character dossier."
+      : step.body;
+
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
 
-    const targetEl = document.getElementById(step.targetId);
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
+    const isMobile = winWidth < 1024;
+    setIsMobileViewport(isMobile);
+
+    const activeTargetId =
+      step.targetId === "tour-left-pane" && isMobile
+        ? "tour-mobile-menu-btn"
+        : step.targetId;
+
+    const targetEl = document.getElementById(activeTargetId);
     if (!targetEl) {
       setTargetRect(null);
       setCardPos(null);
+      setArrowInfo(null);
       return;
+    }
+
+    // Smooth-scroll element into view if needed (especially for ensemble cards)
+    if (step.targetId === "tour-tappable-objects") {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     const rect = targetEl.getBoundingClientRect();
     setTargetRect(rect);
 
-    const winWidth = window.innerWidth;
-    const winHeight = window.innerHeight;
-    const isMobile = winWidth < 640;
-    const cardWidth = Math.min(360, winWidth - 32);
-    const cardHeight = 220;
-    const padding = 16;
+    const padding = 12;
+    const cardWidth = Math.min(360, winWidth - 24);
+    const cardHeight = cardRef.current?.offsetHeight || 220;
 
-    // On mobile or if target element is hidden/collapsed, position tour card safely at bottom center
-    if (!targetEl || rect.width === 0 || rect.height === 0 || isMobile) {
-      setTargetRect(targetEl && rect.width > 0 ? rect : null);
-      const mTop = Math.max(padding, winHeight - cardHeight - 24);
-      const mLeft = Math.max(padding, winWidth / 2 - cardWidth / 2);
-      setCardPos({ top: mTop, left: mLeft });
-      return;
-    }
-
-    let left = 0;
     let top = 0;
+    let left = 0;
+    let arrowPos: "top" | "bottom" | "left" | "right" = "bottom";
+    let arrowOffset = cardWidth / 2;
 
-    // Special placement for large elements like the center pane
-    if (step.targetId === "tour-center-pane") {
-      top = Math.max(padding, rect.top + 30);
-      left = Math.max(
-        padding,
-        Math.min(winWidth - cardWidth - padding, rect.left + 35)
-      );
+    if (isMobile) {
+      // MOBILE: Dynamic non-stationary placement that NEVER blocks the target
+      const targetCenterX = rect.left + rect.width / 2;
+      const rawLeft = targetCenterX - cardWidth / 2;
+      left = Math.max(padding, Math.min(winWidth - cardWidth - padding, rawLeft));
+      arrowOffset = Math.min(cardWidth - 28, Math.max(28, targetCenterX - left));
+
+      if (step.targetId === "tour-prompt-bar") {
+        // Prompt bar at bottom: card hovers ABOVE prompt bar, arrow points DOWN
+        top = Math.max(padding, rect.top - cardHeight - 14);
+        arrowPos = "bottom";
+      } else if (activeTargetId === "tour-mobile-menu-btn" || step.targetId === "tour-qloo-toggle") {
+        // Items in top menu bar: card hovers BELOW menu item, arrow points UP
+        top = Math.min(winHeight - cardHeight - padding, rect.bottom + 14);
+        arrowPos = "top";
+      } else if (step.targetId === "tour-center-pane") {
+        // Center pane: place inside upper region of center card, arrow points UP
+        top = Math.max(padding + 52, rect.top + 16);
+        arrowPos = "top";
+      } else if (step.targetId === "tour-tappable-objects") {
+        // Tappable objects: check available vertical space
+        if (rect.top > cardHeight + padding + 30) {
+          top = rect.top - cardHeight - 14;
+          arrowPos = "bottom";
+        } else {
+          top = Math.min(winHeight - cardHeight - padding, rect.bottom + 14);
+          arrowPos = "top";
+        }
+      } else {
+        if (rect.bottom + cardHeight + 20 < winHeight) {
+          top = rect.bottom + 14;
+          arrowPos = "top";
+        } else {
+          top = Math.max(padding, rect.top - cardHeight - 14);
+          arrowPos = "bottom";
+        }
+      }
     } else {
-      switch (step.arrowPosition) {
-        case "bottom":
-          // Card placed above target, arrow points down
-          top = Math.max(padding, rect.top - cardHeight + step.preferredOffset.y);
-          left = Math.max(
-            padding,
-            Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
-          );
-          break;
-
-        case "top":
-          // Card placed below target, arrow points up
-          top = Math.min(winHeight - cardHeight - padding, rect.bottom + step.preferredOffset.y);
-          if (rect.right > winWidth - cardWidth) {
-            left = Math.max(padding, rect.right - cardWidth);
-          } else {
-            left = Math.max(
-              padding,
-              Math.min(winWidth - cardWidth - padding, rect.left + rect.width / 2 - cardWidth / 2)
-            );
-          }
-          break;
-
-        case "left":
-          // Card placed to the right of target, arrow points left
-          left = Math.min(winWidth - cardWidth - padding, rect.right + step.preferredOffset.x);
-          top = Math.max(
-            padding,
-            Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
-          );
-          break;
-
-        case "right":
-          // Card placed to the left of target, arrow points right
-          left = Math.max(padding, rect.left - cardWidth - step.preferredOffset.x);
-          top = Math.max(
-            padding,
-            Math.min(winHeight - cardHeight - padding, rect.top + step.preferredOffset.y)
-          );
-          break;
+      // DESKTOP: Dynamic adjacent placement
+      if (step.targetId === "tour-center-pane") {
+        top = Math.max(padding, rect.top + 30);
+        left = Math.max(
+          padding,
+          Math.min(winWidth - cardWidth - padding, rect.left + 35)
+        );
+        arrowPos = "top";
+        arrowOffset = 40;
+      } else if (step.targetId === "tour-left-pane") {
+        left = Math.min(winWidth - cardWidth - padding, rect.right + 20);
+        top = Math.max(
+          padding,
+          Math.min(winHeight - cardHeight - padding, rect.top + 60)
+        );
+        arrowPos = "left";
+        arrowOffset = Math.min(cardHeight - 28, Math.max(28, rect.top + 70 - top));
+      } else if (step.targetId === "tour-qloo-toggle") {
+        top = rect.bottom + 14;
+        left = Math.max(padding, rect.right - cardWidth);
+        arrowPos = "top";
+        arrowOffset = Math.min(cardWidth - 28, Math.max(28, rect.left + rect.width / 2 - left));
+      } else {
+        // Prompt bar or tappable objects
+        const targetCenterX = rect.left + rect.width / 2;
+        left = Math.max(
+          padding,
+          Math.min(winWidth - cardWidth - padding, targetCenterX - cardWidth / 2)
+        );
+        top = Math.max(padding, rect.top - cardHeight - 14);
+        arrowPos = "bottom";
+        arrowOffset = Math.min(cardWidth - 28, Math.max(28, targetCenterX - left));
       }
     }
 
     setCardPos({ top, left });
+    setArrowInfo({ position: arrowPos, offset: arrowOffset });
   }, [isOpen, step]);
 
   useEffect(() => {
     updatePosition();
+    const timer = setTimeout(updatePosition, 80);
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition);
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition);
     };
-  }, [updatePosition]);
+  }, [updatePosition, currentStepIndex]);
 
   // Global escape key to close tour
   useEffect(() => {
@@ -209,7 +266,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-auto">
-      {/* Dimmed overlay with SVG mask cutout: Target element is 100% un-dimmed and un-blurred, no glowing border */}
+      {/* Dimmed overlay with SVG mask cutout: Target element is 100% un-dimmed and un-blurred */}
       <svg
         className="fixed inset-0 w-full h-full z-[100] cursor-pointer"
         onClick={onClose}
@@ -225,7 +282,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
                 y={targetRect.top - 4}
                 width={targetRect.width + 8}
                 height={targetRect.height + 8}
-                rx="20"
+                rx="18"
                 fill="black"
               />
             )}
@@ -242,7 +299,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
       {/* Cream Tour Card with Thick Green Border */}
       <div
         ref={cardRef}
-        className={`fixed z-[102] w-full max-w-[380px] rounded-[24px] bg-[#F7F7D9] border-[2.5px] border-[#182a1d] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-col justify-between transition-all duration-300 ease-out select-none ${
+        className={`fixed z-[102] w-full max-w-[360px] rounded-[24px] bg-[#F7F7D9] border-[2.5px] border-[#182a1d] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.65)] flex flex-col justify-between transition-all duration-300 ease-out select-none ${
           cardPos ? "" : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         }`}
         style={
@@ -255,37 +312,37 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
         }
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pointer Arrow in matching cream color (Desktop only) */}
-        {cardPos && targetRect && (
-          <div className="hidden sm:block">
-            {step.arrowPosition === "bottom" && (
+        {/* Dynamic Pointer Arrow in matching cream color (Active on both Mobile and Desktop) */}
+        {cardPos && targetRect && arrowInfo && (
+          <div>
+            {arrowInfo.position === "bottom" && (
               <div
                 style={{
-                  left: `${Math.min(350, Math.max(30, targetRect.left + targetRect.width / 2 - cardPos.left))}px`,
+                  left: `${arrowInfo.offset}px`,
                 }}
                 className="absolute -bottom-2.5 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-[#F7F7D9] filter drop-shadow-[0_2px_1px_rgba(24,42,29,0.4)]"
               />
             )}
-            {step.arrowPosition === "top" && (
+            {arrowInfo.position === "top" && (
               <div
                 style={{
-                  left: `${Math.min(350, Math.max(30, targetRect.left + targetRect.width / 2 - cardPos.left))}px`,
+                  left: `${arrowInfo.offset}px`,
                 }}
                 className="absolute -top-2.5 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-[#F7F7D9] filter drop-shadow-[0_-2px_1px_rgba(24,42,29,0.4)]"
               />
             )}
-            {step.arrowPosition === "left" && (
+            {arrowInfo.position === "left" && (
               <div
                 style={{
-                  top: `${Math.min(190, Math.max(25, targetRect.top + 30 - cardPos.top))}px`,
+                  top: `${arrowInfo.offset}px`,
                 }}
                 className="absolute -left-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-r-8 border-r-[#F7F7D9] filter drop-shadow-[-2px_0_1px_rgba(24,42,29,0.4)]"
               />
             )}
-            {step.arrowPosition === "right" && (
+            {arrowInfo.position === "right" && (
               <div
                 style={{
-                  top: `${Math.min(190, Math.max(25, targetRect.top + 30 - cardPos.top))}px`,
+                  top: `${arrowInfo.offset}px`,
                 }}
                 className="absolute -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-[#F7F7D9] filter drop-shadow-[2px_0_1px_rgba(24,42,29,0.4)]"
               />
@@ -301,7 +358,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
             </span>
             <span className="font-serif italic font-bold text-xs text-[#E06B55] flex items-center gap-1.5">
               <StepIcon className="w-3.5 h-3.5" />
-              {step.title}
+              {displayTitle}
             </span>
           </div>
 
@@ -318,10 +375,10 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
         {/* Card Body */}
         <div className="py-3.5 flex flex-col gap-1.5">
           <h4 className="font-serif font-bold text-base sm:text-[17px] text-[#182a1d] leading-snug tracking-tight">
-            {step.headline}
+            {displayHeadline}
           </h4>
           <p className="font-sans text-xs sm:text-[12.5px] text-[#182a1d]/85 leading-relaxed font-normal">
-            {step.body}
+            {displayBody}
           </p>
         </div>
 

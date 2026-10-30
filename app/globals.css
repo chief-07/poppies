@@ -69,8 +69,8 @@ body {
 
 @media (min-width: 1024px) {
   .green-stage-mask {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 12%, black 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 12%, rgba(0, 0, 0, 0.75) 20%, black 28%, black 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.25) 12%, rgba(0, 0, 0, 0.75) 20%, black 28%, black 100%);
   }
 }
 

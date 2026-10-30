@@ -1134,8 +1134,25 @@ export default function StudioScreen({
             className="fixed inset-0 bg-black/75 backdrop-blur-sm animate-fade-in"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <aside className="relative z-10 w-[290px] sm:w-[320px] h-full bg-[#132417] border-r border-white/20 p-4 sm:p-5 flex flex-col justify-between shadow-2xl animate-in slide-in-from-left duration-200">
-            <div className="flex flex-col gap-3 min-h-0 flex-1">
+          <aside className="relative z-10 w-[290px] sm:w-[320px] h-full overflow-hidden border-r border-white/20 p-4 sm:p-5 flex flex-col justify-between shadow-2xl animate-in slide-in-from-left duration-200">
+            {/* 1. Base Painted Poppy Background inside the Left Drawer */}
+            <div
+              className="absolute inset-0 bg-cover bg-left sm:bg-center bg-no-repeat pointer-events-none opacity-85 scale-[1.02]"
+              style={{
+                backgroundImage: "url('/poppies-bg.jpg')",
+              }}
+            />
+
+            {/* 2. Left-Fade Green Gradient Overlay: Poppies glow on left, smoothly transitions to deep studio green */}
+            <div
+              className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#101b13]/55 via-[#132417]/85 to-[#132417]/98 backdrop-blur-[1.5px]"
+            />
+            {/* 3. Subtle vertical gradient for header & footer contrast */}
+            <div
+              className="absolute inset-0 pointer-events-none bg-gradient-to-b from-[#101b13]/40 via-transparent to-[#101b13]/70"
+            />
+
+            <div className="relative z-10 flex flex-col gap-3 min-h-0 flex-1">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2 pl-1">
                   <div
@@ -1253,7 +1270,7 @@ export default function StudioScreen({
             </div>
 
             {/* Assemble Dossier */}
-            <div className="pt-2 flex-shrink-0 flex flex-col gap-1.5">
+            <div className="relative z-10 pt-2 flex-shrink-0 flex flex-col gap-1.5">
               <div className="flex items-center justify-between px-3 text-[10px] font-sans text-[#F7F7D9]/50">
                 <span>Director&apos;s Canon:</span>
                 <span className="font-mono text-[#E06B55] font-semibold">{acceptedEntityIds.length} accepted</span>
