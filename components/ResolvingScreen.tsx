@@ -221,21 +221,17 @@ export default function ResolvingScreen({
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-[#28402a] px-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+        className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
       />
 
-      {/* 2. Solid Green (#28402A) Center Band with Tapered Fade */}
+      {/* 2. Solid Green (#28402A) Center Band with Tapered Fade (Top-to-bottom on mobile, left-to-right on desktop) */}
       <div
-        className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px]"
+        className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px] input-stage-mask"
         style={{
           backgroundColor: "#28402a",
-          maskImage:
-            "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
         }}
       />
 

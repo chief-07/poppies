@@ -504,6 +504,7 @@ export interface SteerOptions {
   currentQuestion?: string;
   currentVignette?: string;
   domain?: "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION";
+  tasteThesis?: string;
   engine?: "qloo" | "base_llm";
 }
 
@@ -584,10 +585,13 @@ Respond ONLY in JSON:
         model: "gemini-3.5-flash-lite",
         contents: isAdapt
           ? `Given creator adaptation / modifier: "${instruction}" for active inquiry "${options?.currentQuestion || ""}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+Taste thesis: "${options?.tasteThesis || ""}".
+Accumulated character canon seeds: [${existingSeeds.slice(0, 5).join(", ")}].
 Current domain: ${domain}.
 Extract 2 specific real-world search terms for Qloo matching this adaptation (artists, places, brands, or books).
 Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "Updated concise inquiry question under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`
           : `Given creator direction / question: "${instruction}" for character "${characterName}" (${characterContext?.summary || ""}) in "${characterContext?.locality || "Unspecified"}".
+Taste thesis: "${options?.tasteThesis || ""}".
 Accumulated character seeds so far: [${existingSeeds.slice(0, 5).join(", ")}].
 Extract 2 specific real-world search terms for Qloo (artists, places, brands, or books).
 Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inquiry question under 12 words", "domain": "MUSIC" | "BOOKS" | "OBJECTS" | "PLACES" | "CONTRADICTION" }`,
@@ -606,11 +610,31 @@ Respond ONLY in JSON: { "terms": ["term1", "term2"], "question": "A concise inqu
   const resolved = await searchQloo(searchTerms[0], filterType);
   let entities: AgentCulturalEntity[] = [];
 
+  // Present the character's living anchors to Qloo!
+  // Combine the new steering term with up to 2 living character seeds from canon
+  const seedIdsToQuery: string[] = [];
   if (resolved.length > 0) {
-    const rawInsights = await getQlooInsights([resolved[0].entity_id], filterType, 6);
+    seedIdsToQuery.push(resolved[0].entity_id);
+  }
+
+  if (existingSeeds && existingSeeds.length > 0) {
+    for (const livingSeed of existingSeeds.slice(0, 2)) {
+      try {
+        const hits = await searchQloo(livingSeed);
+        if (hits[0]?.entity_id && !seedIdsToQuery.includes(hits[0].entity_id)) {
+          seedIdsToQuery.push(hits[0].entity_id);
+        }
+      } catch (e) {
+        // Continue if an individual lookup fails
+      }
+    }
+  }
+
+  if (seedIdsToQuery.length > 0) {
+    const rawInsights = await getQlooInsights(seedIdsToQuery, filterType, 6);
     entities = rawInsights.map((e) => ({
-      ...normalizeEntity(e, domain, [searchTerms[0]]),
-      qlooReasoning: `Discovered based on creator direction: "${instruction}".`,
+      ...normalizeEntity(e, domain, [searchTerms[0], ...existingSeeds.slice(0, 2)]),
+      qlooReasoning: `Grounded via cross-taste intersection of "${searchTerms[0]}" and character canon [${existingSeeds.slice(0, 2).join(", ")}].`,
     }));
   }
 
@@ -1392,8 +1416,8 @@ async function generateCuratorialAnswer(
   const loc = constraints.locality || "their city";
 
   const fallbackText = tertiary
-    ? `For ${characterName} in ${loc}, answering "${question}" comes down to practical utility. Based on their daily routine, Qloo connects them to options like ${primary}, ${secondary}, and ${tertiary}.`
-    : `For ${characterName} in ${loc}, answering "${question}" comes down to practical utility. Based on their daily routine, Qloo connects them to options like ${primary} and ${secondary}.`;
+    ? `For ${characterName} in ${loc}, answering "${question}" connects directly to physical durability and deliberate craft. In daily practice, their choices reject disposable trends in favor of items built to last.\n\nGrounding this habit in their living taste profile, Qloo identifies cohesive anchors like ${primary}, ${secondary}, and ${tertiary} that reinforce their solitary focus without aesthetic posturing.`
+    : `For ${characterName} in ${loc}, answering "${question}" connects directly to physical durability and deliberate craft. In daily practice, their choices reject disposable trends in favor of items built to last.\n\nGrounding this habit in their living taste profile, Qloo identifies cohesive anchors like ${primary} and ${secondary} that reinforce their solitary focus without aesthetic posturing.`;
 
   if (!ai) {
     return { text: fallbackText, highlightedEntities: topNames.slice(0, 3) };
@@ -1413,12 +1437,14 @@ YOUR TASK:
 Directly answer the creative question asked by deducing what ${characterName} physically wears, uses, drives, listens to, or experiences in daily life, grounded by the Qloo taste graph entities.
 
 RULES:
+- Structure: Exactly 2 well-formed paragraphs (~110 to 140 words total), separated by \\n\\n:
+  1. Paragraph 1: Direct physical deduction answering the specific creative question asked (clothing garments, vehicle condition, desk items, or audio atmosphere) in tangible, sensory detail suited to their craft and setting.
+  2. Paragraph 2: The cross-taste connection—why this fits the character's trade, psychology, and physical environment, explicitly bridging to the Qloo-grounded entities (mentioning at least 2 to 3 candidate entity names from the list as verified options).
 - If asked about CLOTHING / FASHION: Describe specific clothing garments, fabrics, cuts, and silhouette, grounded by the brands.
 - If asked about A CAR / VEHICLE: Describe the car's era, model year, condition, and cargo utility, grounded by the brands.
 - If asked about TOOLS / DESK: Describe the physical instruments, materials, and items resting on the desk.
 - If asked about MUSIC / SOUND: Describe the audio textures, instruments, and physical listening habit.
 - If asked about PLACES / WALKS: Describe the physical route, neighborhood atmosphere, and corner destination.
-- Write exactly 1 focused paragraph (2-3 sentences, ~45-65 words).
 - Speak in plain, everyday English. NO curator-ish buzzwords (no "acoustic architecture", "generative textures", "tactile armor", "phenomenological").
 - Give MULTIPLE concrete examples from the Qloo results.
 - Include all mentioned entity names in highlightedEntities so they are interactive tags.

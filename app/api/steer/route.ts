@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
     const {
       characterName,
       instruction,
+      livingSeeds,
       existingSeeds,
       characterSummary,
       constraints,
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
       currentQuestion,
       currentVignette,
       domain,
+      tasteThesis,
       engine,
     } = await req.json();
 
@@ -21,10 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Steering instruction is required." }, { status: 400 });
     }
 
+    const seedsToUse = livingSeeds && livingSeeds.length > 0 ? livingSeeds : existingSeeds || [];
+
     const result = await steerAgenticResearch(
       characterName || "Character",
       instruction,
-      existingSeeds || [],
+      seedsToUse,
       {
         locality: constraints?.locality,
         era: constraints?.era,
@@ -37,6 +41,7 @@ export async function POST(req: NextRequest) {
         currentQuestion,
         currentVignette,
         domain,
+        tasteThesis,
         engine,
       }
     );

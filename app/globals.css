@@ -60,3 +60,28 @@ body {
 .custom-scrollbar-red::-webkit-scrollbar-thumb:hover {
   background: #f07b65;
 }
+
+/* Responsive clearing masks for green stage over poppies artwork */
+.green-stage-mask {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 6%, black 18%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 6%, black 18%, black 100%);
+}
+
+@media (min-width: 1024px) {
+  .green-stage-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 12%, black 100%);
+  }
+}
+
+.input-stage-mask {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 5%, black 16%, black 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.35) 5%, black 16%, black 100%);
+}
+
+@media (min-width: 768px) {
+  .input-stage-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%);
+  }
+}

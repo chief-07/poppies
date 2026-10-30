@@ -95,11 +95,21 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
     const rect = targetEl.getBoundingClientRect();
     setTargetRect(rect);
 
-    const cardWidth = 380;
-    const cardHeight = 220;
-    const padding = 16;
     const winWidth = window.innerWidth;
     const winHeight = window.innerHeight;
+    const isMobile = winWidth < 640;
+    const cardWidth = Math.min(360, winWidth - 32);
+    const cardHeight = 220;
+    const padding = 16;
+
+    // On mobile or if target element is hidden/collapsed, position tour card safely at bottom center
+    if (!targetEl || rect.width === 0 || rect.height === 0 || isMobile) {
+      setTargetRect(targetEl && rect.width > 0 ? rect : null);
+      const mTop = Math.max(padding, winHeight - cardHeight - 24);
+      const mLeft = Math.max(padding, winWidth / 2 - cardWidth / 2);
+      setCardPos({ top: mTop, left: mLeft });
+      return;
+    }
 
     let left = 0;
     let top = 0;
@@ -245,9 +255,9 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
         }
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pointer Arrow in matching cream color */}
+        {/* Pointer Arrow in matching cream color (Desktop only) */}
         {cardPos && targetRect && (
-          <>
+          <div className="hidden sm:block">
             {step.arrowPosition === "bottom" && (
               <div
                 style={{
@@ -280,7 +290,7 @@ export default function TourGuide({ isOpen, onClose }: TourGuideProps) {
                 className="absolute -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-[#F7F7D9] filter drop-shadow-[2px_0_1px_rgba(24,42,29,0.4)]"
               />
             )}
-          </>
+          </div>
         )}
 
         {/* Card Header */}

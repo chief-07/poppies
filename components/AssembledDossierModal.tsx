@@ -160,15 +160,15 @@ export default function AssembledDossierModal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-6 bg-black/85 backdrop-blur-md"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-[920px] max-h-[92vh] rounded-[24px] bg-[#112115] border border-white/[0.12] shadow-[0_40px_100px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden"
+        className="relative w-full max-w-[920px] max-h-[94vh] sm:max-h-[92vh] rounded-[20px] sm:rounded-[24px] bg-[#112115] border border-white/[0.12] shadow-[0_40px_100px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar: minimal actions, zero slop */}
-        <div className="flex-shrink-0 px-6 py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08]">
+        <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08]">
           <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50">
             Film-Bible Lookbook · {totalAcceptedCount} accepted anchor{totalAcceptedCount !== 1 ? "s" : ""}
           </span>
@@ -216,7 +216,7 @@ export default function AssembledDossierModal({
 
         {/* Scrollable Lookbook Body */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar-red">
-          <div className="max-w-[760px] mx-auto px-6 sm:px-10 py-8 sm:py-12 flex flex-col gap-0">
+          <div className="max-w-[760px] mx-auto px-4 sm:px-10 py-6 sm:py-12 flex flex-col gap-0">
             {/* 1. COVER SECTION: Character Title & Subtitle */}
             <h1 className="font-serif font-bold text-3xl sm:text-5xl text-[#F7F7D9] leading-tight tracking-tight">
               {characterName}

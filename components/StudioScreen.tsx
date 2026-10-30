@@ -15,6 +15,7 @@ import {
   Briefcase,
   ArrowRight,
   Check,
+  Menu,
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 import HeaderControls from "@/components/HeaderControls";
@@ -560,17 +561,9 @@ export default function StudioScreen({
   const [activeDossier, setActiveDossier] = useState<CulturalDossierBrief>(initialDossier);
   const culturalDossier = activeDossier;
 
-  // Director's Curation Workflow: Pre-accept primary anchors, rest remain proposed
-  const [acceptedEntityIds, setAcceptedEntityIds] = useState<string[]>(() => {
-    const initial: string[] = [];
-    liveInquiries.forEach((inq) => {
-      if (inq.entities && inq.entities.length > 0) {
-        initial.push(inq.entities[0].id);
-      }
-    });
-    if (!initial.includes("t1")) initial.push("t1");
-    return initial;
-  });
+  // Director's Canon Curation: Starts completely empty so each anchor earns its place deliberately
+  const [acceptedEntityIds, setAcceptedEntityIds] = useState<string[]>([]);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
 
   const toggleAcceptEntity = (entityId: string, entityName?: string) => {
     setAcceptedEntityIds((prev) => {
@@ -592,6 +585,7 @@ export default function StudioScreen({
   const [showDiagnosticCard, setShowDiagnosticCard] = useState<boolean>(false);
   const [isSwappingEngine, setIsSwappingEngine] = useState<boolean>(false);
   const [activeInquiryId, setActiveInquiryId] = useState<string>("cultural-dossier");
+  const [isCreatingNewInquiry, setIsCreatingNewInquiry] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"lookbook" | "index">("lookbook");
   const [steeringInput, setSteeringInput] = useState<string>("");
   const [isSteering, setIsSteering] = useState<boolean>(false);
@@ -770,6 +764,14 @@ export default function StudioScreen({
     }, 50);
   };
 
+  const handleAskNewQuestion = () => {
+    setIsCreatingNewInquiry(true);
+    setIsPromptFocused(true);
+    setTimeout(() => {
+      promptInputRef.current?.focus();
+    }, 50);
+  };
+
   const toggleAmbientSoundscape = () => {
     if (isPlayingAudio) {
       if (gainNodeRef.current && audioCtxRef.current) {
@@ -877,10 +879,23 @@ export default function StudioScreen({
     const lower = promptText.toLowerCase();
     setIsSteering(true);
 
+    // Present living canon seeds grounded in acceptedEntityIds to Qloo
+    const allEntities = inquiries.flatMap((i) => i.entities || []);
+    const livingSeedNames = Array.from(
+      new Set(
+        allEntities
+          .filter((e) => acceptedEntityIds.includes(e.id))
+          .map((e) => e.name)
+      )
+    );
+    const fallbackSeeds = inquiries.flatMap((i) => (i.entities || []).slice(0, 1).map((e) => e.name));
+    const livingSeeds = livingSeedNames.length > 0 ? livingSeedNames : fallbackSeeds;
+
     // 1. Intent: Ask for more entities / alternatives for current inquiry
     const isEntityRequest =
       activeInquiry &&
       !isDossierSelected &&
+      !isCreatingNewInquiry &&
       /more entities|more items|more books|more music|more tools|more objects|more places|fetch more|show more|give me more entities|more alternatives|expand list/i.test(lower);
 
     if (isEntityRequest) {
@@ -898,6 +913,7 @@ export default function StudioScreen({
     const isExplanationRequest =
       activeInquiry &&
       !isDossierSelected &&
+      !isCreatingNewInquiry &&
       /more explanation|explain more|explain further|elaborate|tell me more|why this|why these|dive deeper|more context|more detail/i.test(lower);
 
     if (isExplanationRequest) {
@@ -921,7 +937,9 @@ export default function StudioScreen({
             characterName,
             characterSummary,
             constraints,
-            existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+            livingSeeds,
+            existingSeeds: livingSeeds,
+            tasteThesis: culturalDossier?.tasteThesis,
             engine,
           }),
         });
@@ -951,23 +969,15 @@ export default function StudioScreen({
       return;
     }
 
-    // 3. Intent: Adapt current inquiry in-place (without creating a new thread)
-    const isExplicitNewQuestion =
-      isDossierSelected ||
-      lower.endsWith("?") ||
-      /^(what|where|who|when|why|how|explore|investigate|scene|show)\b/i.test(lower);
+    // 3. Intent: Adapt current inquiry in-place (DEFAULT when inside an active inquiry)
+    const shouldCreateNew = isDossierSelected || isCreatingNewInquiry;
 
-    const isAdaptation =
-      activeInquiry &&
-      !isDossierSelected &&
-      (!isExplicitNewQuestion || /^(make|lean|shift|change|focus|more|less|replace|tune|modify|adjust)\b/i.test(lower));
-
-    if (isAdaptation) {
+    if (!shouldCreateNew && activeInquiry) {
       setIsRefiningVignette(true);
       setSteeringInput("");
       setIsPromptFocused(false);
       promptInputRef.current?.blur();
-      showToast(`Adapting ${activeInquiry.question.slice(0, 25)}...`);
+      showToast(`Adapting "${activeInquiry.question.slice(0, 24)}..." with Qloo...`);
 
       try {
         const res = await fetch("/api/steer", {
@@ -983,7 +993,9 @@ export default function StudioScreen({
             characterName,
             characterSummary,
             constraints,
-            existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+            livingSeeds,
+            existingSeeds: livingSeeds,
+            tasteThesis: culturalDossier?.tasteThesis,
             engine,
           }),
         });
@@ -1019,6 +1031,7 @@ export default function StudioScreen({
 
     setInquiries((prev) => [provisionalInquiry, ...prev]);
     setActiveInquiryId(tempId);
+    setIsCreatingNewInquiry(false);
     setSteeringInput("");
     setIsPromptFocused(false);
     promptInputRef.current?.blur();
@@ -1035,7 +1048,9 @@ export default function StudioScreen({
           characterName,
           characterSummary,
           constraints,
-          existingSeeds: inquiries.flatMap((i) => (i.entities || []).slice(0, 2).map((e) => e.name)),
+          livingSeeds,
+          existingSeeds: livingSeeds,
+          tasteThesis: culturalDossier?.tasteThesis,
           engine,
         }),
       });
@@ -1045,7 +1060,7 @@ export default function StudioScreen({
         setInquiries((prev) =>
           prev.map((inq) => (inq.id === tempId ? { ...data.inquiry, id: tempId } : inq))
         );
-        showToast("New inquiry grounded via Qloo");
+        showToast("New inquiry culturally grounded by Qloo");
       }
     } catch (err) {
       console.error("Live steering error:", err);
@@ -1095,31 +1110,180 @@ export default function StudioScreen({
   };
 
   return (
-    <div className="relative h-screen w-full flex items-center justify-center overflow-hidden bg-[#101b13] p-3 sm:p-5 lg:p-6 select-none">
+    <div className="relative h-[100dvh] min-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-[#101b13] p-2 sm:p-4 lg:p-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-90 scale-[1.01]"
+        className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none opacity-90 scale-[1.01]"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
       />
 
-      {/* 2. Solid Green Clearing Extending to Right Edge */}
+      {/* 2. Solid Green Clearing Extending to Right Edge (Top-to-bottom fade on mobile, left-to-right on desktop) */}
       <div
-        className="pointer-events-none fixed inset-y-0 right-0 left-0 w-full"
+        className="pointer-events-none fixed inset-y-0 right-0 left-0 w-full green-stage-mask"
         style={{
           backgroundColor: "#182a1d",
-          maskImage:
-            "linear-gradient(to right, transparent 0%, black 10%, black 100%)",
-          WebkitMaskImage:
-            "linear-gradient(to right, transparent 0%, black 10%, black 100%)",
         }}
       />
 
+      {/* Mobile Inquiries & Navigation Drawer (Responsive Slide-in) */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm animate-fade-in"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <aside className="relative z-10 w-[290px] sm:w-[320px] h-full bg-[#132417] border-r border-white/20 p-4 sm:p-5 flex flex-col justify-between shadow-2xl animate-in slide-in-from-left duration-200">
+            <div className="flex flex-col gap-3 min-h-0 flex-1">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2 pl-1">
+                  <div
+                    className="w-5 h-5 rounded-full shadow-md border border-white/20 bg-cover bg-no-repeat"
+                    style={{
+                      backgroundImage: "url('/poppies-bg.jpg')",
+                      backgroundPosition: "42% 49%",
+                      backgroundSize: "650%",
+                    }}
+                  />
+                  <span className="font-serif italic font-bold text-lg text-[#F7F7D9] tracking-tight">
+                    Poppies
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-[#F7F7D9] flex items-center justify-center transition-colors cursor-pointer"
+                  title="Close navigation"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Cultural Dossier Overview Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveInquiryId("cultural-dossier");
+                  setIsCreatingNewInquiry(false);
+                  setMobileSidebarOpen(false);
+                  if (isPlayingAudio) toggleAmbientSoundscape();
+                }}
+                className={`w-full p-3 rounded-[18px] transition-all duration-200 text-left cursor-pointer flex-shrink-0 flex items-center justify-between ${
+                  isDossierSelected
+                    ? "bg-white/[0.12] backdrop-blur-xl border border-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]"
+                    : "bg-white/[0.05] hover:bg-white/[0.09] backdrop-blur-md border border-white/[0.12]"
+                }`}
+              >
+                <span
+                  className={`font-serif italic text-[14.5px] ${
+                    isDossierSelected
+                      ? "font-bold text-[#F7F7D9]"
+                      : "font-medium text-[#F7F7D9]/80"
+                  }`}
+                >
+                  Cultural Dossier
+                </span>
+                <span className="text-[11px] font-sans text-[#F7F7D9]/50">
+                  Brief
+                </span>
+              </button>
+
+              {/* Inquiries List */}
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-2 pt-1 custom-scrollbar-red">
+                {inquiries.map((inquiry) => {
+                  const isActive = !isDossierSelected && inquiry.id === activeInquiry?.id;
+                  const isCreator = inquiry.source === "creator";
+
+                  return (
+                    <button
+                      key={inquiry.id}
+                      onClick={() => {
+                        setActiveInquiryId(inquiry.id);
+                        setIsCreatingNewInquiry(false);
+                        setMobileSidebarOpen(false);
+                        if (isPlayingAudio) toggleAmbientSoundscape();
+                      }}
+                      className={`group w-full p-3 rounded-[18px] transition-all duration-200 text-left cursor-pointer flex-shrink-0 flex flex-col gap-1 ${
+                        isActive
+                          ? "bg-white/[0.12] backdrop-blur-xl border border-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)]"
+                          : "bg-white/[0.05] hover:bg-white/[0.08] backdrop-blur-md border border-white/[0.1] text-[#F7F7D9]/80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-mono tracking-tight ${
+                              isCreator ? "text-[#F7F7D9]/60" : "text-[#E06B55]"
+                            }`}
+                          >
+                            {isCreator ? "[You]" : "[Agent]"}
+                          </span>
+                          {isActive && isRefiningVignette && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#E06B55] animate-ping" />
+                          )}
+                        </div>
+                      </div>
+
+                      <span
+                        className={`font-sans text-[12.5px] leading-snug line-clamp-2 ${
+                          isActive
+                            ? "font-medium text-[#F7F7D9]"
+                            : "text-[#F7F7D9]/75 group-hover:text-[#F7F7D9]"
+                        }`}
+                      >
+                        {inquiry.question}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAskNewQuestion();
+                    setMobileSidebarOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-[16px] bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur-md border border-dashed border-white/15 text-[#F7F7D9]/70 hover:text-[#F7F7D9] text-xs font-sans transition-all cursor-pointer flex-shrink-0 mt-0.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ask a question or explore a scene</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Assemble Dossier */}
+            <div className="pt-2 flex-shrink-0 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between px-3 text-[10px] font-sans text-[#F7F7D9]/50">
+                <span>Director&apos;s Canon:</span>
+                <span className="font-mono text-[#E06B55] font-semibold">{acceptedEntityIds.length} accepted</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDossierModalOpen(true);
+                  setMobileSidebarOpen(false);
+                  onAssembleDossier?.();
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-[18px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.12] backdrop-blur-lg text-[#F7F7D9] transition-all group cursor-pointer active:scale-95 shadow-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-[#F7F7D9]/80" />
+                  <span className="font-serif italic font-medium text-xs sm:text-sm">
+                    Assemble dossier ({acceptedEntityIds.length})
+                  </span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-white/40 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* 3. Studio Main Stage */}
-      <div className="relative w-full max-w-[1360px] h-full flex gap-7 lg:gap-9 items-stretch justify-center">
-        {/* ================= LEFT COLUMN: Sidebar ================= */}
-        <aside id="tour-left-pane" className="w-[250px] sm:w-[270px] flex-shrink-0 flex flex-col justify-between h-full min-h-0">
+      <div className="relative w-full max-w-[1360px] h-full flex gap-5 lg:gap-8 items-stretch justify-center">
+        {/* ================= LEFT COLUMN: Desktop Sidebar ================= */}
+        <aside id="tour-left-pane" className="hidden lg:flex w-[260px] xl:w-[270px] flex-shrink-0 flex-col justify-between h-full min-h-0">
           <div className="flex flex-col gap-3 min-h-0 flex-1">
             {/* Logo */}
             <div className="flex items-center gap-2.5 pl-1 flex-shrink-0">
@@ -1141,6 +1305,7 @@ export default function StudioScreen({
               type="button"
               onClick={() => {
                 setActiveInquiryId("cultural-dossier");
+                setIsCreatingNewInquiry(false);
                 if (isPlayingAudio) toggleAmbientSoundscape();
               }}
               className={`w-full p-3 rounded-[18px] transition-all duration-200 text-left cursor-pointer flex-shrink-0 flex items-center justify-between ${
@@ -1174,6 +1339,7 @@ export default function StudioScreen({
                     key={inquiry.id}
                     onClick={() => {
                       setActiveInquiryId(inquiry.id);
+                      setIsCreatingNewInquiry(false);
                       if (isPlayingAudio) toggleAmbientSoundscape();
                     }}
                     className={`group w-full p-3 rounded-[18px] transition-all duration-200 text-left cursor-pointer flex-shrink-0 flex flex-col gap-1 ${
@@ -1213,7 +1379,7 @@ export default function StudioScreen({
               {/* Add question or explore scene button */}
               <button
                 type="button"
-                onClick={handleActivatePrompt}
+                onClick={handleAskNewQuestion}
                 className="flex items-center gap-2 px-3 py-2 rounded-[16px] bg-white/[0.03] hover:bg-white/[0.07] backdrop-blur-md border border-dashed border-white/15 text-[#F7F7D9]/70 hover:text-[#F7F7D9] text-xs font-sans transition-all cursor-pointer flex-shrink-0 mt-0.5"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -1248,20 +1414,47 @@ export default function StudioScreen({
         </aside>
 
         {/* ================= RIGHT COLUMN: Header + Main Card + Prompt ================= */}
-        <div className="flex-1 flex flex-col gap-3 max-w-[1040px] h-full min-h-0">
+        <div className="flex-1 min-w-0 flex flex-col justify-between h-full gap-2.5 sm:gap-3.5">
           {/* Top Bar: Character Title & Right Edge Controls */}
-          <div className="flex-shrink-0 flex items-center justify-between gap-4">
-            <div className="flex items-baseline gap-3 flex-wrap min-w-0">
-              <h1 className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl text-[#F7F7D9] tracking-tight leading-tight">
+          <div className="flex-shrink-0 flex items-center justify-between gap-2.5 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Mobile Inquiries Trigger Button */}
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="lg:hidden flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[#F7F7D9] text-xs font-sans transition-all active:scale-95 flex-shrink-0 shadow-sm cursor-pointer"
+                title="Open inquiries and navigation"
+              >
+                <Menu className="w-3.5 h-3.5 text-[#E06B55]" />
+                <span className="font-serif italic font-medium truncate max-w-[90px] sm:max-w-[140px]">
+                  {isDossierSelected ? "Brief" : (activeInquiry?.question ? activeInquiry.question.slice(0, 18) + "…" : "Inquiries")}
+                </span>
+                <span className="font-mono text-[10px] text-[#E06B55] font-bold">
+                  {inquiries.length}
+                </span>
+              </button>
+
+              <h1 className="font-serif font-bold text-xl sm:text-3xl lg:text-4xl text-[#F7F7D9] tracking-tight leading-tight truncate">
                 {characterName}
               </h1>
-              <p className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/60 max-w-md truncate hidden md:inline">
+              <p className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/60 max-w-xs xl:max-w-md truncate hidden md:inline">
                 {characterSummary}
               </p>
             </div>
 
-            {/* Right Edge: Constraint Pills + Qloo Toggle & Tour */}
-            <div className="flex items-center gap-2.5 flex-shrink-0">
+            {/* Right Edge: Mobile Dossier Badge + Constraint Pills + Qloo Toggle & Tour */}
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+              {/* Mobile Dossier Pill */}
+              <button
+                type="button"
+                onClick={() => setIsDossierModalOpen(true)}
+                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Assemble Character Dossier"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#E06B55]" />
+                <span className="font-mono text-[11px] font-semibold text-[#F7F7D9]">{acceptedEntityIds.length}</span>
+              </button>
+
               {constraints.locality && (
                 <span className="hidden lg:inline px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/10 text-[#F7F7D9]/70 text-[11px] font-sans">
                   {constraints.locality}
@@ -1289,7 +1482,7 @@ export default function StudioScreen({
           </div>
 
           {/* Main Card */}
-          <main id="tour-center-pane" className="relative w-full flex-1 min-h-0 rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-6 sm:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
+          <main id="tour-center-pane" className="relative w-full flex-1 min-h-0 rounded-[20px] sm:rounded-[26px] bg-[#162a1c]/85 border border-white/[0.12] backdrop-blur-2xl p-4 sm:p-6 lg:p-7 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.2),0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden">
             {/* Swapping Engine Loading Indicator */}
             {isSwappingEngine && (
               <div className="mb-4 rounded-[18px] bg-white/[0.04] border border-white/10 p-3.5 flex items-center justify-center gap-3 text-xs font-sans text-[#F7F7D9]/80 animate-pulse flex-shrink-0">
@@ -1368,7 +1561,7 @@ export default function StudioScreen({
                         <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
                           Character Canon ({acceptedEntityIds.length} accepted · {Math.max(0, allTaggableEntities.length - acceptedEntityIds.length)} proposed)
                         </span>
-                        <span className="text-[11px] font-sans text-[#F7F7D9]/40">
+                        <span className="hidden sm:inline text-[11px] font-sans text-[#F7F7D9]/40">
                           Click pill to inspect evidence · Click +/✓ to toggle canon
                         </span>
                       </div>
@@ -1447,7 +1640,7 @@ export default function StudioScreen({
                 </div>
 
                 {/* Card Footer: Observed Clusters + Navigation CTAs */}
-                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-3">
+                <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
                     <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
                     <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
@@ -1461,7 +1654,7 @@ export default function StudioScreen({
                           const firstInq = inquiries[0];
                           if (firstInq) setActiveInquiryId(firstInq.id);
                         }}
-                        className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
+                        className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
                       >
                         <span>Explore Inquiries ({inquiries.length})</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1470,7 +1663,7 @@ export default function StudioScreen({
                     <button
                       type="button"
                       onClick={() => setIsDossierModalOpen(true)}
-                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm group"
+                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm group"
                     >
                       <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
                       <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
@@ -1482,12 +1675,12 @@ export default function StudioScreen({
               /* VIEW B: SCENE INQUIRY VIEW (Lookbook & Index) */
               <div className="flex flex-col h-full min-h-0">
                 {/* Header: Question + Mode Switcher */}
-                <div className="flex-shrink-0 pb-3 border-b border-white/[0.08] mb-4 flex items-center justify-between gap-4">
+                <div className="flex-shrink-0 pb-3 border-b border-white/[0.08] mb-4 flex items-center justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-mono text-[#F7F7D9]/50 flex-shrink-0">
                       {activeInquiry.source === "creator" ? "[You]" : "[Agent]"}
                     </span>
-                    <h2 className="font-serif font-medium text-base sm:text-lg lg:text-xl text-[#F7F7D9] tracking-tight">
+                    <h2 className="font-serif font-medium text-base sm:text-lg lg:text-xl text-[#F7F7D9] tracking-tight truncate sm:whitespace-normal">
                       {activeInquiry.question}
                     </h2>
                   </div>
@@ -1729,26 +1922,52 @@ export default function StudioScreen({
                         <div
                           key={entity.id}
                           onClick={() => handleEntityClick(entity)}
-                          className={`group w-full flex items-center gap-4 px-3 py-2.5 text-left transition-all duration-150 cursor-pointer rounded-xl flex-shrink-0 ${
+                          className={`group w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 px-3 py-3 sm:py-2.5 text-left transition-all duration-150 cursor-pointer rounded-xl flex-shrink-0 ${
                             isAccepted
                               ? "bg-white/[0.06] hover:bg-white/[0.09]"
                               : "hover:bg-white/[0.05]"
                           }`}
                         >
-                          <div className="min-w-[150px] max-w-[200px] flex-shrink-0 flex items-center gap-2">
-                            <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold flex-shrink-0">
-                              [{entity.domain}]
-                            </span>
-                            <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
-                              {entity.name}
-                            </span>
+                          <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0 sm:min-w-[150px] sm:max-w-[200px]">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold flex-shrink-0">
+                                [{entity.domain}]
+                              </span>
+                              <span className="font-serif italic font-medium text-sm text-[#F7F7D9] group-hover:text-white transition-colors truncate">
+                                {entity.name}
+                              </span>
+                            </div>
+
+                            {/* Mobile action button & score right aligned in entity header */}
+                            <div className="flex sm:hidden items-center gap-2 flex-shrink-0">
+                              {entity.affinityScore !== undefined && engine === "qloo" && (
+                                <span className="font-sans text-[11px] font-bold text-[#F7F7D9]/80">
+                                  {entity.affinityScore}%
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAcceptEntity(entity.id, entity.name);
+                                }}
+                                className={`px-2 py-0.5 rounded-full border text-[10px] font-sans font-medium flex items-center gap-1 transition-all cursor-pointer ${
+                                  isAccepted
+                                    ? "bg-emerald-950/70 border-emerald-400/50 text-emerald-300"
+                                    : "bg-white/[0.05] border-white/15 text-[#F7F7D9]/70"
+                                }`}
+                              >
+                                {isAccepted ? <Check className="w-2.5 h-2.5 stroke-[2.5]" /> : <Plus className="w-2.5 h-2.5 stroke-[2.5]" />}
+                              </button>
+                            </div>
                           </div>
 
                           <p className="flex-1 font-sans text-xs text-[#F7F7D9]/65 leading-relaxed line-clamp-2 min-w-0">
                             {entity.description}
                           </p>
 
-                          <div className="flex items-center gap-2.5 flex-shrink-0">
+                          {/* Desktop score and button */}
+                          <div className="hidden sm:flex items-center gap-2.5 flex-shrink-0">
                             {entity.affinityScore !== undefined && engine === "qloo" && (
                               <div className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10">
                                 <span className="font-sans text-[11px] font-medium text-[#F7F7D9]/80">
@@ -1826,20 +2045,44 @@ export default function StudioScreen({
             }`}
             style={{ willChange: "transform, box-shadow" }}
           >
-            <div className="w-full rounded-[16px] sm:rounded-[18px] bg-[#F7F7D9] px-5 sm:px-6 py-2.5 sm:py-3 shadow-sm flex items-center justify-between gap-3">
+            <div className="w-full rounded-[16px] sm:rounded-[18px] bg-[#F7F7D9] px-3.5 sm:px-6 py-2 sm:py-3 shadow-sm flex items-center justify-between gap-2.5 sm:gap-3">
+              {isCreatingNewInquiry && (
+                <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#1b2d20] text-[#F7F7D9] text-[10px] sm:text-[11px] font-sans font-medium flex-shrink-0 animate-fade-in shadow-sm">
+                  <span>New question</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCreatingNewInquiry(false);
+                    }}
+                    className="hover:opacity-75 transition-opacity ml-0.5 cursor-pointer"
+                    title="Cancel new question mode (Esc)"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
               <input
                 ref={promptInputRef}
                 type="text"
                 value={steeringInput}
                 onChange={(e) => setSteeringInput(e.target.value)}
                 onFocus={() => setIsPromptFocused(true)}
-                onKeyDown={(e) => e.key === "Enter" && handleSteer()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSteer();
+                  if (e.key === "Escape") {
+                    setIsCreatingNewInquiry(false);
+                    setIsPromptFocused(false);
+                    promptInputRef.current?.blur();
+                  }
+                }}
                 placeholder={
-                  isDossierSelected
-                    ? `Ask a question or explore a scene for ${characterName}...`
-                    : `Steer inquiry, ask for more explanation, or request more entities...`
+                  isDossierSelected || isCreatingNewInquiry
+                    ? `Ask a question or scene for ${characterName}...`
+                    : `Adapt "${activeInquiry?.question ? (activeInquiry.question.length > 28 ? activeInquiry.question.slice(0, 28) + "…" : activeInquiry.question) : "this"}"...`
                 }
-                className="w-full bg-transparent border-none outline-none font-serif text-sm sm:text-base text-[#1c2b1e] placeholder:text-[#1c2b1e]/50"
+                className="w-full bg-transparent border-none outline-none font-serif text-xs sm:text-base text-[#1c2b1e] placeholder:text-[#1c2b1e]/50"
               />
 
               <button
@@ -1847,7 +2090,7 @@ export default function StudioScreen({
                 onClick={handleSteer}
                 disabled={isSteering}
                 className="w-8 h-8 rounded-full bg-[#1b2d20] hover:bg-[#283f2e] active:scale-95 text-[#F7F7D9] flex items-center justify-center transition-all shadow-md cursor-pointer flex-shrink-0"
-                title="Send instruction to Poppies"
+                title={isDossierSelected || isCreatingNewInquiry ? "Ask new question" : "Adapt current inquiry"}
               >
                 <Send className="w-3.5 h-3.5 fill-[#F7F7D9] text-[#F7F7D9] stroke-[1.5]" />
               </button>
@@ -1861,6 +2104,7 @@ export default function StudioScreen({
         aria-hidden="true"
         onClick={() => {
           setIsPromptFocused(false);
+          setIsCreatingNewInquiry(false);
           promptInputRef.current?.blur();
         }}
         className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] transition-all duration-300 ease-out cursor-pointer ${
@@ -1871,8 +2115,8 @@ export default function StudioScreen({
 
       {/* Right Drawer: Entity Evidence Inspector */}
       {evidenceDrawerOpen && selectedEntity && (
-        <div className="fixed inset-0 z-60 flex items-center justify-end bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="relative w-full max-w-lg h-full max-h-[85vh] rounded-[24px] bg-[#16271a] border border-white/20 p-5 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-2xl overflow-y-auto custom-scrollbar-red">
+        <div className="fixed inset-0 z-60 flex items-center justify-end bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-fade-in">
+          <div className="relative w-full max-w-lg h-full max-h-[94vh] sm:max-h-[85vh] rounded-[20px] sm:rounded-[24px] bg-[#16271a] border border-white/20 p-4 sm:p-6 flex flex-col justify-between text-[#F7F7D9] shadow-2xl overflow-y-auto custom-scrollbar-red">
             <div className="flex flex-col gap-4">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -1880,7 +2124,7 @@ export default function StudioScreen({
                   <span className="text-[10px] font-mono text-[#E06B55]">
                     {selectedEntity.domain}
                   </span>
-                  <h3 className="font-serif font-bold text-xl text-[#F7F7D9]">
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-[#F7F7D9]">
                     {selectedEntity.name}
                   </h3>
                 </div>
@@ -1902,7 +2146,7 @@ export default function StudioScreen({
               {(() => {
                 const isSelectedAccepted = acceptedEntityIds.includes(selectedEntity.id);
                 return (
-                  <div className="p-3.5 rounded-[16px] bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3">
+                  <div className="p-3 sm:p-3.5 rounded-[16px] bg-white/[0.04] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-mono uppercase tracking-wider text-[#F7F7D9]/50">
                         Curation Status

@@ -343,21 +343,17 @@ export default function Home() {
       <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-[#28402a] py-8 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+          className="fixed inset-0 bg-cover bg-top sm:bg-center bg-no-repeat pointer-events-none"
           style={{
             backgroundImage: "url('/poppies-bg.jpg')",
           }}
         />
 
-        {/* 2. Solid Green (#28402A) Center Band */}
+        {/* 2. Solid Green (#28402A) Center Band (Top-to-bottom fade on mobile, left-to-right on desktop) */}
         <div
-          className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px]"
+          className="pointer-events-none fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[1240px] input-stage-mask"
           style={{
             backgroundColor: "#28402a",
-            maskImage:
-              "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
-            WebkitMaskImage:
-              "linear-gradient(to right, transparent 0%, black 14%, black 86%, transparent 100%)",
           }}
         />
 
