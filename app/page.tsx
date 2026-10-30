@@ -380,7 +380,7 @@ export default function Home() {
   if (screenState === "studio") {
     return (
       <div
-        className={`w-full h-full animate-smooth-fade transition-all duration-700 ease-out ${
+        className={`w-full h-[100dvh] max-h-[100dvh] overflow-hidden animate-smooth-fade transition-all duration-700 ease-out ${
           engine === "base_llm"
             ? "filter grayscale-[40%] contrast-[96%]"
             : ""
@@ -404,12 +404,12 @@ export default function Home() {
       {/* Initial Entrance Splash Screen */}
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none transition-opacity duration-800 ease-in-out ${
+          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#182a1d] select-none transition-opacity duration-800 ease-in-out ${
             splashFading ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out"
+            className="w-full h-full max-w-[1024px] max-h-[661px] bg-contain sm:bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out [mask-image:linear-gradient(to_bottom,transparent_0%,black_10%,black_90%,transparent_100%)] sm:[mask-image:none]"
             style={{
               backgroundImage: "url('/poppies-splash.jpg')",
             }}
@@ -417,7 +417,7 @@ export default function Home() {
         </div>
       )}
 
-      <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-transparent py-8 sm:py-12 px-4 sm:px-6">
+      <main className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full flex items-center justify-center overflow-y-auto sm:overflow-hidden bg-transparent py-4 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
           className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"

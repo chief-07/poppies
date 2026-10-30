@@ -18,6 +18,7 @@ import {
   Menu,
   LayoutGrid,
   List,
+  ChevronDown,
 } from "lucide-react";
 import AssembledDossierModal from "@/components/AssembledDossierModal";
 import HeaderControls from "@/components/HeaderControls";
@@ -761,6 +762,11 @@ export default function StudioScreen({
   const [isDossierModalOpen, setIsDossierModalOpen] = useState<boolean>(false);
   const [selectedEntity, setSelectedEntity] = useState<CulturalEntity | null>(null);
 
+  // Mobile readability & compact viewport states
+  const [isBriefExpandedMobile, setIsBriefExpandedMobile] = useState<boolean>(false);
+  const [isInquiryExpandedMobile, setIsInquiryExpandedMobile] = useState<boolean>(false);
+  const [isUnselectedExpandedMobile, setIsUnselectedExpandedMobile] = useState<boolean>(false);
+
   useEffect(() => {
     if (initialData?.culturalDossier) {
       qlooDataCache.current.culturalDossier = initialData.culturalDossier;
@@ -1302,7 +1308,7 @@ export default function StudioScreen({
   };
 
   return (
-    <div className="relative h-[100dvh] min-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 select-none">
+    <div className="relative h-[100dvh] max-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-transparent p-1.5 sm:p-4 lg:p-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
         className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
@@ -1487,7 +1493,7 @@ export default function StudioScreen({
       )}
 
       {/* 3. Studio Main Stage */}
-      <div className="relative w-full max-w-[1360px] h-full flex gap-5 lg:gap-8 items-stretch justify-center">
+      <div className="relative w-full max-w-[1360px] h-full max-h-full flex gap-5 lg:gap-8 items-stretch justify-center overflow-hidden">
         {/* ================= LEFT COLUMN: Desktop Sidebar ================= */}
         <aside id="tour-left-pane" className="hidden lg:flex w-[260px] xl:w-[270px] flex-shrink-0 flex-col justify-between h-full min-h-0">
           <div className="flex flex-col gap-3 min-h-0 flex-1">
@@ -1617,28 +1623,28 @@ export default function StudioScreen({
         </aside>
 
         {/* ================= RIGHT COLUMN: Header + Main Card + Prompt ================= */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between h-full gap-2.5 sm:gap-3.5">
+        <div className="flex-1 min-w-0 flex flex-col justify-between h-full max-h-full gap-2 sm:gap-3.5 overflow-hidden">
           {/* Top Bar: Character Title & Right Edge Controls */}
-          <div className="flex-shrink-0 flex items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex-shrink-0 flex items-center justify-between gap-1.5 sm:gap-4 pb-0.5">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               {/* Mobile Inquiries Trigger Button */}
               <button
                 type="button"
                 id="tour-mobile-menu-btn"
                 onClick={() => setMobileSidebarOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[#F7F7D9] text-xs font-sans transition-all active:scale-95 flex-shrink-0 shadow-sm cursor-pointer"
+                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[#F7F7D9] text-xs font-sans transition-all active:scale-95 flex-shrink-0 shadow-sm cursor-pointer"
                 title="Open inquiries and navigation"
               >
                 <Menu className="w-3.5 h-3.5 text-[#E06B55]" />
-                <span className="font-serif italic font-medium truncate max-w-[90px] sm:max-w-[140px]">
-                  {isDossierSelected ? "Brief" : (activeInquiry?.question ? activeInquiry.question.slice(0, 18) + "…" : "Inquiries")}
+                <span className="font-serif italic font-medium truncate max-w-[80px] xs:max-w-[110px]">
+                  {isDossierSelected ? "Brief" : "Questions"}
                 </span>
                 <span className="font-mono text-[10px] text-[#E06B55] font-bold">
                   {inquiries.length}
                 </span>
               </button>
 
-              <h1 className="font-serif font-bold text-xl sm:text-3xl lg:text-4xl text-[#F7F7D9] tracking-tight leading-tight truncate">
+              <h1 className="font-serif font-bold text-lg sm:text-2xl lg:text-3xl text-[#F7F7D9] tracking-tight leading-none truncate">
                 {characterName}
               </h1>
               <p className="font-serif italic text-xs sm:text-sm text-[#F7F7D9]/60 max-w-xs xl:max-w-md truncate hidden md:inline">
@@ -1646,17 +1652,17 @@ export default function StudioScreen({
               </p>
             </div>
 
-            {/* Right Edge: Mobile Dossier Badge + Constraint Pills + Qloo Toggle & Tour */}
-            <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {/* Right Edge: Mobile Dossier Badge + Qloo Toggle & Tour */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               {/* Mobile Dossier Pill */}
               <button
                 type="button"
                 onClick={() => setIsDossierModalOpen(true)}
-                className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer shadow-sm active:scale-95"
+                className="lg:hidden flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer shadow-sm active:scale-95"
                 title="Assemble Character Dossier"
               >
-                <BookOpen className="w-3.5 h-3.5 text-[#E06B55]" />
-                <span className="font-mono text-[11px] font-semibold text-[#F7F7D9]">{acceptedEntityIds.length}</span>
+                <BookOpen className="w-3 h-3 text-[#E06B55]" />
+                <span className="font-mono text-[10px] font-bold text-[#F7F7D9]">{acceptedEntityIds.length}</span>
               </button>
 
               {onToggleEngine && onOpenTour && (
@@ -1736,10 +1742,20 @@ export default function StudioScreen({
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col justify-between gap-6 custom-scrollbar-red">
                 <div className="flex flex-col gap-6">
                   {/* 1. Connection of who the character is based on Qloo discoveries (Direct, unencumbered prose with interactive pills) */}
-                  <div className="flex flex-col gap-4">
-                    <p className="font-serif text-[17px] sm:text-[19px] leading-[1.85] text-[#F7F7D9] font-light">
+                  <div className="flex flex-col gap-2">
+                    <p className={`font-serif text-[16px] sm:text-[19px] leading-[1.8] sm:leading-[1.85] text-[#F7F7D9] font-light transition-all ${
+                      !isBriefExpandedMobile ? "line-clamp-4 sm:line-clamp-none" : ""
+                    }`}>
                       {renderTextWithEntityTags(resolvedTasteThesis, allTaggableEntities, handleEntityClick)}
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsBriefExpandedMobile(!isBriefExpandedMobile)}
+                      className="sm:hidden text-xs font-sans text-[#E06B55] hover:text-[#f28672] font-semibold self-start flex items-center gap-1 cursor-pointer py-0.5 active:scale-95 transition-all"
+                    >
+                      <span>{isBriefExpandedMobile ? "Read less" : "Read full brief"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isBriefExpandedMobile ? "rotate-180" : ""}`} />
+                    </button>
                   </div>
 
                   {/* 2. Character Canon (Selected Entities): Visual Lookbook Grid with photos & overlay */}
@@ -1815,9 +1831,9 @@ export default function StudioScreen({
                     </div>
                   )}
 
-                  {/* 3. Unselected Cultural Anchors (The rest of the entities as sleek pills) */}
+                  {/* 3. Unselected Cultural Anchors (Minimal 4 on mobile with expand & index navigation) */}
                   {unselectedEntities.length > 0 && (
-                    <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+                    <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
                           Discovered Cultural Anchors ({unselectedEntities.length} available)
@@ -1828,7 +1844,7 @@ export default function StudioScreen({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        {unselectedEntities.map((entity) => (
+                        {(isUnselectedExpandedMobile ? unselectedEntities : unselectedEntities.slice(0, 4)).map((entity) => (
                           <div
                             key={entity.id}
                             className="px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-[#F7F7D9]/80 text-xs font-sans flex items-center gap-2 transition-all shadow-sm"
@@ -1857,6 +1873,33 @@ export default function StudioScreen({
                             </button>
                           </div>
                         ))}
+
+                        {/* Mobile Inline Action: Expand remaining anchors */}
+                        {unselectedEntities.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsUnselectedExpandedMobile(!isUnselectedExpandedMobile)}
+                            className="sm:hidden px-3 py-1.5 rounded-full border border-dashed border-[#E06B55]/50 bg-[#E06B55]/10 hover:bg-[#E06B55]/20 text-[#F7F7D9] text-xs font-sans font-medium flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+                          >
+                            <span>{isUnselectedExpandedMobile ? "Show less" : `+ ${unselectedEntities.length - 4} more`}</span>
+                            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isUnselectedExpandedMobile ? "rotate-180" : ""}`} />
+                          </button>
+                        )}
+
+                        {/* Option to navigate to catalog index view */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (inquiries.length > 0) {
+                              setActiveInquiryId(inquiries[0].id);
+                              setViewMode("index");
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ml-auto sm:ml-0"
+                        >
+                          <List className="w-3.5 h-3.5 text-[#E06B55]" />
+                          <span>View in Catalog Index →</span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1990,15 +2033,29 @@ export default function StudioScreen({
                     )}
 
                     {/* Multi-Paragraph Curatorial Writeup (Full width, full breathing room, elegant editorial prose) */}
-                    <div className="flex flex-col gap-4">
-                      {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => (
-                        <p
-                          key={pIdx}
-                          className="font-serif text-[16.5px] sm:text-[18px] leading-[1.85] text-[#F7F7D9]/95 font-light"
-                        >
-                          {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
-                        </p>
-                      ))}
+                    <div className="flex flex-col gap-3">
+                      {(activeInquiry.vignette || "Curating cultural anchors...").split("\n\n").map((para, pIdx) => {
+                        // On mobile, if not expanded, only show first paragraph clamped
+                        if (!isInquiryExpandedMobile && pIdx > 0) return null;
+                        return (
+                          <p
+                            key={pIdx}
+                            className={`font-serif text-[15.5px] sm:text-[18px] leading-[1.75] sm:leading-[1.85] text-[#F7F7D9]/95 font-light transition-all ${
+                              !isInquiryExpandedMobile ? "line-clamp-3 sm:line-clamp-none" : ""
+                            }`}
+                          >
+                            {renderTextWithEntityTags(para.trim(), allTaggableEntities, handleEntityClick)}
+                          </p>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => setIsInquiryExpandedMobile(!isInquiryExpandedMobile)}
+                        className="sm:hidden text-xs font-sans text-[#E06B55] hover:text-[#f28672] font-semibold self-start flex items-center gap-1 cursor-pointer py-0.5 active:scale-95 transition-all"
+                      >
+                        <span>{isInquiryExpandedMobile ? "Read less" : "Read full writeup"}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isInquiryExpandedMobile ? "rotate-180" : ""}`} />
+                      </button>
                     </div>
 
                     {/* Curated Ensemble Tray */}
