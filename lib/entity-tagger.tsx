@@ -13,6 +13,83 @@ export interface TaggableEntity {
   qlooReasoning?: string;
 }
 
+const STOPWORDS = new Set([
+  "the", "and", "for", "with", "from", "that", "this", "into", "over", "under", "about",
+  "book", "album", "music", "park", "road", "city", "cafe", "shop", "knife", "knives",
+  "boots", "shoes", "jacket", "coat", "pencil", "pen", "temple", "shrine", "museum",
+  "station", "harbor", "port", "green", "blue", "black", "white", "vintage", "classic",
+  "quiet", "night", "sound", "radio", "audio", "tools", "stone", "craft", "wood"
+]);
+
+const GENERIC_SUFFIXES = [
+  /\s+(mechanical pencil|pencil|pens?|carbon knife|knives|knife|boots?|shoes?|jacket|coat|temple|shrine|sanctuary|museum|station|park|avenue|street|boulevard|cafe|bar|records|recordings|quartet|trio|ensemble|orchestra|project|studio|studios|laboratory|workshop|works|distillery|brewery|company|co\.|inc\.|ltd\.|limited)$/i,
+  /\s+no\.\s*\d+.*$/i,
+  /\s*[\(\[].*?[\)\]]/g,
+  /\s*[-–—:]\s*.*$/
+];
+
+interface AliasEntry<T> {
+  alias: string;
+  entity: T;
+}
+
+function buildEntityLookup<T extends { id?: string; name: string }>(rawEntities: T[]): AliasEntry<T>[] {
+  const lookup = new Map<string, AliasEntry<T>>();
+
+  const register = (alias: string, entity: T) => {
+    if (!alias) return;
+    const clean = alias.trim().replace(/^['"“‘]+|['"”’]+$/g, "");
+    const lower = clean.toLowerCase();
+    if (lower.length < 3 || STOPWORDS.has(lower)) return;
+    if (!lookup.has(lower)) {
+      lookup.set(lower, { alias: clean, entity });
+    }
+  };
+
+  rawEntities.forEach((ent) => {
+    if (!ent || !ent.name) return;
+    const raw = ent.name.trim();
+    register(raw, ent);
+
+    // 1. Subtitles after dash / colon (e.g. "Artist - Album" -> "Artist")
+    if (raw.includes(" - ") || raw.includes(" – ") || raw.includes(": ")) {
+      const parts = raw.split(/\s*[-–:]\s*/);
+      parts.forEach((p) => register(p, ent));
+    }
+
+    // 2. Bracketed text (e.g. "Hiroshi Yoshimura (Ambient)" -> "Hiroshi Yoshimura")
+    const noBrackets = raw.replace(/\s*[\(\[].*?[\)\]]/g, "").trim();
+    if (noBrackets && noBrackets !== raw) {
+      register(noBrackets, ent);
+    }
+
+    // 3. Trailing product/place descriptors (e.g. "Rotring 600 Mechanical Pencil" -> "Rotring 600")
+    let stripped = raw;
+    for (const suffixRegex of GENERIC_SUFFIXES) {
+      const next = stripped.replace(suffixRegex, "").trim();
+      if (next && next.length >= 3 && next !== stripped) {
+        register(next, ent);
+        stripped = next;
+      }
+    }
+
+    // 4. Distinctive first/last words if >= 4 chars and not stop words (e.g. "Satie", "Opinel", "Tanizaki")
+    const words = raw.split(/\s+/);
+    if (words.length > 1) {
+      const firstWord = words[0].replace(/[^a-zA-Z0-9\u00C0-\u024F\u3040-\u30FF\u4E00-\u9FFF]/g, "");
+      if (firstWord.length >= 4 && !STOPWORDS.has(firstWord.toLowerCase())) {
+        register(firstWord, ent);
+      }
+      const lastWord = words[words.length - 1].replace(/[^a-zA-Z0-9\u00C0-\u024F\u3040-\u30FF\u4E00-\u9FFF]/g, "");
+      if (lastWord.length >= 4 && !STOPWORDS.has(lastWord.toLowerCase())) {
+        register(lastWord, ent);
+      }
+    }
+  });
+
+  return Array.from(lookup.values()).sort((a, b) => b.alias.length - a.alias.length);
+}
+
 export function renderTextWithEntityTags<T extends { id?: string; name: string }>(
   text: string,
   entities: T[],
@@ -20,23 +97,12 @@ export function renderTextWithEntityTags<T extends { id?: string; name: string }
 ): React.ReactNode {
   if (!text || !entities || entities.length === 0) return <span>{text}</span>;
 
-  // Deduplicate and filter valid entities by name length descending (longest names match first)
-  const seen = new Set<string>();
-  const validEntities = entities
-    .filter((e) => {
-      if (!e || !e.name || e.name.trim().length <= 1) return false;
-      const lower = e.name.toLowerCase().trim();
-      if (seen.has(lower)) return false;
-      seen.add(lower);
-      return true;
-    })
-    .sort((a, b) => b.name.length - a.name.length);
-
-  if (validEntities.length === 0) return <span>{text}</span>;
+  const entries = buildEntityLookup(entities);
+  if (entries.length === 0) return <span>{text}</span>;
 
   // Escape special regex characters
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = validEntities.map((e) => esc(e.name.trim())).join("|");
+  const pattern = entries.map((e) => esc(e.alias)).join("|");
 
   // Unicode-safe word boundaries using lookbehind and lookahead:
   // (?<=^|[^\p{L}\p{N}])(PATTERN)(?=[^\p{L}\p{N}]|$)
@@ -47,17 +113,17 @@ export function renderTextWithEntityTags<T extends { id?: string; name: string }
     <>
       {parts.map((part, index) => {
         if (!part) return null;
-        const matched = validEntities.find(
-          (e) => e.name.toLowerCase().trim() === part.toLowerCase().trim()
+        const matched = entries.find(
+          (e) => e.alias.toLowerCase().trim() === part.toLowerCase().trim()
         );
         if (matched) {
           return (
             <button
-              key={`${matched.id || matched.name}-${index}`}
+              key={`${matched.entity.id || matched.alias}-${index}`}
               type="button"
-              onClick={() => onEntityClick(matched)}
+              onClick={() => onEntityClick(matched.entity)}
               className="inline-flex items-center gap-1 mx-1 px-2.5 py-0.5 rounded-full bg-[#E06B55]/18 hover:bg-[#E06B55]/32 border border-[#E06B55]/40 hover:border-[#E06B55]/70 text-[#F7F7D9] font-sans font-medium text-xs sm:text-[13px] transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 group align-baseline"
-              title={`Inspect Qloo taste graph evidence for ${matched.name}`}
+              title={`Inspect Qloo taste graph evidence for ${matched.entity.name}`}
             >
               <span>{part}</span>
               <span className="text-[10px] text-[#E06B55] opacity-80 group-hover:opacity-100 transition-opacity">↗</span>

@@ -236,6 +236,149 @@ const MOCK_INQUIRIES: Inquiry[] = [
   },
 ];
 
+
+const QLOO_TSUKURU_ENTITIES_TOOLS: CulturalEntity[] = [
+  {
+    id: "tt1",
+    name: "Rotring 600",
+    domain: "OBJECTS",
+    description: "Hexagonal brass technical drafting pencil with knurled grip, built for drafting terminal elevations.",
+    entityId: "urn:qloo:entity:rotring_600",
+    entityType: "urn:entity:brand",
+    affinityScore: 97,
+    imageUrl: "https://images.unsplash.com/photo-1585336261026-6218f2f53412?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Tsukuru", "architecture"],
+    qlooReasoning: "Austere German technical drafting tool preferred by East Asian railway and structural designers.",
+  },
+  {
+    id: "tt2",
+    name: "Midori MD Notebook",
+    domain: "OBJECTS",
+    description: "Unbleached Japanese cotton-blend drafting notebook that accepts fountain pen and hard graphite without bleed.",
+    entityId: "urn:qloo:entity:midori_md",
+    entityType: "urn:entity:brand",
+    affinityScore: 94,
+    imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Rotring 600"],
+    qlooReasoning: "High affinity co-occurrence with Japanese architectural professionals and solitary sketchers.",
+  },
+  {
+    id: "tt3",
+    name: "Shinwa Steel Rule",
+    domain: "OBJECTS",
+    description: "Zero-glare stainless steel precision rule engineered for Japanese construction verification.",
+    entityId: "urn:qloo:entity:shinwa_rule",
+    entityType: "urn:entity:brand",
+    affinityScore: 91,
+    imageUrl: "https://images.unsplash.com/photo-1581783342308-f792dbdd27c5?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Rotring 600"],
+    qlooReasoning: "Essential field inspection instrument indexing high among civil transit architects.",
+  },
+];
+
+const QLOO_TSUKURU_ENTITIES_MUSIC: CulturalEntity[] = [
+  {
+    id: "tm1",
+    name: "Hiroshi Yoshimura",
+    domain: "MUSIC",
+    description: "Pioneering Japanese kankyō ongaku (environmental ambient) blending clean keyboard tones with quiet spatial field recordings.",
+    entityId: "urn:qloo:entity:hiroshi_yoshimura_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 96,
+    imageUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Tsukuru", "Nagoya"],
+    qlooReasoning: "Japanese environmental sound pioneer whose works were designed for architectural spaces and terminals.",
+  },
+  {
+    id: "tm2",
+    name: "Midori Takada",
+    domain: "MUSIC",
+    description: "Percussionist whose meditative marimba compositions evoke physical space, water, and structural proportion.",
+    entityId: "urn:qloo:entity:midori_takada_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 92,
+    imageUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Hiroshi Yoshimura"],
+    qlooReasoning: "Cross-domain bridge between Japanese minimalist composition and spatial acoustic design.",
+  },
+  {
+    id: "tm3",
+    name: "Ryuichi Sakamoto",
+    domain: "MUSIC",
+    description: "Austere solo piano works emphasizing acoustic decay and the silence between key strikes.",
+    entityId: "urn:qloo:entity:ryuichi_sakamoto_001",
+    entityType: "urn:entity:artist",
+    affinityScore: 91,
+    imageUrl: "https://images.unsplash.com/photo-1520523839898-507127022d48?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Hiroshi Yoshimura"],
+    qlooReasoning: "Direct aesthetic correlation with solitary Japanese design professionals.",
+  },
+];
+
+const QLOO_TSUKURU_ENTITIES_PLACES: CulturalEntity[] = [
+  {
+    id: "tp1",
+    name: "Osu Kannon",
+    domain: "PLACES",
+    description: "Ancient Buddhist sanctuary tucked into Nagoya's covered arcade network, offering quiet refuge amidst bustling streets.",
+    entityId: "urn:qloo:entity:osu_kannon_001",
+    entityType: "urn:entity:place",
+    affinityScore: 95,
+    imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Tsukuru", "Nagoya"],
+    qlooReasoning: "Historic regional landmark functioning as an urban sanctuary for solitary evening walks.",
+  },
+  {
+    id: "tp2",
+    name: "Endoji Shotengai",
+    domain: "PLACES",
+    description: "One of Nagoya's oldest covered shopping streets, preserving Showa-era kissaten and quiet woodwork craft shops.",
+    entityId: "urn:qloo:entity:endoji_001",
+    entityType: "urn:entity:place",
+    affinityScore: 92,
+    imageUrl: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80",
+    seedEntities: ["Osu Kannon"],
+    qlooReasoning: "Authentic preserved architectural district favored by local craftspeople over modern shopping complexes.",
+  },
+];
+
+const QLOO_TSUKURU_INQUIRIES: Inquiry[] = [
+  {
+    id: "tsukuru-tools",
+    question: "What drafting tools and everyday items rest on his work desk?",
+    source: "creator",
+    domain: "OBJECTS",
+    vignette:
+      "On Tsukuru's drafting table in his uncluttered Nagoya apartment, alongside steel compasses and drafting vellum, rests a matte black Rotring 600 pencil and an open Midori MD Notebook filled with station elevation sketches.\n\nHis choices reflect an exacting commitment to structural permanence. Qloo identifies an authentic material universe of Japanese engineering: pairing high-density mechanical pencils with Shinwa steel rules and unlacquered brass tools that withstand repetitive tactile drafting.",
+    vignetteHighlightEntity: "Rotring 600",
+    hasAudio: false,
+    entities: QLOO_TSUKURU_ENTITIES_TOOLS,
+  },
+  {
+    id: "tsukuru-soundscape",
+    question: "What music does he listen to when sketching late at night?",
+    source: "creator",
+    domain: "MUSIC",
+    vignette:
+      "At 2 AM, when the commuter lines outside his window cease their rhythmic rumble, Tsukuru turns on the clean, crystalline synthesizer phrases of Hiroshi Yoshimura and the spacious piano recordings of Ryuichi Sakamoto.\n\nFor a station architect spending daylight hours surrounded by transit noise, late-night sound serves as spatial architecture. Qloo's taste graph reveals that listeners anchored in Japanese environmental ambient over-index heavily on austere acoustic compositions—creating a sonic sanctuary where silence feels deliberate rather than empty.",
+    vignetteHighlightEntity: "Hiroshi Yoshimura",
+    hasAudio: true,
+    audioTrackName: "Hiroshi Yoshimura — Green (1986)",
+    entities: QLOO_TSUKURU_ENTITIES_MUSIC,
+  },
+  {
+    id: "tsukuru-haunts",
+    question: "Where in Nagoya does he walk when he wants to clear his head?",
+    source: "creator",
+    domain: "PLACES",
+    vignette:
+      "When the drafting vellum is put away on Sunday afternoons, Tsukuru avoids the gleaming commercial towers around Nagoya Station and walks through the stone courtyards of Osu Kannon and the quiet corridors of Endoji Shotengai.\n\nHis route connects weathered Showa-era sanctuaries with quiet backstreets untouched by modern glass-and-steel development, offering an unhurried perspective on the city's architectural layers.",
+    vignetteHighlightEntity: "Osu Kannon",
+    hasAudio: false,
+    entities: QLOO_TSUKURU_ENTITIES_PLACES,
+  },
+];
+
 const BASE_LLM_DEMO_PRESETS: Record<
   string,
   { culturalDossier: CulturalDossierBrief; inquiries: Inquiry[] }
@@ -558,7 +701,10 @@ export default function StudioScreen({
   const liveInquiries: Inquiry[] =
     initialData?.inquiries && initialData.inquiries.length > 0
       ? initialData.inquiries
-      : MOCK_INQUIRIES;
+      : ((characterName + " " + userPrompt).toLowerCase().includes("tsukuru") ||
+         (characterName + " " + userPrompt).toLowerCase().includes("nagoya")
+          ? QLOO_TSUKURU_INQUIRIES
+          : MOCK_INQUIRIES);
 
   // Caches for comparative engine toggle
   const qlooDataCache = useRef<{
@@ -742,6 +888,34 @@ export default function StudioScreen({
 
     return list;
   }, [activeEntities, inquiries, culturalDossier, initialData, characterName]);
+
+  // Dynamic taste thesis ensuring character-aligned text and guaranteed tag resolution
+  const resolvedTasteThesis = useMemo(() => {
+    const rawThesis = culturalDossier?.tasteThesis?.trim();
+    const charFirst = (characterName || "").split(" ")[0].toLowerCase();
+    if (rawThesis && (rawThesis.toLowerCase().includes(charFirst) || charFirst === "elena")) {
+      return rawThesis;
+    }
+    if (rawThesis && !rawThesis.toLowerCase().includes("elena") && !rawThesis.toLowerCase().includes("marseille")) {
+      return rawThesis;
+    }
+    const lower = (characterName + " " + userPrompt).toLowerCase();
+    if (lower.includes("tsukuru") || lower.includes("nagoya") || lower.includes("architect")) {
+      return "In Nagoya, Tsukuru's practice as a station architect shapes a life bound to structural precision and quiet endurance. On his drafting table, meticulous mechanical pencils from Rotring 600 and drafting compasses govern long solitary nights. When sketching late, he turns to the crystalline acoustic ambient of Hiroshi Yoshimura and the quiet paths around Osu Kannon, finding refuge from the memory of lost friendships.";
+    }
+    if (lower.includes("marcus") || lower.includes("detroit") || lower.includes("amplifier")) {
+      return "In Detroit, Marcus's workshop as an analog audio restorer shapes a life bound to physical frequency and vacuum-tube warmth. On his bench, vintage soldering irons and high-precision Fluke multimeters test circuit continuity late into the night. When testing acoustics, he turns to the deep rhythm of Northern Soul 45s and the industrial quiet of the Detroit River, keeping an intentional boundary against disposable digital audio.";
+    }
+    return rawThesis || DEFAULT_DOSSIER.tasteThesis;
+  }, [culturalDossier, characterName, userPrompt]);
+
+  const acceptedEntities = useMemo(() => {
+    return allTaggableEntities.filter((e) => acceptedEntityIds.includes(e.id));
+  }, [allTaggableEntities, acceptedEntityIds]);
+
+  const unselectedEntities = useMemo(() => {
+    return allTaggableEntities.filter((e) => !acceptedEntityIds.includes(e.id));
+  }, [allTaggableEntities, acceptedEntityIds]);
 
   // Global key listener: typing activates prompt box
   useEffect(() => {
@@ -1557,107 +1731,142 @@ export default function StudioScreen({
               </div>
             )}
 
-            {/* VIEW A: CULTURAL DOSSIER (Laid out directly in main card, zero redundant headers or nested cards) */}
+            {/* VIEW A: CULTURAL DOSSIER (Connection Prose + Selected Lookbook Grid + Unselected Pills) */}
             {isDossierSelected ? (
               <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 flex flex-col justify-between gap-6 custom-scrollbar-red">
                 <div className="flex flex-col gap-6">
-                  {/* Master 3-Sentence Connection (Direct, unencumbered prose) */}
+                  {/* 1. Connection of who the character is based on Qloo discoveries (Direct, unencumbered prose with interactive pills) */}
                   <div className="flex flex-col gap-4">
                     <p className="font-serif text-[17px] sm:text-[19px] leading-[1.85] text-[#F7F7D9] font-light">
-                      {renderTextWithEntityTags(culturalDossier.tasteThesis, allTaggableEntities, handleEntityClick)}
+                      {renderTextWithEntityTags(resolvedTasteThesis, allTaggableEntities, handleEntityClick)}
                     </p>
                   </div>
 
-                  {/* Discovered Cultural Anchors (Director's Canon Selection) */}
-                  {allTaggableEntities.length > 0 && (
+                  {/* 2. Character Canon (Selected Entities): Visual Lookbook Grid with photos & overlay */}
+                  {acceptedEntities.length > 0 ? (
                     <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
-                          Character Canon ({acceptedEntityIds.length} accepted · {Math.max(0, allTaggableEntities.length - acceptedEntityIds.length)} proposed)
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-[#E06B55] font-bold">
+                            Character Canon ({acceptedEntities.length})
+                          </span>
+                          <span className="text-xs font-serif italic text-[#F7F7D9]/60">
+                            · Curated Visual Anchors
+                          </span>
+                        </div>
                         <span className="hidden sm:inline text-[11px] font-sans text-[#F7F7D9]/40">
-                          Click pill to inspect evidence · Click +/✓ to toggle canon
+                          Click card to inspect evidence · Click ✓ to remove
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {allTaggableEntities.slice(0, 8).map((entity) => {
-                          const isAccepted = acceptedEntityIds.includes(entity.id);
-                          return (
-                            <div
-                              key={entity.id}
-                              className={`px-3 py-1.5 rounded-full border text-xs font-sans flex items-center gap-2 transition-all shadow-sm ${
-                                isAccepted
-                                  ? "bg-white/[0.08] border-white/20 text-[#F7F7D9]"
-                                  : "bg-white/[0.03] border-white/10 text-[#F7F7D9]/70 opacity-80 hover:opacity-100"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleEntityClick(entity)}
-                                className="flex items-center gap-1.5 hover:text-white cursor-pointer"
-                                title={`Inspect Qloo evidence for ${entity.name}`}
-                              >
-                                <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
-                                <span className="font-medium">{entity.name}</span>
-                                <span className="text-[10px] text-[#E06B55] opacity-60">↗</span>
-                              </button>
 
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-3.5">
+                        {acceptedEntities.map((entity) => (
+                          <div
+                            key={entity.id}
+                            onClick={() => handleEntityClick(entity)}
+                            className="group relative rounded-[18px] overflow-hidden bg-black/40 border border-white/15 hover:border-white/35 transition-all duration-300 shadow-md flex flex-col justify-end min-h-[140px] sm:min-h-[160px] p-3 cursor-pointer"
+                          >
+                            <img
+                              src={getEntityPhoto(entity)}
+                              alt={entity.name}
+                              className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 group-hover:opacity-95 transition-all duration-500"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+
+                            {/* Top Bar: Domain Pill + Remove Checkmark */}
+                            <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
+                              <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[#E06B55] font-semibold border border-white/10">
+                                {entity.domain}
+                              </span>
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleAcceptEntity(entity.id, entity.name);
                                 }}
-                                className={`w-4 h-4 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                                  isAccepted
-                                    ? "bg-emerald-500/30 text-emerald-300 hover:bg-red-500/30 hover:text-red-200"
-                                    : "bg-white/10 text-[#F7F7D9]/60 hover:bg-[#E06B55]/30 hover:text-[#F7F7D9]"
-                                }`}
-                                title={isAccepted ? "Accepted in canon (click to remove)" : "Click to accept into canon"}
+                                className="w-5 h-5 rounded-full bg-emerald-500/85 hover:bg-red-500 text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                                title="Accepted in canon (click to remove)"
                               >
-                                {isAccepted ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                                <Check className="w-3 h-3 stroke-[3]" />
                               </button>
                             </div>
-                          );
-                        })}
+
+                            {/* Bottom Text Overlay */}
+                            <div className="relative z-10 flex flex-col">
+                              <span className="font-serif italic font-medium text-sm sm:text-[15px] text-[#F7F7D9] leading-snug drop-shadow-sm truncate">
+                                {entity.name}
+                              </span>
+                              {entity.description && (
+                                <span className="font-sans text-[11px] text-[#F7F7D9]/70 line-clamp-1 mt-0.5">
+                                  {entity.description}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between p-3.5 rounded-[16px] bg-white/[0.02] border border-dashed border-white/10 text-xs font-sans text-[#F7F7D9]/60">
+                      <span>No anchors curated into canon yet. Click (+) on any discovered anchor below to add it to your visual lookbook grid.</span>
                     </div>
                   )}
 
-                  {/* Latent Tension / Graph Discovery */}
-                  {culturalDossier.unconsideredAngles?.[0] && (
-                    <div className="p-4 rounded-[18px] bg-white/[0.03] border border-white/[0.07] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#E06B55] font-semibold">
-                          Latent Tension · {culturalDossier.unconsideredAngles[0].title}
+                  {/* 3. Unselected Cultural Anchors (The rest of the entities as sleek pills) */}
+                  {unselectedEntities.length > 0 && (
+                    <div className="pt-4 border-t border-white/[0.08] flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50 font-semibold">
+                          Discovered Cultural Anchors ({unselectedEntities.length} available)
                         </span>
-                        <p className="font-sans text-xs sm:text-[13px] text-[#F7F7D9]/80 leading-relaxed">
-                          {culturalDossier.unconsideredAngles[0].description}
-                        </p>
+                        <span className="hidden sm:inline text-[11px] font-sans text-[#F7F7D9]/40">
+                          Click pill to inspect evidence · Click + to accept into visual grid
+                        </span>
                       </div>
-                      {culturalDossier.unconsideredAngles[0].groundedEntity && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const match = allTaggableEntities.find(
-                              (e) => e.name.toLowerCase() === culturalDossier.unconsideredAngles[0].groundedEntity?.toLowerCase()
-                            );
-                            if (match) handleEntityClick(match);
-                          }}
-                          className="flex-shrink-0 text-xs font-mono text-[#E06B55] hover:underline cursor-pointer"
-                        >
-                          Anchor: {culturalDossier.unconsideredAngles[0].groundedEntity} ↗
-                        </button>
-                      )}
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {unselectedEntities.map((entity) => (
+                          <div
+                            key={entity.id}
+                            className="px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-[#F7F7D9]/80 text-xs font-sans flex items-center gap-2 transition-all shadow-sm"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleEntityClick(entity)}
+                              className="flex items-center gap-1.5 hover:text-white cursor-pointer"
+                              title={`Inspect Qloo evidence for ${entity.name}`}
+                            >
+                              <span className="text-[9px] font-mono text-[#E06B55] font-bold">[{entity.domain}]</span>
+                              <span className="font-medium text-[#F7F7D9]">{entity.name}</span>
+                              <span className="text-[10px] text-[#E06B55] opacity-60">↗</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAcceptEntity(entity.id, entity.name);
+                              }}
+                              className="w-4 h-4 rounded-full flex items-center justify-center transition-all cursor-pointer bg-white/10 text-[#F7F7D9]/70 hover:bg-[#E06B55] hover:text-white"
+                              title="Accept into visual canon grid"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Card Footer: Observed Clusters + Navigation CTAs */}
-                <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-1.5 flex-wrap text-xs font-sans text-[#F7F7D9]/60">
-                    <span className="font-serif italic text-[#F7F7D9]/80 mr-1">Observed taste:</span>
-                    <span>{culturalDossier.observedClusters?.join(" · ") || "Intentional Craft · Solitary Acoustic Shield"}</span>
+                {/* Card Footer: Navigation CTAs (No Latent Tension slop, no Observed Taste slop) */}
+                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs font-sans text-[#F7F7D9]/50">
+                    <span className="font-serif italic text-[#F7F7D9]/70">Director&apos;s Canon:</span>
+                    <span>{acceptedEntities.length} in visual grid · {unselectedEntities.length} proposed</span>
                   </div>
 
                   <div className="flex items-center gap-2.5 flex-wrap">

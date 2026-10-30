@@ -1227,7 +1227,7 @@ RULES FOR WRITING:
 - LENGTH: Exactly 2 well-formed paragraphs (~110 to 140 words total). Separate the two paragraphs with two newlines (\n\n).
 
 DELIVERABLE 2: MASTER ACTIONABLE CULTURAL DOSSIER
-- tasteThesis: Exactly 3 sentences connecting who this character is in relation to their craft, everyday tools, solitary rituals, and setting, based on the questions asked and the Qloo connections discovered (third-person: "${characterName}...", strictly 3 sentences, ~65-85 words). Speak in plain, direct English—no academic jargon. Weave in 2-3 top candidate entity names naturally.
+- tasteThesis: Exactly 3 vivid sentences connecting who this character is in relation to their craft, everyday tools, solitary rituals, and setting, based on the questions asked and the Qloo connections discovered. You MUST naturally weave in 3 to 4 of the specific candidate entity names provided above (using their exact names from the candidates list) so they resolve as interactive Qloo anchors. Avoid corporate or academic jargon; write with direct literary precision.
 - psychologicalWound: 1 plain sentence identifying their core vulnerability or quiet friction.
 - tactileArmor: 1 plain sentence explaining what objects or routines they use to feel grounded against daily stress.
 - observedClusters: 3-4 simple, authentic subcultural phrases describing their real taste patterns.
@@ -1376,12 +1376,23 @@ function buildDynamicFallbackSynthesis(
     };
   });
 
-  const allTopNames = inquiries.flatMap((i) => i.candidates.slice(0, 2).map((c) => c.name));
+  const allTopNames = inquiries.flatMap((i) => i.candidates.slice(0, 3).map((c) => c.name));
+  const toolCandidate = inquiries.find((i) => i.domain === "OBJECTS" || (i.domain as string) === "TOOLS")?.candidates?.[0]?.name;
+  const musicCandidate = inquiries.find((i) => i.domain === "MUSIC")?.candidates?.[0]?.name;
+  const placeCandidate = inquiries.find((i) => i.domain === "PLACES")?.candidates?.[0]?.name;
+  const secondaryCandidate = allTopNames.find(
+    (n) => n !== toolCandidate && n !== musicCandidate && n !== placeCandidate
+  );
+
+  const thesisAnchor1 = toolCandidate || allTopNames[0] || "trusted tools";
+  const thesisAnchor2 = secondaryCandidate || allTopNames[1] || "durable craft";
+  const thesisAnchor3 = musicCandidate || allTopNames[2] || "sparse compositions";
+  const thesisAnchor4 = placeCandidate || allTopNames[3] || loc;
 
   return {
     inquiries: synthInquiries,
     dossier: {
-      tasteThesis: `${characterName}'s cultural world is defined by intentional utility in ${loc}. Moving between ${allTopNames.slice(0, 2).join(" and ") || "disciplined anchors"}, their daily rituals prioritize durable, unadorned anchors that insulate their craft.`,
+      tasteThesis: `In ${loc}, ${characterName}'s work shapes a life defined by physical durability and patient discipline. On their worktable, everyday focus is anchored by ${thesisAnchor1} and ${thesisAnchor2}, favoring tools that carry honest wear over showroom polish. When seeking solitary focus, they turn to the spare textures of ${thesisAnchor3} and the quiet corners of ${thesisAnchor4}, maintaining a deliberate boundary against external noise.`,
       psychologicalWound: `An underlying struggle to balance solitary creative focus against the unpredictable noise and demands of ${loc}.`,
       tactileArmor: `Relies on trusted tools, physical objects, and specific acoustic atmospheres to erect a quiet boundary against outside interference.`,
       observedClusters: [
@@ -1396,7 +1407,7 @@ function buildDynamicFallbackSynthesis(
           groundedEntity: allTopNames[0] || "Cultural Anchor",
         },
       ],
-      highlightedNodes: allTopNames.slice(0, 4),
+      highlightedNodes: [thesisAnchor1, thesisAnchor2, thesisAnchor3, thesisAnchor4].filter(Boolean),
     },
   };
 }
