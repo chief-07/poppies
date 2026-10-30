@@ -1421,6 +1421,7 @@ export default function StudioScreen({
               {/* Mobile Inquiries Trigger Button */}
               <button
                 type="button"
+                id="tour-mobile-menu-btn"
                 onClick={() => setMobileSidebarOpen(true)}
                 className="lg:hidden flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[#F7F7D9] text-xs font-sans transition-all active:scale-95 flex-shrink-0 shadow-sm cursor-pointer"
                 title="Open inquiries and navigation"
