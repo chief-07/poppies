@@ -1303,16 +1303,14 @@ export default function StudioScreen({
 
   return (
     <div className="relative h-[100dvh] min-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-transparent p-2 sm:p-4 lg:p-6 select-none">
-      {/* 1. Base Painted Poppy Background — Crisp center scale, softly tapered edges into #182a1d */}
-      <div className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden bg-[#182a1d]">
-        <div className="relative w-full max-w-[1200px] aspect-[1024/661] max-h-[90vh] opacity-90 sm:opacity-95">
-          <img
-            src="/poppies-bg.jpg"
-            alt=""
-            className="w-full h-full object-contain crisp-artwork-vignette"
-          />
-        </div>
-      </div>
+      {/* 1. Base Painted Poppy Background — Full-bleed widescreen HD, sharpened contrast, tactile canvas grain */}
+      <div
+        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-90 sm:opacity-95 bg-sharpened"
+        style={{
+          backgroundImage: "url('/poppies-bg-hd.jpg')",
+        }}
+      />
+      <div className="fixed inset-0 canvas-grain-overlay pointer-events-none" />
 
       {/* 2. Solid Green Clearing Extending to Right Edge (Top-and-bottom fade across mobile & desktop) */}
       <div

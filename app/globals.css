@@ -61,16 +61,19 @@ body {
   background: #f07b65;
 }
 
-/* Crisp artwork vignette: Prevents 1024px raster artwork from stretching into blurry pixels, 
-   rendering it sharp at native center and softly feathering its perimeter into the canvas green */
-.crisp-artwork-vignette {
-  -webkit-mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, black 42%, rgba(0, 0, 0, 0.75) 68%, transparent 100%);
-  mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, black 42%, rgba(0, 0, 0, 0.75) 68%, transparent 100%);
+/* Hardware-accelerated sharpening and rich contrast grading for full-bleed painted background */
+.bg-sharpened {
+  filter: contrast(108%) saturate(106%) brightness(98%);
+  image-rendering: -webkit-optimize-contrast;
+  transform: translateZ(0);
 }
 
-.crisp-splash-vignette {
-  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, black 48%, rgba(0, 0, 0, 0.8) 72%, transparent 100%);
-  mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, black 48%, rgba(0, 0, 0, 0.8) 72%, transparent 100%);
+/* Microscopic tactile linen canvas grain: transforms digital stretch into physical painted texture */
+.canvas-grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }
 
 /* Choreographed screen entrance & drop animations */
