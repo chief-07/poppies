@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, Printer } from "lucide-react";
+import { X, Copy, Check, Printer, LayoutGrid, List } from "lucide-react";
 
 interface AssembledEntity {
   id: string;
@@ -70,6 +70,7 @@ export default function AssembledDossierModal({
   acceptedEntityIds,
 }: AssembledDossierModalProps) {
   const [copied, setCopied] = useState(false);
+  const [modalViewMode, setModalViewMode] = useState<"lookbook" | "list">("lookbook");
 
   if (!isOpen) return null;
 
@@ -168,10 +169,40 @@ export default function AssembledDossierModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar: minimal actions, zero slop */}
-        <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08]">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50">
-            Film-Bible Lookbook · {totalAcceptedCount} accepted anchor{totalAcceptedCount !== 1 ? "s" : ""}
-          </span>
+        <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08] flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[#F7F7D9]/50">
+              Film-Bible Lookbook · {totalAcceptedCount} accepted anchor{totalAcceptedCount !== 1 ? "s" : ""}
+            </span>
+
+            {/* View Switcher: Lookbook vs Catalog List */}
+            <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.05] border border-white/10">
+              <button
+                type="button"
+                onClick={() => setModalViewMode("lookbook")}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                  modalViewMode === "lookbook"
+                    ? "bg-[#E06B55] text-white font-medium"
+                    : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
+                }`}
+              >
+                <LayoutGrid className="w-3 h-3" />
+                <span>Lookbook</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalViewMode("list")}
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                  modalViewMode === "list"
+                    ? "bg-[#E06B55] text-white font-medium"
+                    : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
+                }`}
+              >
+                <List className="w-3 h-3" />
+                <span>Catalog</span>
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -291,49 +322,84 @@ export default function AssembledDossierModal({
                     </div>
                   )}
 
-                  {/* Visual Canon Gallery: Photographic anchors for production design */}
+                  {/* Visual Canon Gallery: Photographic anchors for lookbook or clean table for catalog */}
                   {inq.entities && inq.entities.length > 0 && (
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {inq.entities.map((e) => (
-                        <div
-                          key={e.id}
-                          className="rounded-[16px] bg-white/[0.04] border border-white/[0.08] overflow-hidden flex flex-col shadow-sm"
-                        >
-                          {/* Photographic Anchor Banner */}
-                          <div className="relative w-full h-24 sm:h-28 bg-black/40 overflow-hidden">
-                            <img
-                              src={getEntityPhoto(e)}
-                              alt={e.name}
-                              className="w-full h-full object-cover opacity-85"
-                              onError={(ev) => {
-                                (ev.target as HTMLElement).style.display = "none";
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#112115] via-transparent to-transparent opacity-90" />
-                            <div className="absolute bottom-2 left-2.5">
-                              <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                    modalViewMode === "lookbook" ? (
+                      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {inq.entities.map((e) => (
+                          <div
+                            key={e.id}
+                            className="rounded-[16px] bg-white/[0.04] border border-white/[0.08] overflow-hidden flex flex-col shadow-sm"
+                          >
+                            {/* Photographic Anchor Banner */}
+                            <div className="relative w-full h-24 sm:h-28 bg-black/40 overflow-hidden">
+                              <img
+                                src={getEntityPhoto(e)}
+                                alt={e.name}
+                                className="w-full h-full object-cover opacity-85"
+                                onError={(ev) => {
+                                  (ev.target as HTMLElement).style.display = "none";
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-[#112115] via-transparent to-transparent opacity-90" />
+                              <div className="absolute bottom-2 left-2.5">
+                                <span className="text-[9px] font-mono tracking-wider text-[#E06B55] uppercase font-bold">
+                                  [{e.domain}]
+                                </span>
+                              </div>
+                              {e.affinityScore !== undefined && (
+                                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-sans font-medium text-[#F7F7D9]/90">
+                                  {e.affinityScore}%
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Entity Name & Context */}
+                            <div className="p-3 flex flex-col gap-1">
+                              <span className="font-serif italic font-bold text-sm text-[#F7F7D9] leading-tight">
+                                {e.name}
+                              </span>
+                              <p className="font-sans text-[11px] text-[#F7F7D9]/70 leading-relaxed line-clamp-2">
+                                {e.description}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-4 flex flex-col gap-2">
+                        {inq.entities.map((e) => (
+                          <div
+                            key={e.id}
+                            className="p-3 rounded-[14px] bg-white/[0.03] border border-white/10 flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="text-[9px] font-mono uppercase text-[#E06B55] font-bold flex-shrink-0">
                                 [{e.domain}]
                               </span>
+                              <span className="font-serif italic font-medium text-sm text-[#F7F7D9] truncate">
+                                {e.name}
+                              </span>
+                              <span className="font-sans text-xs text-[#F7F7D9]/60 truncate hidden sm:inline">
+                                — {e.description}
+                              </span>
                             </div>
-                            {e.affinityScore !== undefined && (
-                              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[10px] font-sans font-medium text-[#F7F7D9]/90">
-                                {e.affinityScore}%
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {e.entityId && (
+                                <code className="hidden md:inline font-mono text-[10.5px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/30">
+                                  {e.entityId}
+                                </code>
+                              )}
+                              {e.affinityScore !== undefined && (
+                                <span className="font-mono text-xs text-[#F7F7D9]/80 px-2 py-0.5 rounded-full bg-white/10 border border-white/10">
+                                  {e.affinityScore}%
+                                </span>
+                              )}
+                            </div>
                           </div>
-
-                          {/* Entity Name & Context */}
-                          <div className="p-3 flex flex-col gap-1">
-                            <span className="font-serif italic font-bold text-sm text-[#F7F7D9] leading-tight">
-                              {e.name}
-                            </span>
-                            <p className="font-sans text-[11px] text-[#F7F7D9]/70 leading-relaxed line-clamp-2">
-                              {e.description}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )
                   )}
 
                   {/* Empty state for inquiry with prose but zero accepted entities */}
