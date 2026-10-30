@@ -73,6 +73,77 @@ body {
   mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, black 48%, rgba(0, 0, 0, 0.8) 72%, transparent 100%);
 }
 
+/* Choreographed screen entrance & drop animations */
+@keyframes elegant-drop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-22px);
+  }
+  65% {
+    opacity: 0.9;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pill-drop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  75% {
+    opacity: 0.95;
+    transform: translateY(1.5px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes capsule-glide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  70% {
+    opacity: 0.95;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes smooth-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-elegant-drop {
+  animation: elegant-drop-in 750ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pill-drop {
+  animation: pill-drop-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-capsule-glide {
+  animation: capsule-glide-down 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-smooth-fade {
+  animation: smooth-fade-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Responsive clearing masks for green stage over poppies artwork */
 .green-stage-mask {
   -webkit-mask-image: linear-gradient(

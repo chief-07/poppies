@@ -111,19 +111,31 @@ export default function Home() {
   // Initial Entrance Splash Screen with soft fade out
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
+  const [entranceStarted, setEntranceStarted] = useState(false);
+
+  // Smooth Crossfade Transitions between Screen States
+  const [isExitingInput, setIsExitingInput] = useState(false);
+  const [isExitingResolving, setIsExitingResolving] = useState(false);
 
   useEffect(() => {
-    // Hold splash screen for ~1.5s, then trigger soft fade
+    // 1. Hold splash screen for ~1.3s, then initiate soft fade out
     const fadeTimer = setTimeout(() => {
       setSplashFading(true);
-    }, 1500);
+    }, 1300);
 
+    // 2. As splash fades, trigger the staggered drop entrance of input elements
+    const entranceTimer = setTimeout(() => {
+      setEntranceStarted(true);
+    }, 1600);
+
+    // 3. Unmount splash completely once fully transparent
     const removeTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 2300); // 1.5s hold + 800ms soft fade
+    }, 2100);
 
     return () => {
       clearTimeout(fadeTimer);
+      clearTimeout(entranceTimer);
       clearTimeout(removeTimer);
     };
   }, []);
@@ -319,19 +331,42 @@ export default function Home() {
     const finalPrompt = characterText.trim() || samplePrompts[0].text;
     setCharacterText(finalPrompt);
     setIsFocused(false);
-    setScreenState("resolving");
+    // Smooth transition: fade & glide input screen out, then mount resolving screen
+    setIsExitingInput(true);
+    setTimeout(() => {
+      setScreenState("resolving");
+      setIsExitingInput(false);
+    }, 450);
   };
 
   const handleResolutionComplete = (data: any) => {
     setResolvedData(data);
-    setScreenState("studio");
-    setIsTourOpen(true);
+    // Smooth transition: fade resolving screen out, then crossfade to studio screen
+    setIsExitingResolving(true);
+    setTimeout(() => {
+      setScreenState("studio");
+      setIsExitingResolving(false);
+      // Gentle pause before guided tour opens so the user can take in the studio layout
+      setTimeout(() => {
+        setIsTourOpen(true);
+      }, 600);
+    }, 500);
   };
 
-  // State 2: Resolving Screen
+  // State 2: Resolving Screen with smooth crossfade
   if (screenState === "resolving") {
     return (
-      <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
+      <div
+        className={`w-full min-h-screen transition-all duration-500 ease-out ${
+          isExitingResolving
+            ? "opacity-0 scale-[1.015] filter blur-[0.5px]"
+            : "opacity-100 scale-100 animate-smooth-fade"
+        } ${
+          engine === "base_llm"
+            ? "filter grayscale-[40%] contrast-[96%]"
+            : ""
+        }`}
+      >
         <ResolvingScreen
           promptText={characterText || samplePrompts[0].text}
           engine={engine}
@@ -341,10 +376,16 @@ export default function Home() {
     );
   }
 
-  // State 3: Co-Development Studio Screen
+  // State 3: Co-Development Studio Screen with smooth crossfade
   if (screenState === "studio") {
     return (
-      <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
+      <div
+        className={`w-full h-full animate-smooth-fade transition-all duration-700 ease-out ${
+          engine === "base_llm"
+            ? "filter grayscale-[40%] contrast-[96%]"
+            : ""
+        }`}
+      >
         <StudioScreen
           initialData={resolvedData}
           engine={engine}
@@ -410,11 +451,13 @@ export default function Home() {
           style={{ willChange: "opacity" }}
         />
 
-        {/* 4. Scaled Content Canvas */}
+        {/* 4. Scaled Content Canvas with smooth exit and drop choreography */}
         <div
-          className={`w-full max-w-[880px] mx-auto flex flex-col justify-center gap-6 transition-all duration-300 ${
-            isFocused ? "relative z-50" : "relative z-10"
-          }`}
+          className={`w-full max-w-[880px] mx-auto flex flex-col justify-center gap-6 transition-all duration-500 ease-out ${
+            isExitingInput
+              ? "opacity-0 translate-y-4 scale-[0.985]"
+              : "opacity-100 translate-y-0 scale-100"
+          } ${isFocused ? "relative z-50" : "relative z-10"}`}
         >
           {/* Base LLM Mode Warning Banner */}
           {engine === "base_llm" && (
@@ -424,11 +467,12 @@ export default function Home() {
             </div>
           )}
 
-          {/* Header with #F7F7D9 typography (dimmed in spotlight mode) */}
+          {/* Header with #F7F7D9 typography (drops in first with gentle momentum) */}
           <div
-            className={`max-w-[820px] transition-opacity duration-300 ${
+            className={`max-w-[820px] transition-all duration-300 ${
               isFocused ? "opacity-40" : "opacity-100"
-            }`}
+            } ${entranceStarted ? "animate-elegant-drop" : "opacity-0 -translate-y-5"}`}
+            style={{ animationDelay: "60ms" }}
           >
             <h1 className="font-serif font-bold text-lg sm:text-xl md:text-[1.85rem] text-[#F7F7D9] leading-[1.5] sm:leading-[1.52] tracking-tight">
               Write about your character.
@@ -439,7 +483,7 @@ export default function Home() {
             </h1>
           </div>
 
-          {/* Compact Preset Pills (dimmed in spotlight mode) */}
+          {/* Compact Preset Pills (drops in staggered, one at a time) */}
           <div
             className={`flex flex-wrap items-center gap-2.5 transition-opacity duration-300 ${
               isFocused ? "opacity-40 pointer-events-none" : "opacity-100"
@@ -450,7 +494,12 @@ export default function Home() {
                 key={index}
                 type="button"
                 onClick={() => handleSelectPreset(preset.text)}
-                className="group flex items-center justify-between gap-2 px-4 py-1.5 sm:px-4.5 sm:py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.98] border border-white/[0.14] backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_4px_14px_rgba(0,0,0,0.18)] transition-all duration-200 text-left cursor-pointer"
+                className={`group flex items-center justify-between gap-2 px-4 py-1.5 sm:px-4.5 sm:py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] active:scale-[0.98] border border-white/[0.14] backdrop-blur-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2),0_4px_14px_rgba(0,0,0,0.18)] transition-all duration-200 text-left cursor-pointer ${
+                  entranceStarted ? "animate-pill-drop" : "opacity-0 -translate-y-4"
+                }`}
+                style={{
+                  animationDelay: `${240 + index * 120}ms`,
+                }}
               >
                 <span className="text-[#F7F7D9] text-xs sm:text-[13px] font-sans font-medium tracking-wide">
                   {preset.label}
@@ -462,15 +511,20 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Main Character Input Box with Focus Scaling & Hardware Accelerated Elevation */}
+          {/* Main Character Input Box with Focus Scaling & Hardware Accelerated Elevation (glides down into position) */}
           <div
             ref={promptCardRef}
             className={`relative w-full rounded-[36px] sm:rounded-[44px] p-2 sm:p-2.5 bg-white/[0.05] backdrop-blur-md border border-white/[0.14] transition-all duration-300 ease-out transform-gpu ${
+              entranceStarted ? "animate-capsule-glide" : "opacity-0 -translate-y-7"
+            } ${
               isFocused
                 ? "scale-[1.015] shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.35),0_24px_60px_rgba(0,0,0,0.7)]"
                 : "scale-100 shadow-[inset_0_1px_1px_0_rgba(255,255,255,0.25),0_16px_45px_rgba(0,0,0,0.35)]"
             }`}
-            style={{ willChange: "transform, box-shadow" }}
+            style={{
+              animationDelay: "540ms",
+              willChange: "transform, box-shadow, opacity",
+            }}
           >
             {/* Inner Text Box (Color: #F7F7D9) */}
             <div className="relative w-full rounded-[30px] sm:rounded-[36px] bg-[#F7F7D9] px-6 sm:px-8 pt-6 pb-4 sm:pb-5 flex flex-col justify-between min-h-[230px] sm:min-h-[260px] shadow-sm">
