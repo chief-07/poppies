@@ -360,30 +360,34 @@ export default function Home() {
   // State 1: Input Screen (Clean canvas, unencumbered by header)
   return (
     <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
-      {/* Initial Entrance Splash Screen */}
+      {/* Initial Entrance Splash Screen — Crisp centered artwork, soft tapered edges into #132317 */}
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none transition-opacity duration-800 ease-in-out ${
+          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none overflow-hidden transition-opacity duration-800 ease-in-out ${
             splashFading ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out"
-            style={{
-              backgroundImage: "url('/poppies-splash.jpg')",
-            }}
-          />
+          <div className="relative w-full max-w-[1040px] aspect-[1024/661] max-h-[85vh] p-4 flex items-center justify-center">
+            <img
+              src="/poppies-splash.jpg"
+              alt="Poppies"
+              className="w-full h-full object-contain crisp-splash-vignette select-none pointer-events-none filter drop-shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+            />
+          </div>
         </div>
       )}
 
       <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-transparent py-8 sm:py-12 px-4 sm:px-6">
-        {/* 1. Base Painted Poppy Background */}
-        <div
-          className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
-          style={{
-            backgroundImage: "url('/poppies-bg.jpg')",
-          }}
-        />
+        {/* 1. Base Painted Poppy Background — Crisp center scale, softly tapered into #182a1d */}
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden bg-[#182a1d]">
+          <div className="relative w-full max-w-[1100px] aspect-[1024/661] max-h-[88vh] opacity-90 sm:opacity-95">
+            <img
+              src="/poppies-bg.jpg"
+              alt=""
+              className="w-full h-full object-contain crisp-artwork-vignette"
+            />
+          </div>
+        </div>
 
         {/* 2. Solid Green (#28402A) Center Band (Top-and-bottom fade across mobile & desktop) */}
         <div

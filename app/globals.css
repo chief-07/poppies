@@ -61,6 +61,18 @@ body {
   background: #f07b65;
 }
 
+/* Crisp artwork vignette: Prevents 1024px raster artwork from stretching into blurry pixels, 
+   rendering it sharp at native center and softly feathering its perimeter into the canvas green */
+.crisp-artwork-vignette {
+  -webkit-mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, black 42%, rgba(0, 0, 0, 0.75) 68%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, black 42%, rgba(0, 0, 0, 0.75) 68%, transparent 100%);
+}
+
+.crisp-splash-vignette {
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, black 48%, rgba(0, 0, 0, 0.8) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, black 48%, rgba(0, 0, 0, 0.8) 72%, transparent 100%);
+}
+
 /* Responsive clearing masks for green stage over poppies artwork */
 .green-stage-mask {
   -webkit-mask-image: linear-gradient(
