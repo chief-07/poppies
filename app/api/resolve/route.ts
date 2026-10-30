@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAgenticResearchCycle, runBaseLLMResearchCycle } from "@/lib/agent";
 
+export const runtime = "edge";
+
 export async function POST(req: NextRequest) {
   try {
     const { prompt, engine = "qloo" } = await req.json();

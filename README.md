@@ -2,6 +2,8 @@
 
 **A culturally grounded character and world-building agent powered by Qloo.**
 
+🌐 **Live Demo (Cloudflare Pages)**: [https://poppies-1f8.pages.dev](https://poppies-1f8.pages.dev)
+
 Poppies helps creators, writers, and brand designers build characters, personas, and worlds that feel authentic, specific, and lived-in—using real-world cultural taste data rather than internet clichés.
 
 ---
