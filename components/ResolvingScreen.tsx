@@ -226,14 +226,13 @@ export default function ResolvingScreen({
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-transparent px-6 select-none">
-      {/* 1. Base Painted Poppy Background — Full-bleed widescreen HD, sharpened contrast, tactile canvas grain */}
+      {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-90 sm:opacity-95 bg-sharpened"
+        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
         style={{
-          backgroundImage: "url('/poppies-bg-hd.jpg')",
+          backgroundImage: "url('/poppies-bg.jpg')",
         }}
       />
-      <div className="fixed inset-0 canvas-grain-overlay pointer-events-none" />
 
       {/* 2. Solid Green (#28402A) Center Band with Tapered Fade (Top-to-bottom on mobile, left-to-right on desktop) */}
       <div

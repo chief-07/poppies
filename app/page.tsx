@@ -401,33 +401,30 @@ export default function Home() {
   // State 1: Input Screen (Clean canvas, unencumbered by header)
   return (
     <div className={engine === "base_llm" ? "filter grayscale-[40%] contrast-[96%] transition-all duration-700" : "transition-all duration-700"}>
-      {/* Initial Entrance Splash Screen — Full-bleed, crisp contrast, soft fade */}
+      {/* Initial Entrance Splash Screen */}
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none overflow-hidden transition-opacity duration-800 ease-in-out ${
+          className={`fixed inset-0 z-[500] flex items-center justify-center bg-[#132317] select-none transition-opacity duration-800 ease-in-out ${
             splashFading ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         >
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-sharpened scale-100 transition-transform duration-1000 ease-out"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out"
             style={{
-              backgroundImage: "url('/poppies-splash-hd.jpg')",
+              backgroundImage: "url('/poppies-splash.jpg')",
             }}
           />
-          <div className="absolute inset-0 canvas-grain-overlay pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/25 pointer-events-none" />
         </div>
       )}
 
       <main className="relative min-h-[100dvh] w-full flex items-center justify-center overflow-x-hidden bg-transparent py-8 sm:py-12 px-4 sm:px-6">
-        {/* 1. Base Painted Poppy Background — Full-bleed widescreen HD, sharpened contrast, tactile canvas grain */}
+        {/* 1. Base Painted Poppy Background */}
         <div
-          className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-90 sm:opacity-95 bg-sharpened"
+          className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
           style={{
-            backgroundImage: "url('/poppies-bg-hd.jpg')",
+            backgroundImage: "url('/poppies-bg.jpg')",
           }}
         />
-        <div className="fixed inset-0 canvas-grain-overlay pointer-events-none" />
 
         {/* 2. Solid Green (#28402A) Center Band (Top-and-bottom fade across mobile & desktop) */}
         <div
