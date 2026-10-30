@@ -409,7 +409,7 @@ export default function Home() {
           }`}
         >
           <div
-            className="w-full h-full max-w-[1024px] max-h-[661px] bg-contain sm:bg-cover bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out [mask-image:linear-gradient(to_bottom,transparent_0%,black_10%,black_90%,transparent_100%)] sm:[mask-image:none]"
+            className="absolute inset-0 bg-cover bg-[52.5%_center] sm:bg-center bg-no-repeat transform scale-100 transition-transform duration-1000 ease-out"
             style={{
               backgroundImage: "url('/poppies-splash.jpg')",
             }}
@@ -420,7 +420,7 @@ export default function Home() {
       <main className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full flex items-center justify-center overflow-y-auto sm:overflow-hidden bg-transparent py-4 sm:py-12 px-4 sm:px-6">
         {/* 1. Base Painted Poppy Background */}
         <div
-          className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
+          className="fixed inset-0 h-full w-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
           style={{
             backgroundImage: "url('/poppies-bg.jpg')",
           }}

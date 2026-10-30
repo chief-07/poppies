@@ -3,18 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --background: #28402a;
+  --background: #182a1d;
   --foreground: #f7f7d9;
 }
 
 html {
   height: 100%;
   height: 100dvh;
+  background-color: #182a1d !important;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  background-color: #182a1d !important;
   height: 100%;
   height: 100dvh;
   margin: 0;

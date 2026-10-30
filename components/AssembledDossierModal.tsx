@@ -154,21 +154,21 @@ export default function AssembledDossierModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar: Understated and focused */}
-        <div className="flex-shrink-0 px-4 sm:px-6 py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08] flex-wrap gap-2.5">
-          <div className="flex items-center gap-3">
-            <span className="font-serif italic font-bold text-lg sm:text-xl text-[#F7F7D9] tracking-tight">
+        <div className="flex-shrink-0 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between bg-white/[0.03] border-b border-white/[0.08] gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="font-serif italic font-bold text-base sm:text-xl text-[#F7F7D9] tracking-tight truncate max-w-[130px] sm:max-w-none">
               {characterName}
             </span>
-            <span className="text-xs font-mono text-[#E06B55] px-2.5 py-0.5 rounded-full bg-[#E06B55]/12 border border-[#E06B55]/30">
+            <span className="text-[10px] sm:text-xs font-mono text-[#E06B55] px-2 sm:px-2.5 py-0.5 rounded-full bg-[#E06B55]/12 border border-[#E06B55]/30 whitespace-nowrap flex-shrink-0 leading-normal">
               {acceptedEntities.length} accepted media
             </span>
 
             {/* View Switcher: Lookbook Tight Grid vs Catalog List */}
-            <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.05] border border-white/10">
+            <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.05] border border-white/10 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setModalViewMode("lookbook")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
                   modalViewMode === "lookbook"
                     ? "bg-[#E06B55] text-white font-medium shadow-sm"
                     : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
@@ -176,12 +176,12 @@ export default function AssembledDossierModal({
                 title="Seamless Lookbook Grid"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Lookbook</span>
+                <span className="hidden sm:inline">Lookbook</span>
               </button>
               <button
                 type="button"
                 onClick={() => setModalViewMode("list")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-sans transition-all cursor-pointer ${
                   modalViewMode === "list"
                     ? "bg-[#E06B55] text-white font-medium shadow-sm"
                     : "text-[#F7F7D9]/60 hover:text-[#F7F7D9]"
@@ -189,16 +189,16 @@ export default function AssembledDossierModal({
                 title="Catalog List View"
               >
                 <List className="w-3.5 h-3.5" />
-                <span>Catalog</span>
+                <span className="hidden sm:inline">Catalog</span>
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-sans text-[#F7F7D9]/80 hover:text-[#F7F7D9] transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-xs font-sans text-[#F7F7D9]/80 hover:text-[#F7F7D9] transition-all cursor-pointer active:scale-95"
               title="Copy as Markdown"
             >
               {copied ? (
@@ -227,7 +227,7 @@ export default function AssembledDossierModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/[0.15] text-[#F7F7D9]/60 hover:text-[#F7F7D9] flex items-center justify-center transition-all cursor-pointer ml-1"
+              className="w-7 h-7 rounded-full bg-white/[0.06] hover:bg-white/[0.15] text-[#F7F7D9]/60 hover:text-[#F7F7D9] flex items-center justify-center transition-all cursor-pointer ml-0.5"
               title="Close"
             >
               <X className="w-4 h-4" />

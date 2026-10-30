@@ -1311,7 +1311,7 @@ export default function StudioScreen({
     <div className="relative h-[100dvh] max-h-[100dvh] w-full flex items-center justify-center overflow-hidden bg-transparent p-1.5 sm:p-4 lg:p-6 select-none">
       {/* 1. Base Painted Poppy Background */}
       <div
-        className="fixed inset-0 h-[calc(100dvh+96px)] -translate-y-24 sm:translate-y-0 sm:h-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
+        className="fixed inset-0 h-full w-full bg-cover bg-[42%_center] sm:bg-center bg-no-repeat pointer-events-none opacity-100"
         style={{
           backgroundImage: "url('/poppies-bg.jpg')",
         }}
@@ -1885,34 +1885,14 @@ export default function StudioScreen({
                             <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isUnselectedExpandedMobile ? "rotate-180" : ""}`} />
                           </button>
                         )}
-
-                        {/* Option to navigate to catalog index view */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (inquiries.length > 0) {
-                              setActiveInquiryId(inquiries[0].id);
-                              setViewMode("index");
-                            }
-                          }}
-                          className="px-3 py-1.5 rounded-full border border-white/15 bg-white/[0.05] hover:bg-white/[0.1] text-[#F7F7D9]/80 hover:text-[#F7F7D9] text-xs font-sans font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ml-auto sm:ml-0"
-                        >
-                          <List className="w-3.5 h-3.5 text-[#E06B55]" />
-                          <span>View in Catalog Index →</span>
-                        </button>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Card Footer: Navigation CTAs (No Latent Tension slop, no Observed Taste slop) */}
-                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs font-sans text-[#F7F7D9]/50">
-                    <span className="font-serif italic text-[#F7F7D9]/70">Director&apos;s Canon:</span>
-                    <span>{acceptedEntities.length} in visual grid · {unselectedEntities.length} proposed</span>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Card Footer: Navigation CTAs */}
+                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-end">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 w-full sm:w-auto">
                     {inquiries.length > 0 && (
                       <button
                         type="button"
@@ -1920,19 +1900,19 @@ export default function StudioScreen({
                           const firstInq = inquiries[0];
                           if (firstInq) setActiveInquiryId(firstInq.id);
                         }}
-                        className="px-4 py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+                        className="w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-full bg-[#E06B55] hover:bg-[#eb7b65] text-white text-xs font-sans font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm text-center"
                       >
-                        <span>Explore Inquiries ({inquiries.length})</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span className="truncate">Explore Inquiries ({inquiries.length})</span>
+                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setIsDossierModalOpen(true)}
-                      className="px-4 py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm group"
+                      className="w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-full bg-white/[0.07] hover:bg-white/[0.14] border border-white/15 text-xs font-sans text-[#F7F7D9] transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shadow-sm group text-center"
                     >
-                      <span>Assemble Lookbook ({acceptedEntityIds.length})</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform" />
+                      <span className="truncate">Assemble Lookbook ({acceptedEntityIds.length})</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-[#E06B55] group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
                     </button>
                   </div>
                 </div>
